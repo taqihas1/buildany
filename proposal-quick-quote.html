@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quick Quote — [Project Title]</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    line-height: 1.6;
+    color: #333;
+    max-width: 900px;
+    margin: 40px auto;
+    padding: 0 20px;
+    background: #f8f9fa;
+  }
+  .page {
+    background: #fff;
+    padding: 50px 60px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+  }
+  h1 {
+    font-size: 1.8em;
+    color: #1a3a5c;
+    border-bottom: 3px solid #2c7be5;
+    padding-bottom: 12px;
+    margin-bottom: 8px;
+  }
+  .meta {
+    color: #666;
+    font-size: 0.95em;
+    margin-bottom: 30px;
+  }
+  h2 {
+    font-size: 1.3em;
+    color: #1a3a5c;
+    margin-top: 35px;
+    margin-bottom: 15px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  h3 {
+    font-size: 1.05em;
+    color: #2c7be5;
+    margin-top: 20px;
+    margin-bottom: 10px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 15px 0;
+    font-size: 0.95em;
+  }
+  th, td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid #e0e0e0;
+  }
+  th {
+    background: #f1f5f9;
+    font-weight: 600;
+    color: #1a3a5c;
+  }
+  tr:hover { background: #f8fafc; }
+  .highlight {
+    background: #eef6ff;
+    border-left: 4px solid #2c7be5;
+    padding: 15px 20px;
+    margin: 15px 0;
+    border-radius: 0 6px 6px 0;
+  }
+  .price-box {
+    background: #1a3a5c;
+    color: #fff;
+    padding: 20px 25px;
+    border-radius: 8px;
+    margin: 20px 0;
+  }
+  .price-box h3 {
+    color: #fff;
+    margin: 0 0 10px 0;
+  }
+  .price-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 6px 0;
+    border-bottom: 1px solid rgba(255,255,255,0.15);
+  }
+  .price-row.total {
+    font-size: 1.3em;
+    font-weight: 700;
+    border-bottom: none;
+    border-top: 2px solid #2c7be5;
+    margin-top: 10px;
+    padding-top: 12px;
+  }
+  .badge {
+    display: inline-block;
+    background: #2c7be5;
+    color: #fff;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 0.8em;
+    font-weight: 600;
+  }
+  .badge.green { background: #28a745; }
+  .badge.red { background: #dc3545; }
+  .timeline {
+    background: #f1f5f9;
+    padding: 15px 20px;
+    border-radius: 6px;
+    margin: 15px 0;
+    font-family: monospace;
+    white-space: pre-wrap;
+  }
+  .signature-block {
+    margin-top: 40px;
+    padding-top: 30px;
+    border-top: 2px solid #e0e0e0;
+  }
+  .signature-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 30px;
+    margin-top: 20px;
+  }
+  .footer {
+    margin-top: 40px;
+    text-align: center;
+    color: #888;
+    font-size: 0.85em;
+    border-top: 1px solid #e0e0e0;
+    padding-top: 20px;
+  }
+  @media print {
+    body { background: #fff; margin: 0; }
+    .page { box-shadow: none; padding: 20px 30px; }
+    h2 { page-break-after: avoid; }
+    table { page-break-inside: avoid; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+<h1>📋 Quick Quote</h1>
+<div class="meta">
+  <strong>[YOUR COMPANY NAME]</strong> &nbsp;|&nbsp;
+  Project: <strong>[PROJECT TITLE]</strong> &nbsp;|&nbsp;
+  Quote Ref: <strong>[QQ-XXXX]</strong> &nbsp;|&nbsp;
+  Date: <strong>[DATE]</strong> &nbsp;|&nbsp;
+  Valid Until: <strong>[DATE + 30/60 DAYS]</strong>
+</div>
+
+<h2>1. Project Summary</h2>
+
+<h3>What You Need</h3>
+<div class="highlight">
+  [1-2 sentences describing the client's need based on your call/email]<br><br>
+  <em>Example: "Migrate your existing on-premise file server and 5 business applications to Microsoft Azure, with minimal disruption to operations."</em>
+</div>
+
+<h3>What We Propose</h3>
+<div class="highlight">
+  [1-2 sentences on your solution]<br><br>
+  <em>Example: "A phased cloud migration using our standard lift-and-shift approach, completed within 4 weeks, including data migration and user training."</em>
+</div>
+
+<h2>2. Scope &amp; Deliverables</h2>
+
+<h3><span class="badge green">INCLUDED</span></h3>
+<table>
+  <tr><th>#</th><th>Deliverable</th><th>Description</th></tr>
+  <tr><td>1</td><td>[Cloud environment setup]</td><td>[Provision Azure tenant, configure networking, security baseline]</td></tr>
+  <tr><td>2</td><td>[Server migration]</td><td>[Migrate 5 VMs to Azure, configure backup/DR]</td></tr>
+  <tr><td>3</td><td>[Data migration]</td><td>[Migrate 2TB file shares to Azure Files]</td></tr>
+  <tr><td>4</td><td>[Testing &amp; cutover]</td><td>[Validation, user acceptance, weekend cutover]</td></tr>
+  <tr><td>5</td><td>[Training]</td><td>[2-hour admin training session, documentation]</td></tr>
+  <tr><td>6</td><td>[30-day support]</td><td>[Post go-live support, bug fixes, optimization]</td></tr>
+</table>
+
+<h3><span class="badge red">NOT INCLUDED</span></h3>
+<ul>
+  <li>❌ [Azure subscription costs — client pays Microsoft directly]</li>
+  <li>❌ [Third-party software licenses]</li>
+  <li>❌ [Network infrastructure upgrades]</li>
+  <li>❌ [Ongoing managed services beyond 30 days]</li>
+</ul>
+
+<h3>Assumptions</h3>
+<ol>
+  <li>[Client provides admin access to current environment within 2 days of kick-off]</li>
+  <li>[Data is exportable in standard formats]</li>
+  <li>[Cutover scheduled for agreed weekend window]</li>
+</ol>
+
+<h2>3. Timeline</h2>
+
+<div class="timeline">
+Week 1: Discovery &amp; Environment Setup
+Week 2: Migration Build &amp; Testing
+Week 3: UAT &amp; Refinement
+Week 4: Cutover &amp; Go-Live
+Week 5-8: Hypercare Support
+</div>
+
+<table>
+  <tr><th>Milestone</th><th>Target</th></tr>
+  <tr><td>Kick-off</td><td>[Date]</td></tr>
+  <tr><td>Environment Ready</td><td>[Date]</td></tr>
+  <tr><td>Migration Complete</td><td>[Date]</td></tr>
+  <tr><td>UAT Sign-off</td><td>[Date]</td></tr>
+  <tr><td>Go-Live</td><td>[Date]</td></tr>
+  <tr><td>Support Ends</td><td>[Date]</td></tr>
+</table>
+
+<h2>4. Investment</h2>
+
+<div class="price-box">
+  <h3>Fixed Price Quote</h3>
+  <div class="price-row"><span>Professional Services</span><span>$[X,XXX]</span></div>
+  <div class="price-row total"><span>Total Fixed Price</span><span>$[X,XXX]</span></div>
+</div>
+
+<h3>What This Covers</h3>
+<ul>
+  <li>✅ All labor for scope items listed above</li>
+  <li>✅ Project management</li>
+  <li>✅ Standard documentation</li>
+  <li>✅ 30-day post go-live support</li>
+</ul>
+
+<h3>What This Does NOT Cover</h3>
+<ul>
+  <li>❌ [Cloud infrastructure costs — estimated $XXX/month, paid directly to provider]</li>
+  <li>❌ [Software licensing — paid directly to vendor]</li>
+  <li>❌ Out-of-scope changes (change order required)</li>
+</ul>
+
+<h3>Payment Terms</h3>
+<table>
+  <tr><th>Milestone</th><th>%</th><th>Amount</th><th>Due</th></tr>
+  <tr><td>Project Start</td><td>50%</td><td>$[X]</td><td>Kick-off</td></tr>
+  <tr><td>Go-Live</td><td>40%</td><td>$[X]</td><td>Upon go-live</td></tr>
+  <tr><td>Project Close</td><td>10%</td><td>$[X]</td><td>After 30-day support</td></tr>
+</table>
+
+<h2>5. Why Us</h2>
+
+<table>
+  <tr><th>#</th><th>Why [YOUR COMPANY NAME]</th></tr>
+  <tr><td>1</td><td>[X]+ similar projects completed</td></tr>
+  <tr><td>2</td><td>[Relevant certification / partnership]</td></tr>
+  <tr><td>3</td><td>[Time-to-value — e.g., "Average 4-week delivery"]</td></tr>
+  <tr><td>4</td><td>[Risk mitigation — e.g., "99.5% migration success rate"]</td></tr>
+</table>
+
+<h2>6. Next Steps</h2>
+
+<table>
+  <tr><th>Step</th><th>Action</th></tr>
+  <tr><td>1</td><td>You review and ask any questions</td></tr>
+  <tr><td>2</td><td>We schedule a 30-min call to finalize details</td></tr>
+  <tr><td>3</td><td>You approve via email or signed quote</td></tr>
+  <tr><td>4</td><td>We kick off within [X] business days</td></tr>
+</table>
+
+<div class="highlight">
+  <strong>Questions?</strong> Contact [Name] at [Email] or [Phone]
+</div>
+
+<div class="signature-block">
+  <h3>Acceptance</h3>
+  <p>By signing below or replying "Approved" to this email, <strong>[CLIENT NAME]</strong> accepts this quote and authorizes <strong>[YOUR COMPANY NAME]</strong> to proceed.</p>
+
+  <div class="signature-grid">
+    <div>
+      <p><strong>For [CLIENT NAME]</strong></p>
+      <p style="margin-top:40px; border-bottom:1px solid #333; width:80%;">Signature</p>
+      <p>Name: _________________________</p>
+      <p>Title: _________________________</p>
+      <p>Date: _________________________</p>
+    </div>
+    <div>
+      <p><strong>For [YOUR COMPANY NAME]</strong></p>
+      <p style="margin-top:40px; border-bottom:1px solid #333; width:80%;">Signature</p>
+      <p>Name: _________________________</p>
+      <p>Title: _________________________</p>
+      <p>Date: _________________________</p>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <p>This quote is valid until [DATE + 30/60 DAYS] and is subject to our standard terms and conditions.</p>
+  <p><strong>[YOUR COMPANY NAME]</strong> | [Address] | [Email] | [Phone] | [Website]</p>
+</div>
+
+</div>
+</body>
+</html>

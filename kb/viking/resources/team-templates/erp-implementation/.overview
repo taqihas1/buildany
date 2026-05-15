@@ -1,0 +1,38 @@
+# Team Template: ERP Implementation — Overview
+
+## Team Composition (10 FTE, 36 weeks)
+
+| Role | Count | Allocation | Rate | Weekly Cost |
+|------|-------|------------|------|-------------|
+| Program Director | 1 | 50% | $2,000 | $5,000 |
+| Engagement Manager | 1 | 100% | $1,800 | $9,000 |
+| Solution Architect | 1 | 100% | $1,600 | $8,000 |
+| Oracle Cloud Specialist | 2 | 100% | $1,500 | $15,000 |
+| Sr. Consultant — Finance | 1 | 100% | $1,400 | $7,000 |
+| Consultant — Technical | 2 | 100% | $1,100 | $11,000 |
+| Change Management Lead | 1 | 50% | $1,300 | $3,250 |
+| QA Engineer | 1 | 100% | $900 | $4,500 |
+
+**Total weekly onshore cost**: ~$62,750
+**36-week engagement**: ~$720,000 (professional services)
+
+## Key Responsibilities
+- **Program Director**: Multi-workstream governance, vendor management, C-suite relationship
+- **Engagement Manager**: Day-to-day PM, sprint planning, resource coordination, dashboards
+- **Solution Architect**: ERP configuration, integration design, customization decisions
+- **Oracle Specialists**: GL/AP/AR/Cash Management module configuration, security roles
+- **Senior Consultant**: Business process reengineering, chart of accounts, close optimization
+- **Technical Consultants**: Custom reports, workflows, data migration scripts, integrations
+- **Change Management Lead**: Stakeholder analysis, communication, training, adoption metrics
+- **QA Engineer**: Test strategy, automated scripts, regression testing, defect tracking
+
+## Governance Cadence
+- Daily sync (15 min, core team)
+- Workstream leads sync (3x/week, 30 min)
+- Bi-weekly sprint review (2 hours, with client SMEs)
+- Monthly program steering (2 hours, C-suite)
+
+## Scaling Options
+- **Small** (<$400K): Reduce to 6 FTE, 24 weeks, focus on single module
+- **Large** (>$1M): Add second Solution Architect, offshore development team
+- **Global** (>$2M): Multi-phase rollout with regional deployment teams

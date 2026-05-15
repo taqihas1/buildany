@@ -1,0 +1,34 @@
+# Team Template: Cloud Migration — Overview
+
+## Team Composition (8 FTE, 24 weeks)
+
+| Role | Count | Allocation | Rate | Weekly Cost |
+|------|-------|------------|------|-------------|
+| Engagement Manager | 1 | 50% | $1,800 | $4,500 |
+| Solution Architect | 1 | 100% | $1,600 | $8,000 |
+| Sr. Consultant — Infra | 2 | 100% | $1,400 | $14,000 |
+| Consultant — App | 2 | 100% | $1,100 | $11,000 |
+| Analyst — Data | 1 | 100% | $800 | $4,000 |
+| DevOps Engineer | 1 | 100% | $1,200 | $6,000 |
+
+**Total weekly onshore cost**: ~$47,500
+**24-week engagement**: ~$485,000 (professional services)
+
+## Key Responsibilities
+- **Engagement Manager**: Governance, stakeholder management, budget tracking
+- **Solution Architect**: Architecture design, platform selection, technical authority
+- **Senior Consultants**: Cloud provisioning, network architecture, IaC, security baseline
+- **Consultants**: App assessment, containerization, CI/CD, code modernization
+- **Analyst**: Data profiling, ETL pipeline, migration, validation
+- **DevOps Engineer**: Automation, monitoring, DR configuration, release management
+
+## Governance Cadence
+- Daily standup (15 min, all)
+- Bi-weekly sprint planning (2 hours)
+- Weekly architecture review (1 hour)
+- Monthly steering committee (2 hours, executives)
+
+## Scaling Options
+- **Small** (<$300K): Reduce to 5 FTE, 16 weeks
+- **Large** (>$700K): Add second Solution Architect, Security Specialist
+- **Enterprise** (>$1M): Add Program Director, nearshore/offshore mix

@@ -1,0 +1,347 @@
+{
+  "version": 1,
+  "updatedAt": "2026-05-15T01:37:45.508Z",
+  "entries": {
+    "memory:memory/2026-05-13.md:1:38": {
+      "key": "memory:memory/2026-05-13.md:1:38",
+      "path": "memory/2026-05-13.md",
+      "startLine": 1,
+      "endLine": 38,
+      "source": "memory",
+      "snippet": "# 2026-05-13 - Dealership App Tech Stack Install ## What We Built Full React Native + Expo dealership app with complete navigation, screens, and API layer. ## Tech Stack Installed - React Native 0.74.0-rc.9 - Expo SDK 51 (~51.0.0-beta.0) - TypeScript 5.1 (strict mode) - React Navigation v6 (Stack + Bottom Tabs) - React Native Paper 5.12.5 (Material Design) - React Native Maps 1.18.0 - Axios 1.7.4 - @expo/vector-icons 14.0.3 ## Project Structure ``` /root/.openclaw/workspace/dealership-app/ ├── App.tsx # Entry with PaperProvider + NavigationContainer ├── src/navigation/ │ ├── AppNavigator.tsx # Root Stack (MainTabs + DealershipDetail) │ └── MainTabN",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.37814796566963194,
+      "maxScore": 0.37814796566963194,
+      "firstRecalledAt": "2026-05-13T01:28:59.892Z",
+      "lastRecalledAt": "2026-05-13T01:28:59.892Z",
+      "queryHashes": [
+        "b062e190ee7f"
+      ],
+      "recallDays": [
+        "2026-05-13"
+      ],
+      "conceptTags": [
+        "0.74.0-rc.9",
+        "51.0.0-beta.0",
+        "5.1",
+        "5.12.5",
+        "1.18.0",
+        "1.7.4",
+        "expo/vector-icons",
+        "14.0.3"
+      ]
+    },
+    "memory:memory/2026-05-13.md:31:43": {
+      "key": "memory:memory/2026-05-13.md:31:43",
+      "path": "memory/2026-05-13.md",
+      "startLine": 31,
+      "endLine": 43,
+      "source": "memory",
+      "snippet": "└── README.md # Full docs ``` ## Key Notes - TypeScript compiles clean (tsc --noEmit = zero errors) - Used `--legacy-peer-deps` for masked-view peer dep conflict with RN 0.74 rc - Simulated demo data in screens — user needs to swap for real API endpoints - API helpers ready: getAll, getById, getNearby(lat,lng,radius), search(query) - Axios interceptors configured for auth tokens, logging, error handling ## To Run cd /root/.openclaw/workspace/dealership-app && npm start",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.3767821967601776,
+      "maxScore": 0.3767821967601776,
+      "firstRecalledAt": "2026-05-13T01:28:59.892Z",
+      "lastRecalledAt": "2026-05-13T01:28:59.892Z",
+      "queryHashes": [
+        "b062e190ee7f"
+      ],
+      "recallDays": [
+        "2026-05-13"
+      ],
+      "conceptTags": [
+        "readme.md",
+        "legacy-peer-deps",
+        "masked-view",
+        "0.74",
+        "full",
+        "docs",
+        "key",
+        "typescript"
+      ]
+    },
+    "memory:memory/2026-05-14.md:207:225": {
+      "key": "memory:memory/2026-05-14.md:207:225",
+      "path": "memory/2026-05-14.md",
+      "startLine": 207,
+      "endLine": 225,
+      "source": "memory",
+      "snippet": "- **Sanitized `make` field** in `src/utils.js` — take only the **first make** before the comma, trim whitespace: - Input: `\"Honda, Audi\"` → URL slug: `\"honda\"` - Input: `\"BMW, Mercedes-Benz\"` → URL slug: `\"bmw\"` - Also improved `autotrader.js` scraper with: - More CSS selector fallbacks for search result cards - Retry logic (wait + retry once) for dynamically loaded pages - Debug screenshots and HTML artifacts saved to key-value store on failure - Better logging of actual page structure when selectors don't match ### Actor Input Quirk - The app or user may send comma-separated makes as a single string - The actor must **always sanitize** before building marketplace URLs - **Best",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.39760203659534454,
+      "maxScore": 0.39760203659534454,
+      "firstRecalledAt": "2026-05-14T00:59:25.218Z",
+      "lastRecalledAt": "2026-05-14T00:59:25.218Z",
+      "queryHashes": [
+        "d0cc43671268"
+      ],
+      "recallDays": [
+        "2026-05-14"
+      ],
+      "conceptTags": [
+        "src/utils.js",
+        "mercedes-benz",
+        "autotrader.js",
+        "key-value",
+        "comma-separated",
+        "sanitized",
+        "field",
+        "src"
+      ]
+    },
+    "memory:memory/2026-05-14.md:180:212": {
+      "key": "memory:memory/2026-05-14.md:180:212",
+      "path": "memory/2026-05-14.md",
+      "startLine": 180,
+      "endLine": 212,
+      "source": "memory",
+      "snippet": "- Real scraped listings without photos → \"No Photos\" placeholder - Simulated/demo listings → \"No Photos\" placeholder - Deleted `generateCarImages()` function entirely from `carApi.ts` ### Outstanding - ⏳ User needs to run the actor from Apify Console to generate real listings - ⏳ Need to verify app shows real listings with actual photos after actor run - ⏳ If actor still returns 0 listings, debug AutoTrader page structure from logs --- ## Dealership App — AutoTrader 0 Listings Bug (2026-05-14) ### Problem - Actor build 1.0.6 deployed successfully, but runs returned **0 listings** from AutoTrader - Example actor run: `requestsFinished:1`, `Total unique listings: 0` - Input: `{\"make\":\"H",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.37532549202442167,
+      "maxScore": 0.37532549202442167,
+      "firstRecalledAt": "2026-05-14T00:59:25.218Z",
+      "lastRecalledAt": "2026-05-14T00:59:25.218Z",
+      "queryHashes": [
+        "d0cc43671268"
+      ],
+      "recallDays": [
+        "2026-05-14"
+      ],
+      "conceptTags": [
+        "simulated/demo",
+        "carapi.ts",
+        "1.0.6",
+        "real",
+        "scraped",
+        "listings",
+        "without",
+        "photos"
+      ]
+    },
+    "memory:memory/2026-05-14.md:77:103": {
+      "key": "memory:memory/2026-05-14.md:77:103",
+      "path": "memory/2026-05-14.md",
+      "startLine": 77,
+      "endLine": 103,
+      "source": "memory",
+      "snippet": "### Custom Apify Actor: `apify-car-scraper` Built a complete custom Apify actor to replace the rented scraper. Full source in `apify-car-scraper/`. #### Architecture - **src/main.js** — Orchestrates scraping across all configured marketplaces - **src/utils.js** — URL builders, data normalization, anti-detection helpers - **src/scrapers/autotrader.js** — AutoTrader scraper with detail page navigation - **src/scrapers/carscom.js** — Cars.com scraper with JSON-LD parsing - **src/scrapers/cargurus.js** — CarGurus scraper with deal score extraction #### Key Features - Scrapes **AutoTrader, Cars.com, CarGurus** simultaneously - Extracts **ALL photos** from each listing's gallery (not just thumbn",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.3745768934488296,
+      "maxScore": 0.3745768934488296,
+      "firstRecalledAt": "2026-05-14T00:59:25.218Z",
+      "lastRecalledAt": "2026-05-14T00:59:25.218Z",
+      "queryHashes": [
+        "d0cc43671268"
+      ],
+      "recallDays": [
+        "2026-05-14"
+      ],
+      "conceptTags": [
+        "apify-car-scraper",
+        "src/main.js",
+        "src/utils.js",
+        "anti-detection",
+        "src/scrapers/autotrader.js",
+        "src/scrapers/carscom.js",
+        "cars.com",
+        "json-ld"
+      ]
+    },
+    "memory:memory/2026-05-13.md:138:173": {
+      "key": "memory:memory/2026-05-13.md:138:173",
+      "path": "memory/2026-05-13.md",
+      "startLine": 138,
+      "endLine": 173,
+      "source": "memory",
+      "snippet": "- Hybrid approach: Apify scraper (real data when configured) → NHTSA vehicle specs (free, always available) → Simulated listings (fallback) - This avoids requiring paid APIs to work, while making real data available when user configures it. **Alternative Discussed:** - Backend server that scrapes on schedule and caches listings - User would not need tokens on phone - Not yet implemented — depends on user's preference ## Expo Server Session End (2026-05-13 23:10 CST) Expo development server was terminated by SIGKILL after running for ~12 hours. Tunnel URL `exp://2-9ffz8-anonymous-8081.exp.direct` is no longer valid. **User Instruction for Next Session:** User should say \"restart the app\"",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.3592620402574539,
+      "maxScore": 0.3592620402574539,
+      "firstRecalledAt": "2026-05-14T00:59:25.218Z",
+      "lastRecalledAt": "2026-05-14T00:59:25.218Z",
+      "queryHashes": [
+        "d0cc43671268"
+      ],
+      "recallDays": [
+        "2026-05-14"
+      ],
+      "conceptTags": [
+        "hybrid",
+        "approach",
+        "apify",
+        "scraper",
+        "real",
+        "data",
+        "when",
+        "configured"
+      ]
+    },
+    "memory:memory/2026-05-15.md:44:80": {
+      "key": "memory:memory/2026-05-15.md:44:80",
+      "path": "memory/2026-05-15.md",
+      "startLine": 44,
+      "endLine": 80,
+      "source": "memory",
+      "snippet": "- Consider EAS Build for a more reliable distribution method (APK/IPA) ## 2026-05-15 Session — r151-r170 Recipe Addition + Timeout Error ### Recipes Added - Added 20 high-protein recipes (r151-r170) to recipes-new.ts - Total recipes now: 170 - No pork/ham recipes included - Created high-protein-recipes-append-5.txt as audit trail ### User Reported Timeout Error (Again) - User got same timeout error when trying to load the app - Need to investigate if the bundler is still failing or if it's a different issue - Previous fix (missing @trpc/server, circular imports, path aliases) was successful for v3 - This may be a new issue or the same underlying problem resurfacing ### Next Steps - Run",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4211187422275543,
+      "maxScore": 0.4211187422275543,
+      "firstRecalledAt": "2026-05-15T01:37:45.508Z",
+      "lastRecalledAt": "2026-05-15T01:37:45.508Z",
+      "queryHashes": [
+        "20bfae496981"
+      ],
+      "recallDays": [
+        "2026-05-15"
+      ],
+      "conceptTags": [
+        "apk/ipa",
+        "r151-r170",
+        "high-protein",
+        "recipes-new.ts",
+        "pork/ham",
+        "trpc/server",
+        "consider",
+        "eas"
+      ]
+    },
+    "memory:memory/2026-05-15.md:22:55": {
+      "key": "memory:memory/2026-05-15.md:22:55",
+      "path": "memory/2026-05-15.md",
+      "startLine": 22,
+      "endLine": 55,
+      "source": "memory",
+      "snippet": "- Backend API running on port 3000 with PM2 (`recipewise-backend`) ### QR Code - Generated QR code for `exp://10.184.29.21:8081` - Sent to user via Kimi Claw - User initially got timeout errors because bundler was failing - After fixes, bundler succeeded and QR code should work ### 20 High-Protein Recipes Added (r091–r110) Already documented in previous entries. ## Key Lessons Learned - When Expo bundler \"times out\", it's often NOT a network issue — the bundler is failing silently - Always check Metro bundler logs by curling `http://localhost:PORT` to see actual errors - `@trpc/react-query` requires `@trpc/server` as peer dependency even if you only use client-side - Circular imports (`@/",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.40796953439712524,
+      "maxScore": 0.40796953439712524,
+      "firstRecalledAt": "2026-05-15T01:37:45.508Z",
+      "lastRecalledAt": "2026-05-15T01:37:45.508Z",
+      "queryHashes": [
+        "20bfae496981"
+      ],
+      "recallDays": [
+        "2026-05-15"
+      ],
+      "conceptTags": [
+        "network",
+        "recipewise-backend",
+        "10.184.29.21",
+        "high-protein",
+        "trpc/react-query",
+        "trpc/server",
+        "client-side",
+        "backend"
+      ]
+    },
+    "memory:memory/2026-05-15.md:1:32": {
+      "key": "memory:memory/2026-05-15.md:1:32",
+      "path": "memory/2026-05-15.md",
+      "startLine": 1,
+      "endLine": 32,
+      "source": "memory",
+      "snippet": "# 2026-05-15 — RecipeWise App Server Setup & Debugging ## What Happened ### Recipe App Server Setup - User asked to \"make server ready\" for recipe app and create a QR code - Reconstructed the Expo project from flat source files into proper directory structure - Created missing files: `tsconfig.json`, `babel.config.js`, `metro.config.js`, `app.json`, placeholder images - Created missing components: `haptic-tab.tsx`, `screen-container.tsx` - Created missing hooks: `use-colors.ts`, `use-color-scheme.ts` - Created missing lib files: `trpc.ts`, `constants/theme.ts` ### Bugs Fixed (CRITICAL) 1. **Missing `@trpc/server` dependency** — `@trpc/react-query` requires it as peer dep. Bundler was fail",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.4047420114278793,
+      "maxScore": 0.4047420114278793,
+      "firstRecalledAt": "2026-05-15T01:37:45.508Z",
+      "lastRecalledAt": "2026-05-15T01:37:45.508Z",
+      "queryHashes": [
+        "20bfae496981"
+      ],
+      "recallDays": [
+        "2026-05-15"
+      ],
+      "conceptTags": [
+        "tsconfig.json",
+        "babel.config.js",
+        "metro.config.js",
+        "app.json",
+        "haptic-tab.tsx",
+        "screen-container.tsx",
+        "use-colors.ts",
+        "use-color-scheme.ts"
+      ]
+    },
+    "memory:memory/2026-05-15.md:94:111": {
+      "key": "memory:memory/2026-05-15.md:94:111",
+      "path": "memory/2026-05-15.md",
+      "startLine": 94,
+      "endLine": 111,
+      "source": "memory",
+      "snippet": "- `cd recipe-app && npx tsc --noEmit` — checks for type errors - `cd recipe-app && npx tsc --noEmit 2>&1 | grep \"error TS\"` — filters for actual errors - `cd recipe-app && grep -n '\"low-carb\"' lib/data/recipes-new.ts` — finds invalid diet tags - `cd recipe-app && sed -i 's/\"low-carb\"/\"keto\"/g' lib/data/recipes-new.ts` — bulk fix ### Key Lessons - When adding recipes programmatically, always validate against the TypeScript `Recipe` interface - Optional properties (`isFeatured`, `isTrending`, `isPremium`) must still be explicitly set to `false` if not `true`, OR the consuming code must handle `undefined` - The `getFeaturedRecipes` function does `recipes.filter(r => r.isFeatured)` — crashes if",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.3916717231273651,
+      "maxScore": 0.3916717231273651,
+      "firstRecalledAt": "2026-05-15T01:37:45.508Z",
+      "lastRecalledAt": "2026-05-15T01:37:45.508Z",
+      "queryHashes": [
+        "20bfae496981"
+      ],
+      "recallDays": [
+        "2026-05-15"
+      ],
+      "conceptTags": [
+        "recipe-app",
+        "low-carb",
+        "lib/data/recipes-new.ts",
+        "recipes.filter",
+        "r.isfeatured",
+        "recipe",
+        "app",
+        "npx"
+      ]
+    },
+    "memory:memory/2026-05-13.md:1:32": {
+      "key": "memory:memory/2026-05-13.md:1:32",
+      "path": "memory/2026-05-13.md",
+      "startLine": 1,
+      "endLine": 32,
+      "source": "memory",
+      "snippet": "# Lessons Learned: Expo React Native Project Setup ## Date: 2026-05-13 ## Project: Dealership App (React Native + Expo) ### Issues Encountered and Fixes Applied #### 1. Expo SDK Version Mismatch - **Problem:** User's Expo Go app was on SDK 54, but project was created on SDK 51 - **Symptom:** \"This project uses SDK 51 but your Expo Go app only supports SDK 54\" - **Fix:** Upgraded project to SDK 54: ```bash npm install expo@~54.0.0 react-native@0.81.1 react@19.0.0 --save --legacy-peer-deps ``` - **Lesson:** ALWAYS check user's Expo Go version BEFORE creating project. iOS users cannot downgrade Expo Go. #### 2. npm ERESOLVE Peer Dependency Conflict - **Problem:** `npx expo install @re",
+      "recallCount": 1,
+      "dailyCount": 0,
+      "groundedCount": 0,
+      "totalScore": 0.38665043413639066,
+      "maxScore": 0.38665043413639066,
+      "firstRecalledAt": "2026-05-15T01:37:45.508Z",
+      "lastRecalledAt": "2026-05-15T01:37:45.508Z",
+      "queryHashes": [
+        "20bfae496981"
+      ],
+      "recallDays": [
+        "2026-05-15"
+      ],
+      "conceptTags": [
+        "54.0.0",
+        "react-native",
+        "0.81.1",
+        "19.0.0",
+        "legacy-peer-deps",
+        "lessons",
+        "learned",
+        "expo"
+      ]
+    }
+  }
+}

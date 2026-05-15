@@ -1,0 +1,141 @@
+{
+  "$schema": "Client Intake Form for Proposal Generator",
+  "description": "Fill this JSON and pass it to generator.py --intake",
+  "client": {
+    "name": "Acme Corporation",
+    "industry": "Manufacturing",
+    "size_employees": 1200,
+    "location": "Detroit, MI",
+    "contact_name": "Jane Smith",
+    "contact_title": "VP of IT",
+    "contact_email": "jane.smith@acme.com",
+    "contact_phone": "+1-555-0100"
+  },
+  "vendor": {
+    "company_name": "NexGen IT Consulting",
+    "headquarters": "Chicago, IL",
+    "founded": 2010,
+    "employees": 350,
+    "website": "https://nexgen-it.example.com"
+  },
+  "project": {
+    "title": "Cloud ERP Migration & Modernization",
+    "ref": "PROP-2026-0512-001",
+    "start_date": "2026-06-01",
+    "duration_weeks": 24,
+    "type": "Cloud Migration + ERP Implementation",
+    "summary": "Migrate legacy on-premises ERP to cloud-native architecture while preserving all business-critical integrations and data integrity."
+  },
+  "needs": {
+    "current_situation": [
+      "Legacy ERP running on end-of-life hardware (Windows Server 2012, SQL 2014)",
+      "High maintenance costs ($480K/year) and increasing downtime incidents",
+      "Inability to scale during quarterly peak demand periods"
+    ],
+    "challenges": [
+      {"name": "Hardware EOL", "impact": "$480K annual maintenance + rising failure risk", "urgency": "High"},
+      {"name": "Scalability limits", "impact": "Cannot support planned 20% revenue growth", "urgency": "High"},
+      {"name": "Data silos", "impact": "Manual reconciliations consume 40 person-hours/week", "urgency": "Medium"}
+    ],
+    "objectives": [
+      {"objective": "Reduce infrastructure TCO by 30%", "how_we_help": "Cloud migration eliminates hardware refresh, optimizes licensing", "outcome": "25-30% TCO reduction within 12 months"},
+      {"objective": "Improve system availability to 99.9%", "how_we_help": "Azure native HA/DR architecture", "outcome": "Measurable via Azure SLA dashboards"},
+      {"objective": "Enable real-time operational visibility", "how_we_help": "Embedded Power BI + Azure Synapse", "outcome": "Executive dashboards live within 90 days of go-live"}
+    ]
+  },
+  "solution": {
+    "methodology": "Cloud Ascend™",
+    "methodology_description": "Our 5-phase proven approach: Discover → Design → Migrate → Optimize → Support. Reduces typical migration risk by 40%.",
+    "platform": "Microsoft Azure",
+    "erp_platform": "Dynamics 365 Finance & Operations",
+    "architecture_components": [
+      {"component": "Compute", "technology": "Azure VMs + AKS", "purpose": "Application hosting"},
+      {"component": "Database", "technology": "Azure SQL Managed Instance", "purpose": "Transactional data"},
+      {"component": "Integration", "technology": "Azure Integration Services", "purpose": "System connectivity"},
+      {"component": "Storage", "technology": "Azure Blob + Files", "purpose": "Document storage"},
+      {"component": "Monitoring", "technology": "Azure Monitor + Sentinel", "purpose": "Observability & security"}
+    ],
+    "scope_included": [
+      "Current state assessment and gap analysis",
+      "Target architecture design and validation",
+      "Data migration (7 years transactional + 10 years summary)",
+      "Integration re-platforming (15 integrations)",
+      "Security configuration and compliance validation",
+      "Admin + end-user training (250 users)",
+      "30-day hypercare support"
+    ],
+    "scope_excluded": [
+      "Hardware procurement (client purchases directly)",
+      "Network infrastructure upgrades (separate engagement)",
+      "End-user device procurement",
+      "Post-warranty ongoing support (separate contract)"
+    ],
+    "assumptions": [
+      "Client provides dedicated SMEs minimum 10 hours/week during Discovery and Design",
+      "VPN access provisioned within 5 business days of project start",
+      "Cloud infrastructure accounts provisioned by client with appropriate permissions",
+      "Data available in exportable format from current systems"
+    ],
+    "value_adds": [
+      {"name": "FinOps Program", "description": "3-month cost optimization program post go-live", "benefit": "Typically reduces cloud spend by 15-20%", "investment": "Included at no additional cost"},
+      {"name": "Executive Dashboard", "description": "Real-time KPI dashboard using Power BI", "benefit": "Immediate visibility into key business metrics", "investment": "First 5 dashboards included"}
+    ]
+  },
+  "deliverables": [
+    {"phase": "Discovery", "deliverable": "Current State Assessment Report", "format": "PDF + PPT", "timing_week": 3},
+    {"phase": "Discovery", "deliverable": "Gap Analysis & Recommendations", "format": "PDF", "timing_week": 3},
+    {"phase": "Discovery", "deliverable": "Technical Architecture Design", "format": "PDF + Diagrams", "timing_week": 4},
+    {"phase": "Design", "deliverable": "Functional & Technical Design Documents", "format": "PDF", "timing_week": 8},
+    {"phase": "Design", "deliverable": "Data Migration Plan & Mapping", "format": "Excel + PDF", "timing_week": 8},
+    {"phase": "Implementation", "deliverable": "Configured System & Migrated Data", "format": "System access", "timing_week": 16},
+    {"phase": "Testing", "deliverable": "UAT Sign-off & Performance Results", "format": "Signed docs + PDF", "timing_week": 20},
+    {"phase": "Go-Live", "deliverable": "Live System + Documentation Handover", "format": "Live access + PDF", "timing_week": 24}
+  ],
+  "team": [
+    {"role": "Engagement Manager", "name": "Sarah Chen", "level": "Senior", "certifications": "PMP, AWS SA Professional", "allocation": "40%", "location": "Chicago"},
+    {"role": "Project Manager", "name": "Marcus Johnson", "level": "Senior", "certifications": "PMP, Prince2", "allocation": "100%", "location": "Detroit (on-site)"},
+    {"role": "Solution Architect", "name": "Dr. Aisha Patel", "level": "Principal", "certifications": "Azure Solutions Architect Expert, TOGAF", "allocation": "75%", "location": "Chicago / Remote"},
+    {"role": "Technical Lead", "name": "James Wright", "level": "Senior", "certifications": "Azure DevOps Engineer, MCSE", "allocation": "100%", "location": "Detroit (on-site)"},
+    {"role": "Functional Lead", "name": "Linda Gomez", "level": "Senior", "certifications": "Dynamics 365 FO Certified", "allocation": "100%", "location": "Detroit (on-site)"},
+    {"role": "Data Migration Specialist", "name": "Raj Kapoor", "level": "Senior", "certifications": "Azure Data Engineer", "allocation": "50%", "location": "Remote"},
+    {"role": "Integration Specialist", "name": "Emily Nakamura", "level": "Senior", "certifications": "MuleSoft Certified", "allocation": "50%", "location": "Remote"},
+    {"role": "QA Engineer", "name": "David Okonkwo", "level": "Senior", "certifications": "ISTQB Advanced", "allocation": "100%", "location": "Remote"},
+    {"role": "Security Specialist", "name": "Robert Fischer", "level": "Senior", "certifications": "CISSP, CCSP", "allocation": "25%", "location": "Remote"},
+    {"role": "Training Lead", "name": "Maria Santos", "level": "Senior", "certifications": "Prosci Change Management", "allocation": "50%", "location": "Detroit (on-site workshops)"}
+  ],
+  "pricing": {
+    "professional_services": 485000,
+    "software_licenses": 0,
+    "infrastructure": 0,
+    "training": 0,
+    "currency": "USD",
+    "payment_terms": "Net 30 from invoice"
+  },
+  "case_studies": [
+    {"client": "Global Manufacturing Corp (anonymized)", "type": "Cloud ERP Migration", "scope": "1,200 users, 3 plants, 8TB data, 22 integrations", "duration": "8 months", "team_size": 14, "challenge": "Legacy SAP ECC on end-of-life hardware with 23% annual downtime", "solution": "Phased migration to Azure + D365FO using Cloud Ascend methodology", "outcomes": "Reduced TCO by 32%, improved uptime to 99.95%, cut month-end close from 12 to 5 days", "quote": "NexGen delivered on time and on budget. The hypercare period was the smoothest go-live we've had."},
+    {"client": "Regional Distribution Group (anonymized)", "type": "Managed Cloud Services", "scope": "350 users, 2 warehouses, Azure IaaS + PaaS", "duration": "4 months", "team_size": 8, "challenge": "Rapid growth outpacing IT capacity, 15% annual infrastructure cost increases", "solution": "Lift-and-shift to Azure with FinOps optimization", "outcomes": "18% cloud cost reduction in first quarter, automated DR, 99.9% uptime SLA met", "quote": ""}
+  ],
+  "next_steps": [
+    {"step": 1, "action": "Client review of proposal", "owner": "Acme Steering Committee", "timing": "5 business days"},
+    {"step": 2, "action": "Clarification Q&A session", "owner": "Joint", "timing": "Within 7 days"},
+    {"step": 3, "action": "Proposal refinement (if needed)", "owner": "NexGen", "timing": "3 business days"},
+    {"step": 4, "action": "Presentation / Demo", "owner": "NexGen", "timing": "Scheduled"},
+    {"step": 5, "action": "Contract negotiation", "owner": "Joint", "timing": "Upon selection"},
+    {"step": 6, "action": "Project kick-off", "owner": "Joint", "timing": "June 1, 2026"}
+  ],
+  "contacts": [
+    {"role": "Engagement Manager", "name": "Sarah Chen", "email": "s.chen@nexgen-it.example.com", "phone": "+1-555-0200"},
+    {"role": "Project Director", "name": "Michael Torres", "email": "m.torres@nexgen-it.example.com", "phone": "+1-555-0201"},
+    {"role": "Business Development", "name": "Lisa Park", "email": "l.park@nexgen-it.example.com", "phone": "+1-555-0202"}
+  ],
+  "legal": {
+    "validity_days": 120,
+    "warranty_months": 12,
+    "insurance_eo": "$5M per occurrence / $10M aggregate",
+    "insurance_cyber": "$5M",
+    "insurance_general": "$2M",
+    "nda_required": true,
+    "ip_custom": "Client owns all custom work product",
+    "ip_preexisting": "Vendor retains pre-existing IP with perpetual license to client"
+  }
+}

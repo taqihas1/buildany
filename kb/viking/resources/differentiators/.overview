@@ -1,0 +1,48 @@
+# Industry Differentiators: Manufacturing — Overview
+
+## Four Core Strengths
+
+### 1. OT/IT Convergence
+- MES integration (Siemens Opcenter, Rockwell FactoryTalk, GE Proficy)
+- Shop-floor connectivity (MQTT, OPC-UA, Ignition SCADA)
+- Edge computing (Azure IoT Edge, AWS Greengrass)
+- **Proof**: 99.97% uptime for manufacturing environment where 5 min = $50K
+
+### 2. Regulatory Compliance
+- FDA 21 CFR Part 11 (pharmaceutical)
+- ISO 13485 (medical devices)
+- ITAR/EAR (export-controlled data)
+- EPA reporting and sustainability
+- **Proof**: SOX-compliant financials with zero audit findings
+
+### 3. Supply Chain Integration
+- ERP-to-supplier portal integration (Coupa, Ariba, SAP SRM)
+- Demand planning connected to shop-floor scheduling
+- Quality integration (non-conformance → supplier corrective action)
+- **Proof**: Reduced order-to-delivery from 14 days to 6 days
+
+### 4. Predictive Maintenance
+- Azure Digital Twins for production line modeling
+- ML models achieving 85% bearing failure prediction accuracy
+- Real-time monitoring with automated work order creation
+- **Proof**: Prevented $2.3M in unplanned downtime (first 18 months)
+
+## Competitive Positioning
+
+| Competitor Type | Their Weakness | Our Advantage |
+|----------------|--------------|---------------|
+| Big 4 | Junior teams, high turnover | Senior-only, consistent team |
+| Cloud Boutiques | No manufacturing knowledge | 40+ manufacturing engagements |
+| System Integrators | Product-first | Business-outcome focused |
+| Offshore-Only | Timezone challenges | Hybrid onshore/nearshore |
+
+## Statistics
+- 40+ manufacturing clients since 2015
+- $380M+ in manufacturing implementations
+- 98% client retention in manufacturing
+- 15 manufacturing-specific accelerators
+
+## Win/Loss Patterns in Manufacturing
+- **Win**: Speed to value, specialization, fixed-price certainty
+- **Lose**: Brand prestige at Fortune 500 (McKinsey, Accenture)
+- **Strategy**: Lead with technical accelerators, ROI proof points

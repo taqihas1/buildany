@@ -1,0 +1,39 @@
+# Case Study: Manufacturing Cloud Migration — Overview
+
+## Quick Facts
+- **Client**: Global automotive parts manufacturer, $1.8B revenue, 12 plants
+- **Engagement**: 24 weeks, $485K, 8-person team
+- **Completion**: August 2025
+- **Status**: Successfully completed
+
+## Problem
+15-year-old data center infrastructure couldn't scale for IoT predictive maintenance initiative. Aging hardware with 23% annual maintenance growth, 48-hour DR recovery time, 2-week environment provisioning.
+
+## Solution
+"Plant-to-Cloud" migration using Azure with:
+- Hub-spoke network topology with landing zones
+- AKS for containerized workloads
+- Kafka real-time data pipeline for shop-floor data
+- Terraform/Azure DevOps for IaC
+- Azure SQL Managed Instance for database estate
+- Power BI for plant-level analytics
+
+## Results
+| Metric | Before | After |
+|--------|--------|-------|
+| Infrastructure Cost | $2.1M/year | $1.2M/year (-42%) |
+| Uptime | 99.2% | 99.97% |
+| Deployments | Monthly | Daily (12x) |
+| DR Recovery | 48 hours | 15 minutes |
+| Env. Provisioning | 2 weeks | 30 minutes |
+
+## Key Differentiators Demonstrated
+- OT/IT convergence expertise (zero-downtime migration)
+- Manufacturing domain knowledge (MES integration)
+- Cost optimization (Reserved Instances, right-sizing)
+
+## Technologies
+Azure, AKS, Terraform, Azure DevOps, PostgreSQL, Apache Kafka, Power BI
+
+## Relevance
+Primary reference for manufacturing cloud migration proposals. Strong outcome metrics and client testimonial.

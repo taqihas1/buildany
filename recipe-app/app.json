@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "RecipeWise",
+    "slug": "recipewise",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/icon.png",
+    "scheme": "recipewise",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.recipewise.app"
+    },
+    "android": {
+      "package": "com.recipewise.app",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icon.png",
+        "backgroundColor": "#E6F4FE"
+      },
+      "versionCode": 3
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static"
+    },
+    "plugins": [
+      "expo-router"
+    ],
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "39382a67-e499-4031-bb4e-6cae2b3fcd18"
+      }
+    },
+    "owner": "aitrader"
+  }
+}

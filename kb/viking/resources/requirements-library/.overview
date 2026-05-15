@@ -1,0 +1,97 @@
+# Requirements Library: ERP Implementation — Overview
+
+## Structure
+30+ requirements organized by module category, each with:
+- Functional requirements (business capabilities)
+- Technical requirements (system specifications)
+- Complexity rating (Low/Medium/High)
+- Business criticality (Medium/High/Critical)
+
+## Financial Modules (12 requirements)
+
+### General Ledger (GL)
+**Complexity**: High | **Criticality**: Critical
+- Multi-entity consolidation with elimination entries
+- Multi-currency with real-time exchange rates
+- Period-close automation with configurable checklist
+- Intercompany processing and reconciliation
+- Budget-to-actual with variance analysis
+- Drill-down from summary to transaction
+- REST API for external reporting
+- Bulk import (100K+ records/batch)
+- Role-based security (50+ permissions)
+- Bank feed integration for auto-reconciliation
+- Immutable audit trail
+
+### Accounts Payable (AP)
+**Complexity**: Medium | **Criticality**: Critical
+- Three-way matching with tolerance configuration
+- OCR-based invoice scanning
+- Vendor self-service portal
+- Multi-bank payment batch processing
+- Early payment discount tracking
+- 1099/VAT/GST tax reporting automation
+- EDI integration for vendor submission
+- Mobile approval workflow
+- Duplicate invoice detection
+- AI-based GL coding from historical patterns
+
+### Accounts Receivable (AR)
+**Complexity**: Medium | **Criticality**: High
+- Automated invoicing with multi-channel delivery
+- Dunning management with escalation paths
+- AI-powered cash application matching
+- Credit management with automated scoring
+- Dispute resolution workflow
+- Recurring billing for subscriptions
+- Customer payment portal
+- Payment gateway integration
+- Lockbox automation
+- CRM integration for 360° customer view
+
+### Cash Management
+**Complexity**: Medium | **Criticality**: High
+- Real-time bank balance visibility
+- ML-based cash flow forecasting
+- Automated bank reconciliation
+- Investment/borrowing tracking
+- FX exposure monitoring
+- Treasury workstation integration
+
+## Supply Chain Modules (8 requirements)
+
+### Procurement
+**Complexity**: High | **Criticality**: High
+- Strategic sourcing with supplier scorecards
+- Purchase requisition with approval matrices
+- Catalog-based procurement for indirect spend
+- Supplier qualification workflows
+- Contract management with milestones
+- Sustainable procurement tracking
+
+### Inventory Management
+**Complexity**: High | **Criticality**: Critical
+- Multi-location inventory visibility
+- ABC/XYZ classification and cycle counting
+- Safety stock optimization with demand forecasting
+- Lot/serial tracking for traceability
+- Cross-docking and transfer orders
+- RFID/barcode warehouse integration
+
+## Reporting & Analytics (10 requirements)
+
+### Financial Reporting
+**Complexity**: Medium | **Criticality**: High
+- Pre-built report library (P&L, BS, CF)
+- Scheduled automated distribution
+- Ad-hoc drag-and-drop report builder
+- Regulatory templates (GAAP, IFRS)
+- Consolidated multi-entity reporting
+
+### Operational Analytics
+**Complexity**: High | **Criticality**: Medium
+- Executive KPI dashboard
+- Departmental spend analysis with drill-down
+- Supplier performance dashboards
+- Working capital optimization
+- Predictive revenue forecasting

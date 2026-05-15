@@ -1,0 +1,69 @@
+# Methodology: Cloud Ascend™ — Overview
+
+## Philosophy
+Combines waterfall planning discipline with agile delivery flexibility. "Plan like a waterfall. Deliver like agile. Optimize like DevOps."
+
+## Four Phases
+
+### Phase 1: Discover (Weeks 1-4)
+**Goal**: Understand current state and define future state
+- Architecture assessment
+- Application portfolio analysis (RAG scoring)
+- Stakeholder interviews
+- Future-state blueprint
+- Business case validation
+- Risk register
+
+**Deliverables**: Assessment report, architecture blueprint, migration strategy, business case, risk register
+**Gate**: Executive alignment + approved business case
+
+### Phase 2: Plan (Weeks 5-8)
+**Goal**: Create detailed, actionable migration plan
+- Wave planning (which apps move when)
+- Dependency mapping
+- Resource allocation
+- Environment provisioning plan
+- Data migration strategy
+- Communication and training plan
+
+**Deliverables**: Migration plan, resource plan, runbooks, data strategy, communication plan, signed charter
+**Gate**: Steering committee approval + team mobilized
+
+### Phase 3: Execute (Weeks 9-20)
+**Goal**: Migrate in planned waves with continuous validation
+- Infrastructure setup
+- Application migration per wave
+- Data migration (ETL)
+- Integration and UAT
+- Security and performance testing
+- Training delivery
+
+**Deliverables**: Migrated environment per wave, test results, training materials, security report
+**Gate**: Per-wave UAT sign-off + go/no-go for production
+
+### Phase 4: Optimize (Weeks 21-24)
+**Goal**: Tune performance, transfer knowledge, transition operations
+- Performance tuning
+- Knowledge transfer
+- Documentation finalization
+- Support transition
+- Lessons learned
+
+**Deliverables**: Optimized environment, operations guide, runbooks, transition plan, closure report
+**Gate**: Client demonstrates independent operation + support transition accepted
+
+## Governance
+- Daily standup (core team)
+- Bi-weekly sprint planning (team leads)
+- Weekly architecture review (architects + SMEs)
+- Monthly steering committee (executives)
+- Per-wave retrospective (continuous improvement)
+
+## Risk Framework
+Four categories scored 1-5 for probability × impact:
+- Technical (performance, integration, data quality)
+- Organizational (change resistance, skill gaps)
+- External (vendor delays, regulatory changes)
+- Project (scope creep, resource availability)
+
+Mitigation plans required for scores ≥ 12.

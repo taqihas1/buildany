@@ -1,0 +1,45 @@
+# Case Study: Oracle Financial Cloud ERP — Overview
+
+## Quick Facts
+- **Client**: Regional healthcare network, 14 hospitals, 3,200 beds, $2.4B revenue
+- **Engagement**: 32 weeks, $720K, 10-person team
+- **Completion**: November 2025
+- **Status**: Successfully completed
+
+## Problem
+6 acquisitions created 14 separate GL instances with no standardization. Manual consolidation required 8 FTEs for 15 days monthly. Inconsistent revenue recognition, no real-time visibility.
+
+## Solution
+Oracle Fusion Cloud Financials implementation:
+- Unified chart of accounts (8 segments)
+- GL, AP, AR, Cash Management modules
+- Integration with Workday HRIS, patient billing, supply chain
+- 340-user security role design
+- Oracle Analytics Cloud for reporting
+
+## Approach
+- Big-bang for GL (single source of truth)
+- Phased for AP (lower risk)
+- 80% standardization, 20% local flexibility
+- 47 stakeholder interviews, 6 consensus workshops
+- 3 mock closes with parallel running
+
+## Results
+| Metric | Before | After |
+|--------|--------|-------|
+| Financial Close | 15 days | 4 days (-73%) |
+| AP Processing | $12.50/invoice | $7.75/invoice (-38%) |
+| Invoice Accuracy | 87% | 99.4% |
+| GL Instances | 14 | 1 unified |
+
+## Key Differentiators Demonstrated
+- Oracle Platinum Partner specialization
+- Healthcare regulatory expertise
+- Change management (85 users trained)
+- Data migration complexity (14 systems normalized)
+
+## Technologies
+Oracle Fusion Cloud ERP, Oracle Integration Cloud, Oracle Analytics Cloud, Oracle Identity Cloud
+
+## Relevance
+Primary reference for Oracle ERP implementations, especially healthcare and multi-entity consolidation. Demonstrates both technical capability and organizational change management.
