@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot } from 'lucide-react';
+import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot, Search } from 'lucide-react';
 import { SwarmDashboard } from "./SwarmDashboard";
+import { ResearchPanel } from "./ResearchPanel";
 
 interface ProjectWorkspaceProps {
   project: any;
@@ -17,7 +18,7 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
   const [chatInput, setChatInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [messages, setMessages] = useState(chatHistory);
-  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'swarm'>('chat');
+  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'swarm' | 'research'>('chat');
   const router = useRouter();
 
   const handleChat = async (e: React.FormEvent) => {
@@ -165,6 +166,17 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
               AI Assistant
             </button>
             <button
+              onClick={() => setRightPanelTab('research')}
+              className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
+                rightPanelTab === 'research'
+                  ? 'text-cyan-400 border-b-2 border-cyan-500 bg-cyan-500/5'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Search className="w-3 h-3" />
+              Research
+            </button>
+            <button
               onClick={() => setRightPanelTab('swarm')}
               className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
                 rightPanelTab === 'swarm'
@@ -226,6 +238,8 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                 </div>
               </form>
             </>
+          ) : rightPanelTab === 'research' ? (
+            <ResearchPanel projectId={project.id} />
           ) : (
             <SwarmDashboard projectId={project.id} />
           )}

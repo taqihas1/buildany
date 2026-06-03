@@ -2,6 +2,7 @@ import { db } from "./db";
 import { projects, conversations, projectFiles } from "./db/schema";
 import { eq } from "drizzle-orm";
 import { randomUUID } from "crypto";
+import { generateMobileTemplate, getMobileFileList, getMobileSystemPrompt } from "./mobile-templates";
 
 interface LLMProvider {
   name: string;
@@ -132,7 +133,9 @@ function mockGenerate(prompt: string): string {
 }
 
 export async function generateCode(projectId: string, prompt: string, type: string) {
-  const systemPrompt = `You are an expert full-stack developer. Generate a complete ${type === "mobile" ? "React Native" : "Next.js"} application based on the user's description.
+  const isMobile = type === "mobile" || type === "dashboard";
+  
+  let systemPrompt = `You are an expert full-stack developer. Generate a complete ${isMobile ? "React Native" : "Next.js"} application based on the user's description.
 
 Return a JSON object with:
 - files: array of {path, content, language}
@@ -145,7 +148,7 @@ Guidelines:
 - Include proper error handling
 - Add loading states
 - Make it production-ready
-- For mobile apps, use Expo SDK 54, React Native 0.81.5, React 19.1.0`;
+${isMobile ? getMobileSystemPrompt() : ""}`;
 
   const model = routeModel(prompt);
   
@@ -155,28 +158,64 @@ Guidelines:
       id: randomUUID(),
       projectId,
       role: "system",
-      content: `Using model: ${model.name}`,
+      content: `Using model: ${model.name} for ${type} app`,
       model: model.name,
     });
 
-    const response = await model.generate(prompt, systemPrompt);
-    
-    // Parse response
     let parsed;
-    try {
-      parsed = JSON.parse(response);
-    } catch {
-      // If not JSON, wrap in structure
-      parsed = {
-        files: [{
-          path: "src/app/page.tsx",
-          content: response,
-          language: "tsx",
-        }],
-        description: prompt,
-        dependencies: [],
-      };
+    
+    if (isMobile) {
+      // Generate mobile template first
+      const template = generateMobileTemplate(`BuildAny-${projectId.slice(0, 8)}`);
+      const templateFiles = getMobileFileList(template);
+      
+      // Get AI-generated app-specific screens
+      const appResponse = await model.generate(prompt, systemPrompt);
+      
+      try {
+        parsed = JSON.parse(appResponse);
+      } catch {
+        parsed = {
+          files: [{
+            path: "src/app/(tabs)/index.tsx",
+            content: appResponse,
+            language: "tsx",
+          }],
+          description: prompt,
+          dependencies: [],
+        };
+      }
+      
+      // Merge template files with AI-generated files
+      parsed.files = [
+        ...templateFiles,
+        ...(parsed.files || []),
+      ];
+    } else {
+      // Web app generation
+      const response = await model.generate(prompt, systemPrompt);
+      
+      try {
+        parsed = JSON.parse(response);
+      } catch {
+        parsed = {
+          files: [{
+            path: "src/app/page.tsx",
+            content: response,
+            language: "tsx",
+          }],
+          description: prompt,
+          dependencies: [],
+        };
+      }
     }
+    
+    // Deduplicate files by path (AI files override template files)
+    const fileMap = new Map();
+    for (const file of parsed.files) {
+      fileMap.set(file.path, file);
+    }
+    parsed.files = Array.from(fileMap.values());
 
     // Save generated files
     for (const file of parsed.files || []) {
