@@ -2,7 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Code2, GitBranch, Play, Send, FileCode, Folder, ChevronRight, Loader2, Download, Smartphone, Globe } from 'lucide-react';
+import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot } from 'lucide-react';
+import { SwarmDashboard } from "./SwarmDashboard";
 
 interface ProjectWorkspaceProps {
   project: any;
@@ -16,6 +17,7 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
   const [chatInput, setChatInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [messages, setMessages] = useState(chatHistory);
+  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'swarm'>('chat');
   const router = useRouter();
 
   const handleChat = async (e: React.FormEvent) => {
@@ -147,56 +149,86 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
           )}
         </div>
 
-        {/* Chat Panel */}
+        {/* Right Panel - Chat + Swarm Tabs */}
         <div className="w-80 border-l border-slate-800 bg-slate-900/50 flex flex-col">
-          <div className="p-3 text-xs font-medium text-slate-500 uppercase">AI Assistant</div>
-          
-          <div className="flex-1 overflow-auto p-3 space-y-3">
-            {messages.length === 0 && (
-              <div className="text-sm text-slate-600 text-center py-8">
-                Ask the AI to modify your app...
-              </div>
-            )}
-            {messages.map((msg) => (
-              <div 
-                key={msg.id} 
-                className={`text-sm p-3 rounded-lg ${
-                  msg.role === 'user' 
-                    ? 'bg-cyan-500/10 text-cyan-100 ml-4' 
-                    : msg.role === 'assistant'
-                    ? 'bg-slate-800 text-slate-300 mr-4'
-                    : 'bg-slate-800/50 text-slate-500 text-xs'
-                }`}
-              >
-                <div className="text-xs opacity-50 mb-1">{msg.role} {msg.model && `• ${msg.model}`}</div>
-                {msg.content}
-              </div>
-            ))}
-            {isGenerating && (
-              <div className="flex items-center gap-2 text-sm text-slate-500">
-                <Loader2 className="w-4 h-4 animate-spin" />
-                Thinking...
-              </div>
-            )}
+          {/* Tab Bar */}
+          <div className="flex border-b border-slate-800">
+            <button
+              onClick={() => setRightPanelTab('chat')}
+              className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
+                rightPanelTab === 'chat'
+                  ? 'text-cyan-400 border-b-2 border-cyan-500 bg-cyan-500/5'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Send className="w-3 h-3" />
+              AI Assistant
+            </button>
+            <button
+              onClick={() => setRightPanelTab('swarm')}
+              className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
+                rightPanelTab === 'swarm'
+                  ? 'text-cyan-400 border-b-2 border-cyan-500 bg-cyan-500/5'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Bot className="w-3 h-3" />
+              Swarm
+            </button>
           </div>
 
-          <form onSubmit={handleChat} className="p-3 border-t border-slate-800">
-            <div className="flex gap-2">
-              <input
-                value={chatInput}
-                onChange={(e) => setChatInput(e.target.value)}
-                placeholder="Ask to modify..."
-                className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500"
-              />
-              <button 
-                type="submit"
-                disabled={isGenerating}
-                className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-2 rounded-lg hover:opacity-90 disabled:opacity-50"
-              >
-                <Send className="w-4 h-4" />
-              </button>
-            </div>
-          </form>
+          {rightPanelTab === 'chat' ? (
+            <>
+              <div className="flex-1 overflow-auto p-3 space-y-3">
+                {messages.length === 0 && (
+                  <div className="text-sm text-slate-600 text-center py-8">
+                    Ask the AI to modify your app...
+                  </div>
+                )}
+                {messages.map((msg) => (
+                  <div 
+                    key={msg.id} 
+                    className={`text-sm p-3 rounded-lg ${
+                      msg.role === 'user' 
+                        ? 'bg-cyan-500/10 text-cyan-100 ml-4' 
+                        : msg.role === 'assistant'
+                        ? 'bg-slate-800 text-slate-300 mr-4'
+                        : 'bg-slate-800/50 text-slate-500 text-xs'
+                    }`}
+                  >
+                    <div className="text-xs opacity-50 mb-1">{msg.role} {msg.model && `• ${msg.model}`}</div>
+                    {msg.content}
+                  </div>
+                ))}
+                {isGenerating && (
+                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    Thinking...
+                  </div>
+                )}
+              </div>
+
+              <form onSubmit={handleChat} className="p-3 border-t border-slate-800">
+                <div className="flex gap-2">
+                  <input
+                    value={chatInput}
+                    onChange={(e) => setChatInput(e.target.value)}
+                    placeholder="Ask to modify..."
+                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500"
+                  />
+                  <button 
+                    type="submit"
+                    disabled={isGenerating}
+                    className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-2 rounded-lg hover:opacity-90 disabled:opacity-50"
+                  >
+                    <Send className="w-4 h-4" />
+                  </button>
+                </div>
+              </form>
+            </>
+          ) : (
+            <SwarmDashboard projectId={project.id} />
+          )}
         </div>
       </div>
     </div>
