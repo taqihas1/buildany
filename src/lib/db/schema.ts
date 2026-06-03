@@ -129,3 +129,53 @@ export const adrs = sqliteTable("adrs", {
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
+
+// ─── Agent Swarm ───
+
+export const agents = sqliteTable("agents", {
+  id: text("id").primaryKey(),
+  name: text("name").notNull(),
+  type: text("type").notNull(), // "hermes" | "orchestrator" | "tester" | "deployer"
+  status: text("status").default("idle"), // "idle" | "busy" | "offline"
+  capabilities: text("capabilities"), // JSON array of skills
+  lastHeartbeat: integer("last_heartbeat", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  metadata: text("metadata"), // JSON config
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+export const tasks = sqliteTable("tasks", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull(),
+  agentId: text("agent_id"),
+  parentTaskId: text("parent_task_id"),
+  type: text("type").notNull(), // "code" | "test" | "research" | "deploy" | "review"
+  status: text("status").default("pending"), // "pending" | "running" | "completed" | "failed" | "retrying"
+  priority: integer("priority").default(1), // 1-5, higher = more urgent
+  title: text("title").notNull(),
+  description: text("description"),
+  input: text("input"), // JSON task payload
+  output: text("output"), // JSON task result
+  errorLog: text("error_log"),
+  attempts: integer("attempts").default(0),
+  maxAttempts: integer("max_attempts").default(3),
+  startedAt: integer("started_at", { mode: "timestamp" }),
+  completedAt: integer("completed_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
+export const skills = sqliteTable("skills", {
+  id: text("id").primaryKey(),
+  agentId: text("agent_id"), // null = shared skill
+  name: text("name").notNull(),
+  description: text("description"),
+  category: text("category").notNull(), // "expo" | "react" | "testing" | "deployment" | "ui"
+  code: text("code"), // reusable code snippet or script
+  triggerPatterns: text("trigger_patterns"), // JSON array of regex/keywords that activate this skill
+  successCount: integer("success_count").default(0),
+  failureCount: integer("failure_count").default(0),
+  contextRequired: text("context_required"), // JSON array of required context keys
+  isShared: integer("is_shared", { mode: "boolean" }).default(false),
+  version: integer("version").default(1),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});

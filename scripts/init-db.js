@@ -133,6 +133,54 @@ sqlite.exec(`
     created_at INTEGER DEFAULT CURRENT_TIMESTAMP,
     updated_at INTEGER DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS agents (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    type TEXT NOT NULL,
+    status TEXT DEFAULT 'idle',
+    capabilities TEXT,
+    last_heartbeat INTEGER DEFAULT CURRENT_TIMESTAMP,
+    metadata TEXT,
+    created_at INTEGER DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS tasks (
+    id TEXT PRIMARY KEY,
+    project_id TEXT NOT NULL,
+    agent_id TEXT,
+    parent_task_id TEXT,
+    type TEXT NOT NULL,
+    status TEXT DEFAULT 'pending',
+    priority INTEGER DEFAULT 1,
+    title TEXT NOT NULL,
+    description TEXT,
+    input TEXT,
+    output TEXT,
+    error_log TEXT,
+    attempts INTEGER DEFAULT 0,
+    max_attempts INTEGER DEFAULT 3,
+    started_at INTEGER,
+    completed_at INTEGER,
+    created_at INTEGER DEFAULT CURRENT_TIMESTAMP
+  );
+
+  CREATE TABLE IF NOT EXISTS skills (
+    id TEXT PRIMARY KEY,
+    agent_id TEXT,
+    name TEXT NOT NULL,
+    description TEXT,
+    category TEXT NOT NULL,
+    code TEXT,
+    trigger_patterns TEXT,
+    success_count INTEGER DEFAULT 0,
+    failure_count INTEGER DEFAULT 0,
+    context_required TEXT,
+    is_shared INTEGER DEFAULT 0,
+    version INTEGER DEFAULT 1,
+    created_at INTEGER DEFAULT CURRENT_TIMESTAMP,
+    updated_at INTEGER DEFAULT CURRENT_TIMESTAMP
+  );
 `);
 
 console.log("✅ Database initialized!");
