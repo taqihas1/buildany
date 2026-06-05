@@ -22,13 +22,13 @@ export default async function Home() {
       
       {/* Hero Section */}
       <div className="container mx-auto px-4 pt-20 pb-12 text-center">
-        <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
+        <h1 className="font-display text-5xl md:text-7xl font-medium bg-gradient-to-r from-black via-gray-900 to-gray-700 bg-clip-text text-transparent mb-6 tracking-tight">
           What would you build?
         </h1>
-        <p className="text-xl text-gray-700 mb-4 max-w-2xl mx-auto">
+        <p className="font-sans-ui text-xl text-vogue-gray mb-4 max-w-2xl mx-auto leading-relaxed">
           AI-powered app builder. Web, mobile, backend — describe it, we build it.
         </p>
-        <div className="flex items-center justify-center gap-4 text-base text-gray-600 mb-12">
+        <div className="font-sans-ui flex items-center justify-center gap-4 text-sm text-vogue-light-gray mb-12">
           <span className="flex items-center gap-1">⚡ Instant preview</span>
           <span className="flex items-center gap-1">📱 Mobile + Web</span>
           <span className="flex items-center gap-1">🤖 Multi-LLM</span>
@@ -94,10 +94,10 @@ export default async function Home() {
 
 function FeatureCard({ icon, title, description }: { icon: string; title: string; description: string }) {
   return (
-    <div className="bg-white/80 border border-gray-200 rounded-xl p-6 hover:border-cyan-500/50 transition-colors shadow-sm">
+    <div className="bg-white border border-gray-100 rounded-xl p-6 hover:border-black transition-colors shadow-sm">
       <div className="text-3xl mb-3">{icon}</div>
-      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
-      <p className="text-gray-600 text-base">{description}</p>
+      <h3 className="font-display text-lg font-medium text-vogue-black mb-2">{title}</h3>
+      <p className="font-sans-ui text-vogue-gray text-base">{description}</p>
     </div>
   );
 }
