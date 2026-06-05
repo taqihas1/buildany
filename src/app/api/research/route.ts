@@ -1,7 +1,10 @@
-import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
+import { NextRequest, NextResponse } from "next/server";
+import { llmRouter } from "@/lib/llm-router";
+import { db } from "@/lib/db";
+import { conversations } from "@/lib/db/schema";
 
-export async function POST(req: Request) {
+export async function POST(req: NextRequest) {
   try {
     const authData = await auth();
     const userId = authData.userId;
@@ -10,52 +13,62 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { prompt } = body;
+    const { projectId, query } = body;
 
-    // Research top apps in the space
-    const researchPrompt = `Research the top apps in this space: "${prompt}"
+    if (!projectId || !query) {
+      return NextResponse.json(
+        { error: "Missing projectId or query" },
+        { status: 400 }
+      );
+    }
 
-Find and analyze:
-1. Top 5 apps in this category (names, URLs)
-2. Key features they all have
-3. UI/UX patterns they use
-4. Common user complaints from reviews
-5. What makes each one unique
-6. Market gaps / opportunities
+    const researchPrompt = `Research this topic for an app idea. Provide:
+1. Target audience and their pain points
+2. Top 3 competitors with their key features
+3. Market gaps and opportunities
+4. Recommended tech stack
+5. Core features to build first (MVP)
 
-Return a structured JSON report.`;
+Topic: ${query}`;
 
-    // Use DeepSeek for research (cheap + fast)
-    const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY || ""}`,
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [
-          { role: "system", content: "You are a market research analyst. Research apps thoroughly and return structured data." },
-          { role: "user", content: researchPrompt },
-        ],
-        temperature: 0.5,
-      }),
+    const result = await llmRouter.generate({
+      prompt: researchPrompt,
+      systemPrompt: "You are a market research analyst specializing in app development. Provide concise, actionable insights.",
+      provider: "deepseek",
+      temperature: 0.8,
+      maxTokens: 2000,
     });
 
-    const data = await res.json();
-    const research = data.choices?.[0]?.message?.content || "{}";
+    if (!result.success || !result.content) {
+      return NextResponse.json(
+        { error: result.error || "Research failed" },
+        { status: 500 }
+      );
+    }
 
-    // Also search web for real data
-    const searchResults = await fetch(`https://www.googleapis.com/customsearch/v1?q=${encodeURIComponent(prompt + " best apps")}&key=${process.env.GOOGLE_API_KEY}&cx=${process.env.GOOGLE_CX}`);
-    const searchData = await searchResults.json();
+    // Save research to conversation
+    await db.insert(conversations).values({
+      id: crypto.randomUUID(),
+      projectId,
+      role: "assistant",
+      content: `## Research Results\n\n${result.content}`,
+      model: `${result.provider}/${result.model}`,
+      tokensUsed: result.tokensUsed,
+      createdAt: new Date(),
+    });
 
     return NextResponse.json({
-      research,
-      searchResults: searchData.items?.slice(0, 5) || [],
-      timestamp: new Date().toISOString(),
+      success: true,
+      research: result.content,
+      tokensUsed: result.tokensUsed,
+      provider: result.provider,
+      model: result.model,
     });
   } catch (error) {
     console.error("Research error:", error);
-    return NextResponse.json({ error: "Research failed" }, { status: 500 });
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    );
   }
 }

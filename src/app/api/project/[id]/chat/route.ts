@@ -2,8 +2,8 @@ import { NextResponse } from "next/server";
 import { auth } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/lib/db";
-import { conversations } from "@/lib/db/schema";
-import { generateCode } from "@/lib/llm-router";
+import { conversations, projects } from "@/lib/db/schema";
+import { llmRouter, getSystemPromptForType } from "@/lib/llm-router";
 import { randomUUID } from "crypto";
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -30,12 +30,22 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     const history = await db.select().from(conversations).where(eq(conversations.projectId, id));
     const context = history.map(h => `${h.role}: ${h.content}`).join("\n");
 
+    // Get project info for system prompt
+    const project = await db.select().from(projects).where(eq(projects.id, id)).get();
+    const systemPrompt = getSystemPromptForType(project?.type || 'web');
+
     // Generate response
-    const response = await generateCode(id, `${context}\n\nUser: ${message}\n\nModify the app based on this request.`, "web");
+    const result = await llmRouter.generate({
+      prompt: `${context}\n\nUser: ${message}\n\nModify the app based on this request.`,
+      systemPrompt,
+      temperature: 0.7,
+      maxTokens: 4000,
+    });
 
     return NextResponse.json({
-      response: response.description || "Changes applied successfully",
-      model: response.model || "default",
+      response: result.content || "Changes applied successfully",
+      model: result.model || "default",
+      provider: result.provider,
     });
   } catch (error) {
     console.error("Chat error:", error);
