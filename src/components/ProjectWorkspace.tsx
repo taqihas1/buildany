@@ -48,6 +48,39 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
     }
   };
 
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [deployStatus, setDeployStatus] = useState<"" | "building" | "ready" | "error">("");
+  const [deployUrl, setDeployUrl] = useState("");
+
+  const handleDeploy = async () => {
+    try {
+      setIsDeploying(true);
+      setDeployStatus("building");
+      
+      const res = await fetch('/api/deploy', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: project.id }),
+      });
+      
+      const data = await res.json();
+      
+      if (data.success) {
+        setDeployStatus("ready");
+        setDeployUrl(data.downloadUrl);
+      } else {
+        setDeployStatus("error");
+        alert(data.error || 'Deploy failed');
+      }
+    } catch (err) {
+      console.error('Deploy failed:', err);
+      setDeployStatus("error");
+      alert('Deploy failed. Check console for details.');
+    } finally {
+      setIsDeploying(false);
+    }
+  };
+
   const exportToGitHub = async () => {
     try {
       const res = await fetch('/api/github/create', {
@@ -154,9 +187,25 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
             <GitBranch className="w-3 h-3" />
             Export to GitHub
           </button>
-          <button className="flex items-center gap-2 px-3 py-1.5 text-xs bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:opacity-90 transition-opacity">
+          {deployStatus === 'ready' && deployUrl && (
+            <a 
+              href={deployUrl}
+              className="flex items-center gap-2 px-3 py-1.5 text-xs bg-green-500/10 text-green-400 rounded-lg border border-green-500/20 hover:bg-green-500/20 transition-colors"
+            >
+              Download Package
+            </a>
+          )}
+          <button 
+            onClick={handleDeploy}
+            disabled={isDeploying}
+            className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-colors ${
+              deployStatus === 'ready' 
+                ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
+                : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:opacity-90'
+            } disabled:opacity-50`}
+          >
             <Play className="w-3 h-3" />
-            Deploy
+            {isDeploying ? 'Deploying...' : deployStatus === 'ready' ? 'Deployed' : 'Deploy'}
           </button>
         </div>
       </header>
