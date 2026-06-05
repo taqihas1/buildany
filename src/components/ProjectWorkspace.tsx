@@ -202,6 +202,17 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
               Preview
             </button>
             <button
+              onClick={() => setRightPanelTab('preview')}
+              className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
+                rightPanelTab === 'preview'
+                  ? 'text-cyan-400 border-b-2 border-cyan-500 bg-cyan-500/5'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Eye className="w-3 h-3" />
+              Preview
+            </button>
+            <button
               onClick={() => setRightPanelTab('mobile')}
               className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
                 rightPanelTab === 'mobile'
