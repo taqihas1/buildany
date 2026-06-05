@@ -8,10 +8,7 @@ import { eq } from "drizzle-orm";
 export async function POST(req: NextRequest) {
   try {
     const authData = await auth();
-    const userId = authData.userId;
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    const userId = authData.userId || "guest-" + crypto.randomUUID();
 
     const body = await req.json();
     const { projectId, prompt, type = "web", provider, stream = false, skipResearch = false } = body;

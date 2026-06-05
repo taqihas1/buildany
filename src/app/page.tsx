@@ -17,18 +17,18 @@ export default async function Home() {
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+    <main className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white">
       <DashboardHeader user={userId ? { id: userId } : null} />
       
       {/* Hero Section */}
       <div className="container mx-auto px-4 pt-20 pb-12 text-center">
-        <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-cyan-400 via-blue-500 to-purple-500 bg-clip-text text-transparent mb-6">
+        <h1 className="text-5xl md:text-7xl font-bold bg-gradient-to-r from-cyan-600 via-blue-600 to-purple-600 bg-clip-text text-transparent mb-6">
           What would you build?
         </h1>
-        <p className="text-xl text-slate-400 mb-4 max-w-2xl mx-auto">
+        <p className="text-xl text-gray-500 mb-4 max-w-2xl mx-auto">
           AI-powered app builder. Web, mobile, backend — describe it, we build it.
         </p>
-        <div className="flex items-center justify-center gap-4 text-sm text-slate-500 mb-12">
+        <div className="flex items-center justify-center gap-4 text-sm text-gray-400 mb-12">
           <span className="flex items-center gap-1">⚡ Instant preview</span>
           <span className="flex items-center gap-1">📱 Mobile + Web</span>
           <span className="flex items-center gap-1">🤖 Multi-LLM</span>
@@ -41,7 +41,7 @@ export default async function Home() {
       {/* Projects Grid */}
       {userId && userProjects.length > 0 && (
         <div className="container mx-auto px-4 py-12">
-          <h2 className="text-2xl font-semibold text-white mb-6">Your Projects</h2>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Your Projects</h2>
           <ProjectGrid projects={userProjects} />
         </div>
       )}
@@ -84,7 +84,7 @@ export default async function Home() {
       
       {/* CTA */}
       <div className="container mx-auto px-4 py-16 text-center">
-        <p className="text-slate-500 text-sm">
+        <p className="text-gray-400 text-sm">
           Built with Next.js 15 · React 19 · TypeScript · Tailwind · shadcn/ui · OpenClaw
         </p>
       </div>
@@ -94,10 +94,10 @@ export default async function Home() {
 
 function FeatureCard({ icon, title, description }: { icon: string; title: string; description: string }) {
   return (
-    <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 hover:border-cyan-500/50 transition-colors">
+    <div className="bg-white/80 border border-gray-200 rounded-xl p-6 hover:border-cyan-500/50 transition-colors shadow-sm">
       <div className="text-3xl mb-3">{icon}</div>
-      <h3 className="text-lg font-semibold text-white mb-2">{title}</h3>
-      <p className="text-slate-400 text-sm">{description}</p>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+      <p className="text-gray-500 text-sm">{description}</p>
     </div>
   );
 }

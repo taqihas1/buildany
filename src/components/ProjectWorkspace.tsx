@@ -147,18 +147,18 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
   };
 
   return (
-    <div className="h-screen flex flex-col bg-slate-950">
+    <div className="h-screen flex flex-col bg-white">
       {/* Header */}
-      <header className="h-14 border-b border-slate-800 flex items-center justify-between px-4 bg-slate-900">
+      <header className="h-14 border-b border-gray-200 flex items-center justify-between px-4 bg-white">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
             <Code2 className="w-4 h-4 text-white" />
           </div>
           <div>
-            <h1 className="text-sm font-medium text-white">{project.name}</h1>
-            <div className="flex items-center gap-2 text-xs text-slate-500">
+            <h1 className="text-sm font-medium text-gray-900">{project.name}</h1>
+            <div className="flex items-center gap-2 text-xs text-gray-400">
               {project.type === 'mobile' ? <Smartphone className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
-              <span className={project.status === 'ready' ? 'text-green-400' : 'text-yellow-400'}>
+              <span className={project.status === 'ready' ? 'text-green-500' : 'text-yellow-500'}>
                 {project.status}
               </span>
             </div>
@@ -168,21 +168,21 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
         <div className="flex items-center gap-2">
           <button 
             onClick={downloadWeb}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-xs bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors"
           >
             <Globe className="w-3 h-3" />
             Download Web
           </button>
           <button 
             onClick={downloadMobile}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-xs bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors"
           >
             <Smartphone className="w-3 h-3" />
             Download Mobile
           </button>
           <button 
             onClick={exportToGitHub}
-            className="flex items-center gap-2 px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 text-xs bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors"
           >
             <GitBranch className="w-3 h-3" />
             Export to GitHub
@@ -190,7 +190,7 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
           {deployStatus === 'ready' && deployUrl && (
             <a 
               href={deployUrl}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs bg-green-500/10 text-green-400 rounded-lg border border-green-500/20 hover:bg-green-500/20 transition-colors"
+              className="flex items-center gap-2 px-3 py-1.5 text-xs bg-green-50 text-green-600 rounded-lg border border-green-200 hover:bg-green-100 transition-colors"
             >
               Download Package
             </a>
@@ -200,7 +200,7 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
             disabled={isDeploying}
             className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-colors ${
               deployStatus === 'ready' 
-                ? 'bg-green-500/10 text-green-400 border border-green-500/20' 
+                ? 'bg-green-50 text-green-600 border border-green-200' 
                 : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:opacity-90'
             } disabled:opacity-50`}
           >
@@ -213,11 +213,11 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* File Tree */}
-        <div className="w-64 border-r border-slate-800 bg-slate-900/50 flex flex-col">
-          <div className="p-3 text-xs font-medium text-slate-500 uppercase">Files</div>
+        <div className="w-64 border-r border-gray-200 bg-gray-50/50 flex flex-col">
+          <div className="p-3 text-xs font-medium text-gray-400 uppercase">Files</div>
           <div className="flex-1 overflow-auto">
             {files.length === 0 ? (
-              <div className="p-4 text-sm text-slate-600 text-center">
+              <div className="p-4 text-sm text-gray-400 text-center">
                 <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
                 Generating code...
               </div>
@@ -229,8 +229,8 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                     onClick={() => setActiveFile(file)}
                     className={`w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors ${
                       activeFile?.id === file.id 
-                        ? 'bg-cyan-500/10 text-cyan-400 border-r-2 border-cyan-500' 
-                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                        ? 'bg-cyan-50 text-cyan-600 border-r-2 border-cyan-500' 
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                     }`}
                   >
                     <FileCode className="w-4 h-4 shrink-0" />
@@ -243,20 +243,20 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
         </div>
 
         {/* Code Editor */}
-        <div className="flex-1 flex flex-col bg-slate-950">
+        <div className="flex-1 flex flex-col bg-white">
           {activeFile ? (
             <>
-              <div className="h-9 flex items-center px-4 border-b border-slate-800 text-xs text-slate-400">
+              <div className="h-9 flex items-center px-4 border-b border-gray-200 text-xs text-gray-400">
                 <FileCode className="w-3 h-3 mr-2" />
                 {activeFile.path}
-                <span className="ml-2 text-slate-600">{activeFile.language}</span>
+                <span className="ml-2 text-gray-400">{activeFile.language}</span>
               </div>
-              <pre className="flex-1 p-4 overflow-auto text-sm font-mono text-slate-300">
+              <pre className="flex-1 p-4 overflow-auto text-sm font-mono text-gray-700">
                 <code>{activeFile.content}</code>
               </pre>
             </>
           ) : (
-            <div className="flex-1 flex items-center justify-center text-slate-600">
+            <div className="flex-1 flex items-center justify-center text-gray-400">
               <div className="text-center">
                 <Folder className="w-12 h-12 mx-auto mb-3" />
                 <p>Select a file to view</p>
@@ -266,15 +266,15 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
         </div>
 
         {/* Right Panel - Chat + Swarm Tabs */}
-        <div className="w-80 border-l border-slate-800 bg-slate-900/50 flex flex-col">
+        <div className="w-80 border-l border-gray-200 bg-gray-50/50 flex flex-col">
           {/* Tab Bar */}
-          <div className="flex border-b border-slate-800">
+          <div className="flex border-b border-gray-200">
             <button
               onClick={() => setRightPanelTab('chat')}
               className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
                 rightPanelTab === 'chat'
-                  ? 'text-cyan-400 border-b-2 border-cyan-500 bg-cyan-500/5'
-                  : 'text-slate-500 hover:text-slate-300'
+                  ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               <Send className="w-3 h-3" />
@@ -284,8 +284,8 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
               onClick={() => setRightPanelTab('research')}
               className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
                 rightPanelTab === 'research'
-                  ? 'text-cyan-400 border-b-2 border-cyan-500 bg-cyan-500/5'
-                  : 'text-slate-500 hover:text-slate-300'
+                  ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               <Search className="w-3 h-3" />
@@ -295,8 +295,8 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
               onClick={() => setRightPanelTab('swarm')}
               className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
                 rightPanelTab === 'swarm'
-                  ? 'text-cyan-400 border-b-2 border-cyan-500 bg-cyan-500/5'
-                  : 'text-slate-500 hover:text-slate-300'
+                  ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               <Bot className="w-3 h-3" />
@@ -306,8 +306,8 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
               onClick={() => setRightPanelTab('preview')}
               className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
                 rightPanelTab === 'preview'
-                  ? 'text-cyan-400 border-b-2 border-cyan-500 bg-cyan-500/5'
-                  : 'text-slate-500 hover:text-slate-300'
+                  ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               <Eye className="w-3 h-3" />
@@ -317,8 +317,8 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
               onClick={() => setRightPanelTab('mobile')}
               className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
                 rightPanelTab === 'mobile'
-                  ? 'text-cyan-400 border-b-2 border-cyan-500 bg-cyan-500/5'
-                  : 'text-slate-500 hover:text-slate-300'
+                  ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
+                  : 'text-gray-400 hover:text-gray-600'
               }`}
             >
               <Smartphone className="w-3 h-3" />
@@ -334,7 +334,7 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
             <>
               <div className="flex-1 overflow-auto p-3 space-y-3">
                 {messages.length === 0 && (
-                  <div className="text-sm text-slate-600 text-center py-8">
+                  <div className="text-sm text-gray-400 text-center py-8">
                     Ask the AI to modify your app...
                   </div>
                 )}
@@ -343,10 +343,10 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                     key={msg.id} 
                     className={`text-sm p-3 rounded-lg ${
                       msg.role === 'user' 
-                        ? 'bg-cyan-500/10 text-cyan-100 ml-4' 
+                        ? 'bg-cyan-50 text-cyan-900 ml-4' 
                         : msg.role === 'assistant'
-                        ? 'bg-slate-800 text-slate-300 mr-4'
-                        : 'bg-slate-800/50 text-slate-500 text-xs'
+                        ? 'bg-white border border-gray-200 text-gray-700 mr-4'
+                        : 'bg-gray-100 text-gray-500 text-xs'
                     }`}
                   >
                     <div className="text-xs opacity-50 mb-1">{msg.role} {msg.model && `• ${msg.model}`}</div>
@@ -354,20 +354,20 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                   </div>
                 ))}
                 {isGenerating && (
-                  <div className="flex items-center gap-2 text-sm text-slate-500">
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
                     <Loader2 className="w-4 h-4 animate-spin" />
                     Thinking...
                   </div>
                 )}
               </div>
 
-              <form onSubmit={handleChat} className="p-3 border-t border-slate-800">
+              <form onSubmit={handleChat} className="p-3 border-t border-gray-200">
                 <div className="flex gap-2">
                   <input
                     value={chatInput}
                     onChange={(e) => setChatInput(e.target.value)}
                     placeholder="Ask to modify..."
-                    className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500"
+                    className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-500"
                   />
                   <button 
                     type="submit"
