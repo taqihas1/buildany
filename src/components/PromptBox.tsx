@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sparkles, Loader2, Wand2, Search, Layers, Code2, Smartphone, Globe, CheckCircle, Zap } from "lucide-react";
 
-export function PromptBox() {
+export function PromptBox({ selectedModel }: { selectedModel?: string }) {
   const [prompt, setPrompt] = useState("");
   const [appType, setAppType] = useState<"web" | "mobile" | "dashboard">("web");
   const [skipResearch, setSkipResearch] = useState(false);
@@ -12,6 +12,14 @@ export function PromptBox() {
   const [loadingStage, setLoadingStage] = useState<"" | "research" | "generating" | "decomposing">("");
   const [researchPreview, setResearchPreview] = useState<any>(null);
   const router = useRouter();
+
+  const getProvider = () => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('selectedModel');
+      if (stored) return stored;
+    }
+    return selectedModel || 'deepseek-chat';
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,6 +36,7 @@ export function PromptBox() {
         body: JSON.stringify({ 
           prompt, 
           type: appType, 
+          provider: getProvider(),
           skipResearch 
         }),
       });
@@ -90,10 +99,10 @@ export function PromptBox() {
             <button
               key={type}
               onClick={() => setAppType(type)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-all ${
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm rounded-lg border transition-all ${
                 appType === type
-                  ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-600"
-                  : "bg-white border-gray-200 text-gray-400 hover:text-gray-600"
+                  ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-700"
+                  : "bg-white border-gray-200 text-gray-500 hover:text-gray-700"
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -122,7 +131,7 @@ export function PromptBox() {
 
       {/* Options */}
       <div className="flex items-center justify-between mt-3 px-1">
-        <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
+        <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
           <input
             type="checkbox"
             checked={skipResearch}
@@ -131,7 +140,7 @@ export function PromptBox() {
           />
           Skip research (faster, less competitive)
         </label>
-        <span className="text-xs text-gray-400">
+        <span className="text-sm text-gray-500">
           {appType === "mobile" ? "Expo SDK 54 + React Native" : "Next.js 15 + Tailwind + shadcn/ui"}
         </span>
       </div>
@@ -139,13 +148,13 @@ export function PromptBox() {
       {/* Loading Status */}
       {isLoading && (
         <div className="mt-4 space-y-2">
-          <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-3 text-base">
             <div className={`w-2 h-2 rounded-full ${
-              loadingStage === "research" ? "bg-cyan-400 animate-pulse" :
-              loadingStage === "generating" || loadingStage === "decomposing" ? "bg-emerald-400" :
-              "bg-slate-600"
+              loadingStage === "research" ? "bg-cyan-500 animate-pulse" :
+              loadingStage === "generating" || loadingStage === "decomposing" ? "bg-emerald-500" :
+              "bg-gray-300"
             }`} />
-            <span className={loadingStage === "research" ? "text-cyan-600" : "text-emerald-600"}>
+            <span className={loadingStage === "research" ? "text-cyan-700 font-medium" : "text-emerald-700 font-medium"}>
               {loadingStage === "research" && <><Search className="w-3.5 h-3.5 inline mr-1" /> Researching market...</>}
               {loadingStage === "generating" && <><Code2 className="w-3.5 h-3.5 inline mr-1" /> Generating code...</>}
               {loadingStage === "decomposing" && <><Layers className="w-3.5 h-3.5 inline mr-1" /> Planning tasks...</>}
@@ -154,12 +163,12 @@ export function PromptBox() {
 
           {/* Research Preview */}
           {researchPreview && (
-            <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2 shadow-sm">
-              <div className="flex items-center gap-2 text-xs text-cyan-600 mb-2">
-                <CheckCircle className="w-3.5 h-3.5" />
+            <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-2 shadow-sm">
+              <div className="flex items-center gap-2 text-sm text-cyan-700 mb-2">
+                <CheckCircle className="w-4 h-4" />
                 Research completed
               </div>
-              <div className="text-xs text-gray-600 max-h-24 overflow-y-auto">
+              <div className="text-sm text-gray-700 max-h-24 overflow-y-auto">
                 {researchPreview.content?.slice(0, 300)}...
               </div>
             </div>
@@ -174,7 +183,7 @@ export function PromptBox() {
             <button
               key={i}
               onClick={() => setPrompt(p)}
-              className="text-xs bg-white border border-gray-200 text-gray-500 px-3 py-1.5 rounded-full hover:border-cyan-500/50 hover:text-cyan-600 transition-colors"
+              className="text-sm bg-white border border-gray-200 text-gray-600 px-4 py-2 rounded-full hover:border-cyan-500/50 hover:text-cyan-700 transition-colors"
             >
               <Wand2 className="w-3 h-3 inline mr-1" />
               {p.length > 40 ? p.slice(0, 40) + "..." : p}

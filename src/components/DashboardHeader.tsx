@@ -6,8 +6,17 @@ import { LLMSelector } from "./LLMSelector";
 import { useState } from "react";
 import Link from "next/link";
 
-export function DashboardHeader({ user }: { user: any }) {
-  const [selectedModel, setSelectedModel] = useState('deepseek-chat');
+interface DashboardHeaderProps {
+  user?: any;
+}
+
+export function DashboardHeader({ user }: DashboardHeaderProps) {
+  const [selectedModel, setSelectedModel] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('selectedModel') || 'deepseek-chat';
+    }
+    return 'deepseek-chat';
+  });
   return (
     <header className="border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
