@@ -1,9 +1,13 @@
 "use client";
 
 import { SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
-import { Code2, Zap } from "lucide-react";
+import { Code2, Zap, Settings } from "lucide-react";
+import { LLMSelector } from "./LLMSelector";
+import { useState } from "react";
+import Link from "next/link";
 
 export function DashboardHeader({ user }: { user: any }) {
+  const [selectedModel, setSelectedModel] = useState('deepseek-chat');
   return (
     <header className="border-b border-slate-800 bg-slate-950/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
@@ -18,12 +22,16 @@ export function DashboardHeader({ user }: { user: any }) {
         </div>
 
         <div className="flex items-center gap-4">
+          <LLMSelector selectedModel={selectedModel} onSelect={setSelectedModel} />
           {user ? (
             <>
               <div className="flex items-center gap-2 text-sm text-slate-400">
                 <Zap className="w-4 h-4 text-yellow-400" />
                 <span>{user.creditsUsed || 0} / {user.creditsTotal || 100} credits</span>
               </div>
+              <Link href="/settings" className="text-slate-400 hover:text-white transition-colors">
+                <Settings className="w-4 h-4" />
+              </Link>
               <UserButton />
             </>
           ) : (
