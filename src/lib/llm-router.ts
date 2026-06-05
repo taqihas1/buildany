@@ -1,263 +1,346 @@
-import { db } from "./db";
-import { projects, conversations, projectFiles } from "./db/schema";
+import { db } from "@/lib/db";
+import { apiKeys } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { randomUUID } from "crypto";
-import { generateMobileTemplate, getMobileFileList, getMobileSystemPrompt } from "./mobile-templates";
 
-interface LLMProvider {
-  name: string;
-  generate: (prompt: string, systemPrompt: string) => Promise<string>;
+export type LLMProvider = "deepseek" | "kimi" | "openai";
+
+interface LLMConfig {
+  baseUrl: string;
+  model: string;
+  apiKey: string;
 }
 
-// DeepSeek V3 - Fast, cheap, good for simple apps
-const deepseekProvider: LLMProvider = {
-  name: "deepseek-v3",
-  generate: async (prompt, systemPrompt) => {
-    const res = await fetch("https://api.deepseek.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.DEEPSEEK_API_KEY || ""}`,
-      },
-      body: JSON.stringify({
-        model: "deepseek-chat",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.7,
-      }),
-    });
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || "";
-  },
+interface GenerateOptions {
+  prompt: string;
+  systemPrompt?: string;
+  provider?: LLMProvider;
+  temperature?: number;
+  maxTokens?: number;
+  stream?: boolean;
+}
+
+interface GenerateResult {
+  success: boolean;
+  content?: string;
+  error?: string;
+  tokensUsed?: number;
+  provider: string;
+  model: string;
+}
+
+export interface StreamChunk {
+  content: string;
+  done: boolean;
+  error?: string;
+}
+
+// ─── System Prompts ───
+
+export const SYSTEM_PROMPTS = {
+  web: `You are an expert Next.js 15 + React 19 developer. Generate production-ready code.
+
+Rules:
+- Use Next.js App Router with async/await patterns
+- Use TypeScript with strict types (no 'any')
+- Use Tailwind CSS for all styling (no inline styles)
+- Use Lucide React for icons (NEVER emojis in UI)
+- Export default components
+- Add loading states and error boundaries
+- Use server components by default, 'use client' only for interactivity
+- Follow modern React patterns (hooks, not class components)
+
+Output format: Return code as markdown code blocks with file paths:
+\`\`\`tsx:app/page.tsx
+// code here
+\`\`\`
+
+IMPORTANT: Always provide COMPLETE, runnable files. Never use "..." or "// rest of code" placeholders.`,
+
+  mobile: `You are an expert React Native + Expo SDK 54 developer. Generate production-ready mobile apps.
+
+Rules:
+- Use React Native with TypeScript
+- Use Expo Router for navigation (file-based routing)
+- Use NativeWind (Tailwind for RN) for styling
+- Use Lucide React Native for icons (NEVER emojis in UI)
+- Use functional components with hooks
+- Follow mobile UX patterns (touch targets, safe areas, etc.)
+- Add loading states and error handling
+- Use Expo SDK 54 APIs (expo-camera, expo-location, etc. when needed)
+
+Output format: Return code as markdown code blocks with file paths:
+\`\`\`tsx:app/index.tsx
+// code here
+\`\`\`
+
+IMPORTANT: Always provide COMPLETE, runnable files. Never use "..." or "// rest of code" placeholders.`,
+
+  dashboard: `You are an expert React + Tailwind CSS developer specializing in data visualization dashboards.
+
+Rules:
+- Use React with TypeScript
+- Use Tailwind CSS for all styling
+- Use Recharts for charts and graphs
+- Use Lucide React for icons (NEVER emojis in UI)
+- Use shadcn/ui patterns for cards, tables, and forms
+- Make layouts responsive (grid, flex)
+- Add loading states and empty states
+- Use proper TypeScript types for data structures
+
+Output format: Return code as markdown code blocks with file paths:
+\`\`\`tsx:app/page.tsx
+// code here
+\`\`\`
+
+IMPORTANT: Always provide COMPLETE, runnable files. Never use "..." or "// rest of code" placeholders.`,
 };
 
-// Kimi K2.6 - Long context, great for complex apps
-const kimiProvider: LLMProvider = {
-  name: "kimi-k2-6",
-  generate: async (prompt, systemPrompt) => {
-    const res = await fetch("https://api.moonshot.cn/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.KIMI_API_KEY || ""}`,
-      },
-      body: JSON.stringify({
-        model: "kimi-k2-6",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.7,
-      }),
-    });
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || "";
-  },
-};
+// ─── LLM Router ───
 
-// GPT-4o - Reliable, good for UI/UX
-const openaiProvider: LLMProvider = {
-  name: "gpt-4o",
-  generate: async (prompt, systemPrompt) => {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${process.env.OPENAI_API_KEY || ""}`,
-      },
-      body: JSON.stringify({
-        model: "gpt-4o",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: prompt },
-        ],
-        temperature: 0.7,
-      }),
-    });
-    const data = await res.json();
-    return data.choices?.[0]?.message?.content || "";
-  },
-};
+export class LLMRouter {
+  private configs: Map<LLMProvider, LLMConfig> = new Map();
 
-// Router: Pick best model based on complexity
-function routeModel(prompt: string): LLMProvider {
-  const complexity = estimateComplexity(prompt);
-  
-  // Check which API keys are available
-  const hasDeepseek = !!process.env.DEEPSEEK_API_KEY;
-  const hasKimi = !!process.env.KIMI_API_KEY;
-  const hasOpenAI = !!process.env.OPENAI_API_KEY;
-  
-  if (complexity > 7 && hasKimi) return kimiProvider;
-  if (complexity > 5 && hasOpenAI) return openaiProvider;
-  if (hasDeepseek) return deepseekProvider;
-  if (hasOpenAI) return openaiProvider;
-  if (hasKimi) return kimiProvider;
-  
-  // Fallback to mock if no keys
-  return {
-    name: "mock",
-    generate: async () => mockGenerate(prompt),
-  };
-}
+  async loadConfigs() {
+    const keys = await db
+      .select()
+      .from(apiKeys)
+      .where(eq(apiKeys.isActive, true));
 
-function estimateComplexity(prompt: string): number {
-  let score = 3; // base
-  if (prompt.includes("mobile") || prompt.includes("app")) score += 2;
-  if (prompt.includes("database") || prompt.includes("auth")) score += 2;
-  if (prompt.includes("payment") || prompt.includes("stripe")) score += 2;
-  if (prompt.includes("real-time") || prompt.includes("websocket")) score += 1;
-  if (prompt.length > 200) score += 1;
-  return Math.min(score, 10);
-}
-
-function mockGenerate(prompt: string): string {
-  // Return a structured code response for demo
-  return JSON.stringify({
-    files: [
-      {
-        path: "src/app/page.tsx",
-        content: `export default function Home() {\n  return (\n    <div className="p-8">\n      <h1 className="text-2xl font-bold">${prompt.slice(0, 30)}...</h1>\n      <p>Generated by BuildAny AI</p>\n    </div>\n  );\n}`,
-        language: "tsx",
-      },
-      {
-        path: "src/app/layout.tsx",
-        content: `export default function RootLayout({ children }) {\n  return <html><body>{children}</body></html>;\n}`,
-        language: "tsx",
-      },
-    ],
-    description: `Generated app based on: ${prompt}`,
-  });
-}
-
-export async function generateCode(projectId: string, prompt: string, type: string) {
-  const isMobile = type === "mobile" || type === "dashboard";
-  
-  let systemPrompt = `You are an expert full-stack developer. Generate a complete ${isMobile ? "React Native" : "Next.js"} application based on the user's description.
-
-Return a JSON object with:
-- files: array of {path, content, language}
-- description: string describing what was built
-- dependencies: array of npm packages needed
-
-Guidelines:
-- Use TypeScript
-- Use Tailwind CSS for styling
-- Include proper error handling
-- Add loading states
-- Make it production-ready
-${isMobile ? getMobileSystemPrompt() : ""}`;
-
-  const model = routeModel(prompt);
-  
-  try {
-    // Save that we're using this model
-    await db.insert(conversations).values({
-      id: randomUUID(),
-      projectId,
-      role: "system",
-      content: `Using model: ${model.name} for ${type} app`,
-      model: model.name,
-    });
-
-    let parsed;
-    
-    if (isMobile) {
-      // Generate mobile template first
-      const template = generateMobileTemplate(`BuildAny-${projectId.slice(0, 8)}`);
-      const templateFiles = getMobileFileList(template);
-      
-      // Get AI-generated app-specific screens
-      const appResponse = await model.generate(prompt, systemPrompt);
-      
-      try {
-        parsed = JSON.parse(appResponse);
-      } catch {
-        parsed = {
-          files: [{
-            path: "src/app/(tabs)/index.tsx",
-            content: appResponse,
-            language: "tsx",
-          }],
-          description: prompt,
-          dependencies: [],
-        };
-      }
-      
-      // Merge template files with AI-generated files
-      parsed.files = [
-        ...templateFiles,
-        ...(parsed.files || []),
-      ];
-    } else {
-      // Web app generation
-      const response = await model.generate(prompt, systemPrompt);
-      
-      try {
-        parsed = JSON.parse(response);
-      } catch {
-        parsed = {
-          files: [{
-            path: "src/app/page.tsx",
-            content: response,
-            language: "tsx",
-          }],
-          description: prompt,
-          dependencies: [],
-        };
+    for (const key of keys) {
+      const provider = key.provider as LLMProvider;
+      if (provider === "deepseek") {
+        this.configs.set(provider, {
+          baseUrl: "https://api.deepseek.com/v1",
+          model: "deepseek-chat",
+          apiKey: key.keyValue,
+        });
+      } else if (provider === "kimi") {
+        this.configs.set(provider, {
+          baseUrl: "https://api.moonshot.cn/v1",
+          model: "moonshot-v1-8k",
+          apiKey: key.keyValue,
+        });
+      } else if (provider === "openai") {
+        this.configs.set(provider, {
+          baseUrl: "https://api.openai.com/v1",
+          model: "gpt-4o",
+          apiKey: key.keyValue,
+        });
       }
     }
-    
-    // Deduplicate files by path (AI files override template files)
-    const fileMap = new Map();
-    for (const file of parsed.files) {
-      fileMap.set(file.path, file);
-    }
-    parsed.files = Array.from(fileMap.values());
+  }
 
-    // Save generated files
-    for (const file of parsed.files || []) {
-      await db.insert(projectFiles).values({
-        id: randomUUID(),
-        projectId,
-        path: file.path,
-        content: file.content,
-        language: file.language || "tsx",
-        isGenerated: true,
+  getConfig(provider: LLMProvider): LLMConfig | undefined {
+    return this.configs.get(provider);
+  }
+
+  selectProvider(prompt: string, preferred?: LLMProvider): LLMProvider {
+    // If preferred provider is available, use it
+    if (preferred && this.configs.has(preferred)) {
+      return preferred;
+    }
+
+    // Check for Chinese language - prefer Kimi
+    const hasChinese = /[\u4e00-\u9fa5]/.test(prompt);
+    if (hasChinese && this.configs.has("kimi")) {
+      return "kimi";
+    }
+
+    // Check for complex coding tasks - prefer DeepSeek
+    const codingKeywords = ["algorithm", "database", "api", "backend", "complex", "advanced"];
+    const isCoding = codingKeywords.some((kw) => prompt.toLowerCase().includes(kw));
+    if (isCoding && this.configs.has("deepseek")) {
+      return "deepseek";
+    }
+
+    // Default to DeepSeek if available, then Kimi, then OpenAI
+    if (this.configs.has("deepseek")) return "deepseek";
+    if (this.configs.has("kimi")) return "kimi";
+    if (this.configs.has("openai")) return "openai";
+
+    throw new Error("No LLM providers configured. Add API keys in admin panel.");
+  }
+
+  async generate(options: GenerateOptions): Promise<GenerateResult> {
+    await this.loadConfigs();
+
+    const provider = this.selectProvider(options.prompt, options.provider);
+    const config = this.configs.get(provider)!;
+
+    try {
+      const response = await fetch(`${config.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [
+            {
+              role: "system",
+              content: options.systemPrompt || SYSTEM_PROMPTS.web,
+            },
+            { role: "user", content: options.prompt },
+          ],
+          temperature: options.temperature ?? 0.7,
+          max_tokens: options.maxTokens ?? 4000,
+          stream: options.stream ?? false,
+        }),
       });
+
+      if (!response.ok) {
+        const error = await response.text();
+        return {
+          success: false,
+          error: `API error (${response.status}): ${error}`,
+          provider,
+          model: config.model,
+        };
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      const tokensUsed = data.usage?.total_tokens;
+
+      return {
+        success: true,
+        content,
+        tokensUsed,
+        provider,
+        model: config.model,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        provider,
+        model: config.model,
+      };
     }
+  }
 
-    // Save AI response
-    await db.insert(conversations).values({
-      id: randomUUID(),
-      projectId,
-      role: "assistant",
-      content: parsed.description || "Code generated successfully",
-      model: model.name,
-    });
+  async *stream(options: GenerateOptions): AsyncGenerator<StreamChunk> {
+    await this.loadConfigs();
 
-    // Update project status
-    await db.update(projects)
-      .set({ status: "ready" })
-      .where(eq(projects.id, projectId));
+    const provider = this.selectProvider(options.prompt, options.provider);
+    const config = this.configs.get(provider)!;
 
-    return parsed;
-  } catch (error) {
-    console.error("Generation error:", error);
-    
-    await db.insert(conversations).values({
-      id: randomUUID(),
-      projectId,
-      role: "system",
-      content: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
-    });
+    try {
+      const response = await fetch(`${config.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [
+            {
+              role: "system",
+              content: options.systemPrompt || SYSTEM_PROMPTS.web,
+            },
+            { role: "user", content: options.prompt },
+          ],
+          temperature: options.temperature ?? 0.7,
+          max_tokens: options.maxTokens ?? 4000,
+          stream: true,
+        }),
+      });
 
-    await db.update(projects)
-      .set({ status: "error" })
-      .where(eq(projects.id, projectId));
+      if (!response.ok) {
+        const error = await response.text();
+        yield { content: "", done: true, error: `API error (${response.status}): ${error}` };
+        return;
+      }
 
-    throw error;
+      const reader = response.body?.getReader();
+      if (!reader) {
+        yield { content: "", done: true, error: "No response body" };
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.trim() === "" || line.startsWith(":")) continue;
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") {
+              yield { content: "", done: true };
+              return;
+            }
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content || "";
+              yield { content: delta, done: false };
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+
+      yield { content: "", done: true };
+    } catch (error) {
+      yield {
+        content: "",
+        done: true,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
   }
 }
+
+// ─── File Parser ───
+
+export interface ParsedFile {
+  path: string;
+  content: string;
+  language: string;
+}
+
+export function parseGeneratedCode(content: string): ParsedFile[] {
+  const files: ParsedFile[] = [];
+  const regex = /```(?:(\w+):)?([^\n]+)\n([\s\S]*?)```/g;
+  let match;
+
+  while ((match = regex.exec(content)) !== null) {
+    const language = match[1] || "tsx";
+    const path = match[2].trim();
+    const fileContent = match[3].trim();
+
+    if (path && fileContent) {
+      files.push({
+        path,
+        content: fileContent,
+        language,
+      });
+    }
+  }
+
+  return files;
+}
+
+export function getSystemPromptForType(type: string): string {
+  switch (type) {
+    case "mobile":
+      return SYSTEM_PROMPTS.mobile;
+    case "dashboard":
+      return SYSTEM_PROMPTS.dashboard;
+    case "web":
+    default:
+      return SYSTEM_PROMPTS.web;
+  }
+}
+
+export const llmRouter = new LLMRouter();

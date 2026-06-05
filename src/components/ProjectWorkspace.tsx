@@ -3,9 +3,11 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot, Search, Eye } from 'lucide-react';
+import { AIChatPanel } from "./AIChatPanel";
 import { SwarmDashboard } from "./SwarmDashboard";
 import { ResearchPanel } from "./ResearchPanel";
 import { LivePreview } from "./LivePreview";
+import { MobilePreview } from "./MobilePreview";
 
 interface ProjectWorkspaceProps {
   project: any;
@@ -19,7 +21,7 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
   const [chatInput, setChatInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [messages, setMessages] = useState(chatHistory);
-  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'swarm' | 'research' | 'preview'>('chat');
+  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'swarm' | 'research' | 'preview' | 'mobile'>('chat');
   const router = useRouter();
 
   const handleChat = async (e: React.FormEvent) => {
@@ -199,9 +201,22 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
               <Eye className="w-3 h-3" />
               Preview
             </button>
+            <button
+              onClick={() => setRightPanelTab('mobile')}
+              className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
+                rightPanelTab === 'mobile'
+                  ? 'text-cyan-400 border-b-2 border-cyan-500 bg-cyan-500/5'
+                  : 'text-slate-500 hover:text-slate-300'
+              }`}
+            >
+              <Smartphone className="w-3 h-3" />
+              Mobile
+            </button>
           </div>
 
-          {rightPanelTab === 'preview' ? (
+          {rightPanelTab === 'mobile' ? (
+            <MobilePreview projectId={project.id} />
+          ) : rightPanelTab === 'preview' ? (
             <LivePreview project={project} files={files} activeFile={activeFile} />
           ) : rightPanelTab === 'chat' ? (
             <>
