@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot, Search, Eye } from 'lucide-react';
+import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot, Search, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AIChatPanel } from "./AIChatPanel";
 import { SwarmDashboard } from "./SwarmDashboard";
 import { ResearchPanel } from "./ResearchPanel";
@@ -22,6 +22,8 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
   const [isGenerating, setIsGenerating] = useState(false);
   const [messages, setMessages] = useState(chatHistory);
   const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'swarm' | 'research' | 'preview' | 'mobile'>('chat');
+  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
+  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const router = useRouter();
 
   const handleChat = async (e: React.FormEvent) => {
@@ -212,46 +214,150 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
-        {/* File Tree */}
-        <div className="w-64 border-r border-gray-200 bg-gray-50/50 flex flex-col">
-          <div className="p-3 text-xs font-medium text-gray-400 uppercase">Files</div>
-          <div className="flex-1 overflow-auto">
-            {files.length === 0 ? (
-              <div className="p-4 text-sm text-gray-400 text-center">
-                <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-                Generating code...
+        {/* LEFT Panel - AI Chat / Swarm / Research / Preview / Mobile */}
+        <div className={`${leftPanelCollapsed ? 'w-10' : 'w-80'} border-r border-gray-200 bg-gray-50/50 flex flex-col transition-all duration-200`}>
+          {/* Collapse toggle */}
+          <button
+            onClick={() => setLeftPanelCollapsed(!leftPanelCollapsed)}
+            className="w-full h-8 flex items-center justify-center border-b border-gray-200 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+            title={leftPanelCollapsed ? "Expand panel" : "Collapse panel"}
+          >
+            <ChevronLeft className={`w-4 h-4 transition-transform ${leftPanelCollapsed ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {!leftPanelCollapsed && (
+            <>
+              {/* Tab Bar */}
+              <div className="flex border-b border-gray-200">
+                <button
+                  onClick={() => setRightPanelTab('chat')}
+                  className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
+                    rightPanelTab === 'chat'
+                      ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  <Send className="w-4 h-4" />
+                  AI
+                </button>
+                <button
+                  onClick={() => setRightPanelTab('research')}
+                  className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
+                    rightPanelTab === 'research'
+                      ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  <Search className="w-4 h-4" />
+                  Research
+                </button>
+                <button
+                  onClick={() => setRightPanelTab('swarm')}
+                  className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
+                    rightPanelTab === 'swarm'
+                      ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  <Bot className="w-4 h-4" />
+                  Swarm
+                </button>
+                <button
+                  onClick={() => setRightPanelTab('preview')}
+                  className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
+                    rightPanelTab === 'preview'
+                      ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  <Eye className="w-4 h-4" />
+                  Preview
+                </button>
+                <button
+                  onClick={() => setRightPanelTab('mobile')}
+                  className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
+                    rightPanelTab === 'mobile'
+                      ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  <Smartphone className="w-4 h-4" />
+                  Mobile
+                </button>
               </div>
-            ) : (
-              <div className="space-y-0.5">
-                {files.map((file) => (
-                  <button
-                    key={file.id}
-                    onClick={() => setActiveFile(file)}
-                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors ${
-                      activeFile?.id === file.id 
-                        ? 'bg-cyan-50 text-cyan-600 border-r-2 border-cyan-500' 
-                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-                    }`}
-                  >
-                    <FileCode className="w-4 h-4 shrink-0" />
-                    <span className="truncate">{file.path.split('/').pop()}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+
+              {rightPanelTab === 'mobile' ? (
+                <MobilePreview projectId={project.id} />
+              ) : rightPanelTab === 'preview' ? (
+                <LivePreview project={project} files={files} activeFile={activeFile} />
+              ) : rightPanelTab === 'chat' ? (
+                <>
+                  <div className="flex-1 overflow-auto p-3 space-y-3">
+                    {messages.length === 0 && (
+                      <div className="text-base text-gray-400 text-center py-8">
+                        Ask the AI to modify your app...
+                      </div>
+                    )}
+                    {messages.map((msg) => (
+                      <div 
+                        key={msg.id} 
+                        className={`text-base p-3 rounded-lg ${
+                          msg.role === 'user' 
+                            ? 'bg-cyan-50 text-cyan-900 ml-4' 
+                            : msg.role === 'assistant'
+                            ? 'bg-white border border-gray-200 text-gray-700 mr-4'
+                            : 'bg-gray-100 text-gray-500 text-sm'
+                        }`}
+                      >
+                        <div className="text-sm opacity-50 mb-1">{msg.role} {msg.model && `• ${msg.model}`}</div>
+                        {msg.content}
+                      </div>
+                    ))}
+                    {isGenerating && (
+                      <div className="flex items-center gap-2 text-base text-gray-400">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        Thinking...
+                      </div>
+                    )}
+                  </div>
+
+                  <form onSubmit={handleChat} className="p-3 border-t border-gray-200">
+                    <div className="flex gap-2">
+                      <input
+                        value={chatInput}
+                        onChange={(e) => setChatInput(e.target.value)}
+                        placeholder="Ask to modify..."
+                        className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-500"
+                      />
+                      <button 
+                        type="submit"
+                        disabled={isGenerating}
+                        className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-2 rounded-lg hover:opacity-90 disabled:opacity-50"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </form>
+                </>
+              ) : rightPanelTab === 'research' ? (
+                <ResearchPanel projectId={project.id} />
+              ) : (
+                <SwarmDashboard projectId={project.id} />
+              )}
+            </>
+          )}
         </div>
 
-        {/* Code Editor */}
+        {/* CENTER - Code Editor */}
         <div className="flex-1 flex flex-col bg-white">
           {activeFile ? (
             <>
-              <div className="h-9 flex items-center px-4 border-b border-gray-200 text-xs text-gray-400">
-                <FileCode className="w-3 h-3 mr-2" />
+              <div className="h-9 flex items-center px-4 border-b border-gray-200 text-sm text-gray-400">
+                <FileCode className="w-4 h-4 mr-2" />
                 {activeFile.path}
                 <span className="ml-2 text-gray-400">{activeFile.language}</span>
               </div>
-              <pre className="flex-1 p-4 overflow-auto text-sm font-mono text-gray-700">
+              <pre className="flex-1 p-4 overflow-auto text-base font-mono text-gray-700">
                 <code>{activeFile.content}</code>
               </pre>
             </>
@@ -265,124 +371,46 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
           )}
         </div>
 
-        {/* Right Panel - Chat + Swarm Tabs */}
-        <div className="w-80 border-l border-gray-200 bg-gray-50/50 flex flex-col">
-          {/* Tab Bar */}
-          <div className="flex border-b border-gray-200">
-            <button
-              onClick={() => setRightPanelTab('chat')}
-              className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                rightPanelTab === 'chat'
-                  ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              <Send className="w-3 h-3" />
-              AI Assistant
-            </button>
-            <button
-              onClick={() => setRightPanelTab('research')}
-              className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                rightPanelTab === 'research'
-                  ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              <Search className="w-3 h-3" />
-              Research
-            </button>
-            <button
-              onClick={() => setRightPanelTab('swarm')}
-              className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                rightPanelTab === 'swarm'
-                  ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              <Bot className="w-3 h-3" />
-              Swarm
-            </button>
-            <button
-              onClick={() => setRightPanelTab('preview')}
-              className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                rightPanelTab === 'preview'
-                  ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              <Eye className="w-3 h-3" />
-              Preview
-            </button>
-            <button
-              onClick={() => setRightPanelTab('mobile')}
-              className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                rightPanelTab === 'mobile'
-                  ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
-                  : 'text-gray-400 hover:text-gray-600'
-              }`}
-            >
-              <Smartphone className="w-3 h-3" />
-              Mobile
-            </button>
-          </div>
-
-          {rightPanelTab === 'mobile' ? (
-            <MobilePreview projectId={project.id} />
-          ) : rightPanelTab === 'preview' ? (
-            <LivePreview project={project} files={files} activeFile={activeFile} />
-          ) : rightPanelTab === 'chat' ? (
+        {/* RIGHT Panel - File Tree */}
+        <div className={`${rightPanelCollapsed ? 'w-10' : 'w-72'} border-l border-gray-200 bg-gray-50/50 flex flex-col transition-all duration-200`}>
+          {/* Collapse toggle */}
+          <button
+            onClick={() => setRightPanelCollapsed(!rightPanelCollapsed)}
+            className="w-full h-8 flex items-center justify-center border-b border-gray-200 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
+            title={rightPanelCollapsed ? "Expand panel" : "Collapse panel"}
+          >
+            <ChevronRight className={`w-4 h-4 transition-transform ${rightPanelCollapsed ? 'rotate-180' : ''}`} />
+          </button>
+          
+          {!rightPanelCollapsed && (
             <>
-              <div className="flex-1 overflow-auto p-3 space-y-3">
-                {messages.length === 0 && (
-                  <div className="text-sm text-gray-400 text-center py-8">
-                    Ask the AI to modify your app...
+              <div className="p-3 text-sm font-medium text-gray-400 uppercase">Files</div>
+              <div className="flex-1 overflow-auto">
+                {files.length === 0 ? (
+                  <div className="p-4 text-base text-gray-400 text-center">
+                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                    Generating code...
                   </div>
-                )}
-                {messages.map((msg) => (
-                  <div 
-                    key={msg.id} 
-                    className={`text-sm p-3 rounded-lg ${
-                      msg.role === 'user' 
-                        ? 'bg-cyan-50 text-cyan-900 ml-4' 
-                        : msg.role === 'assistant'
-                        ? 'bg-white border border-gray-200 text-gray-700 mr-4'
-                        : 'bg-gray-100 text-gray-500 text-xs'
-                    }`}
-                  >
-                    <div className="text-xs opacity-50 mb-1">{msg.role} {msg.model && `• ${msg.model}`}</div>
-                    {msg.content}
-                  </div>
-                ))}
-                {isGenerating && (
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                    Thinking...
+                ) : (
+                  <div className="space-y-0.5">
+                    {files.map((file) => (
+                      <button
+                        key={file.id}
+                        onClick={() => setActiveFile(file)}
+                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors ${
+                          activeFile?.id === file.id 
+                            ? 'bg-cyan-50 text-cyan-600 border-l-2 border-cyan-500' 
+                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                        }`}
+                      >
+                        <FileCode className="w-4 h-4 shrink-0" />
+                        <span className="truncate">{file.path.split('/').pop()}</span>
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
-
-              <form onSubmit={handleChat} className="p-3 border-t border-gray-200">
-                <div className="flex gap-2">
-                  <input
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    placeholder="Ask to modify..."
-                    className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-500"
-                  />
-                  <button 
-                    type="submit"
-                    disabled={isGenerating}
-                    className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-2 rounded-lg hover:opacity-90 disabled:opacity-50"
-                  >
-                    <Send className="w-4 h-4" />
-                  </button>
-                </div>
-              </form>
             </>
-          ) : rightPanelTab === 'research' ? (
-            <ResearchPanel projectId={project.id} />
-          ) : (
-            <SwarmDashboard projectId={project.id} />
           )}
         </div>
       </div>
