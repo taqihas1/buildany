@@ -1,7 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { Settings, Key, Save, Check, AlertTriangle, Globe, Smartphone } from "lucide-react";
+import { ClearKeyButton } from "@/components/ClearKeyButton";
+import { Settings, Key, Save, Check, AlertTriangle, Globe, Smartphone, Trash2 } from "lucide-react";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -17,7 +18,7 @@ async function saveApiKey(formData: FormData) {
   const keyValue = formData.get("keyValue") as string;
   const isActive = formData.get("isActive") === "on";
 
-  if (!provider || !keyValue) return;
+  if (!provider) return;
 
   const existing = await db
     .select()
@@ -28,19 +29,36 @@ async function saveApiKey(formData: FormData) {
   if (existing.length > 0) {
     await db
       .update(apiKeys)
-      .set({ keyValue, isActive, updatedAt: new Date() })
+      .set({ keyValue: keyValue || existing[0].keyValue, isActive, updatedAt: new Date() })
       .where(eq(apiKeys.provider, provider));
   } else {
     await db.insert(apiKeys).values({
       id: crypto.randomUUID(),
       provider,
-      keyValue,
+      keyValue: keyValue || "",
       isActive,
       userId,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
   }
+
+  revalidatePath("/settings");
+}
+
+async function clearApiKey(formData: FormData) {
+  "use server";
+  const authData = await auth();
+  const userId = authData.userId;
+  if (!userId) return;
+
+  const provider = formData.get("provider") as string;
+  if (!provider) return;
+
+  await db
+    .update(apiKeys)
+    .set({ keyValue: "", isActive: false, updatedAt: new Date() })
+    .where(eq(apiKeys.provider, provider));
 
   revalidatePath("/settings");
 }
@@ -93,7 +111,7 @@ export default async function SettingsPage() {
   ];
 
   return (
-    <main className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950">
+    <main className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white">
       <DashboardHeader user={{ id: userId }} />
       
       <div className="container mx-auto px-4 py-12">
@@ -103,8 +121,8 @@ export default async function SettingsPage() {
               <Settings className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-white">Settings</h1>
-              <p className="text-sm text-slate-400">
+              <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+              <p className="text-base text-gray-500">
                 Manage API keys and preferences
               </p>
             </div>
@@ -113,28 +131,28 @@ export default async function SettingsPage() {
           <div className="space-y-6">
             {/* API Keys Section */}
             <div className="flex items-center gap-2 mb-4">
-              <Key className="w-5 h-5 text-cyan-400" />
-              <h2 className="text-lg font-semibold text-white">API Keys</h2>
+              <Key className="w-5 h-5 text-cyan-600" />
+              <h2 className="text-lg font-semibold text-gray-900">API Keys</h2>
             </div>
 
             {providers.map((provider) => (
               <form
                 key={provider.id}
                 action={saveApiKey}
-                className="bg-slate-800/50 border border-slate-700 rounded-xl p-6 space-y-4"
+                className="bg-white border border-gray-200 rounded-xl p-6 space-y-4 shadow-sm relative"
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <h3 className="text-sm font-medium text-white">{provider.name}</h3>
-                    <p className="text-xs text-slate-500">{provider.description}</p>
+                    <h3 className="text-base font-medium text-gray-900">{provider.name}</h3>
+                    <p className="text-sm text-gray-500">{provider.description}</p>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
                       <input
                         type="checkbox"
                         name="isActive"
                         defaultChecked={provider.active}
-                        className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-500"
+                        className="w-4 h-4 rounded border-gray-300 bg-white text-cyan-500"
                       />
                       Active
                     </label>
@@ -148,20 +166,23 @@ export default async function SettingsPage() {
                       name="keyValue"
                       defaultValue={provider.key}
                       placeholder={provider.placeholder}
-                      className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-600 focus:outline-none focus:border-cyan-500"
+                      className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-500"
                     />
                     <input type="hidden" name="provider" value={provider.id} />
                     <button
                       type="submit"
-                      className="flex items-center gap-1.5 px-4 py-2 text-sm bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:opacity-90 transition-opacity"
+                      className="flex items-center gap-1.5 px-4 py-2 text-base bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:opacity-90 transition-opacity"
                     >
                       <Save className="w-4 h-4" />
                       Save
                     </button>
+                    {provider.key && (
+                      <ClearKeyButton provider={provider.id} clearAction={clearApiKey} />
+                    )}
                   </div>
                   {provider.key && (
-                    <div className="flex items-center gap-1 text-xs text-green-400">
-                      <Check className="w-3 h-3" />
+                    <div className="flex items-center gap-1 text-sm text-green-600">
+                      <Check className="w-4 h-4" />
                       Key configured
                     </div>
                   )}
@@ -170,28 +191,28 @@ export default async function SettingsPage() {
             ))}
             
             {/* Preferences */}
-            <div className="bg-slate-800/50 border border-slate-700 rounded-xl p-6">
-              <h2 className="text-lg font-semibold text-white mb-4">Preferences</h2>
+            <div className="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+              <h2 className="text-lg font-semibold text-gray-900 mb-4">Preferences</h2>
               
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-white">Auto-research</div>
-                    <div className="text-xs text-slate-500">Research competitors before building</div>
+                    <div className="text-base text-gray-900">Auto-research</div>
+                    <div className="text-sm text-gray-500">Research competitors before building</div>
                   </div>
-                  <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-slate-600 bg-slate-800 text-cyan-500" />
+                  <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-gray-300 bg-white text-cyan-500" />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-sm text-white">Default app type</div>
-                    <div className="text-xs text-slate-500">Pre-selected when creating projects</div>
+                    <div className="text-base text-gray-900">Default app type</div>
+                    <div className="text-sm text-gray-500">Pre-selected when creating projects</div>
                   </div>
                   <div className="flex gap-2">
-                    <button className="px-2 py-1 text-xs bg-cyan-500/10 text-cyan-400 rounded border border-cyan-500/20">
-                      <Globe className="w-3 h-3 inline mr-1" />Web
+                    <button className="px-3 py-1.5 text-sm bg-cyan-50 text-cyan-600 rounded border border-cyan-200">
+                      <Globe className="w-4 h-4 inline mr-1" />Web
                     </button>
-                    <button className="px-2 py-1 text-xs bg-slate-700 text-slate-400 rounded">
-                      <Smartphone className="w-3 h-3 inline mr-1" />Mobile
+                    <button className="px-3 py-1.5 text-sm bg-gray-100 text-gray-500 rounded border border-gray-200">
+                      <Smartphone className="w-4 h-4 inline mr-1" />Mobile
                     </button>
                   </div>
                 </div>
@@ -199,11 +220,11 @@ export default async function SettingsPage() {
             </div>
 
             {/* Instructions */}
-            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-xl p-4 flex items-start gap-3">
-              <AlertTriangle className="w-5 h-5 text-yellow-400 shrink-0 mt-0.5" />
+            <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-sm font-medium text-yellow-400 mb-1">Important</h3>
-                <p className="text-xs text-yellow-400/80 leading-relaxed">
+                <h3 className="text-sm font-medium text-yellow-700 mb-1">Important</h3>
+                <p className="text-sm text-yellow-600/80 leading-relaxed">
                   API keys are stored in the database. Never share your keys or commit them to version control. 
                   The DeepSeek key currently configured appears to be invalid — please update it.
                 </p>
