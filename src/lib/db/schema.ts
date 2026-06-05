@@ -12,6 +12,16 @@ export const users = sqliteTable("users", {
   creditsTotal: integer("credits_total").default(100),
 });
 
+export const apiKeys = sqliteTable("api_keys", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  provider: text("provider").notNull(), // "deepseek" | "kimi" | "openai" | "github"
+  keyValue: text("key_value").notNull(),
+  isActive: integer("is_active", { mode: "boolean" }).default(true),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
 export const projects = sqliteTable("projects", {
   id: text("id").primaryKey(),
   userId: text("user_id").notNull(),
