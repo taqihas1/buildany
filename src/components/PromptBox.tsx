@@ -92,8 +92,8 @@ export function PromptBox() {
               onClick={() => setAppType(type)}
               className={`flex items-center gap-1.5 px-3 py-1.5 text-xs rounded-lg border transition-all ${
                 appType === type
-                  ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-400"
-                  : "bg-slate-800 border-slate-700 text-slate-500 hover:text-slate-300"
+                  ? "bg-cyan-500/10 border-cyan-500/50 text-cyan-600"
+                  : "bg-white border-gray-200 text-gray-400 hover:text-gray-600"
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
@@ -108,7 +108,7 @@ export function PromptBox() {
           value={prompt}
           onChange={(e) => setPrompt(e.target.value)}
           placeholder="Describe your app... (e.g., 'A fitness tracker with workout plans, progress photos, and social sharing')"
-          className="w-full h-32 bg-slate-800 border border-slate-700 rounded-xl p-4 pr-14 text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500 resize-none"
+          className="w-full h-32 bg-white border border-gray-300 rounded-xl p-4 pr-14 text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-500 resize-none shadow-sm"
           disabled={isLoading}
         />
         <button
@@ -122,16 +122,16 @@ export function PromptBox() {
 
       {/* Options */}
       <div className="flex items-center justify-between mt-3 px-1">
-        <label className="flex items-center gap-2 text-xs text-slate-500 cursor-pointer">
+        <label className="flex items-center gap-2 text-xs text-gray-400 cursor-pointer">
           <input
             type="checkbox"
             checked={skipResearch}
             onChange={(e) => setSkipResearch(e.target.checked)}
-            className="rounded border-slate-600 bg-slate-800 text-cyan-500"
+            className="rounded border-gray-300 bg-white text-cyan-500"
           />
           Skip research (faster, less competitive)
         </label>
-        <span className="text-xs text-slate-600">
+        <span className="text-xs text-gray-400">
           {appType === "mobile" ? "Expo SDK 54 + React Native" : "Next.js 15 + Tailwind + shadcn/ui"}
         </span>
       </div>
@@ -145,7 +145,7 @@ export function PromptBox() {
               loadingStage === "generating" || loadingStage === "decomposing" ? "bg-emerald-400" :
               "bg-slate-600"
             }`} />
-            <span className={loadingStage === "research" ? "text-cyan-400" : "text-emerald-400"}>
+            <span className={loadingStage === "research" ? "text-cyan-600" : "text-emerald-600"}>
               {loadingStage === "research" && <><Search className="w-3.5 h-3.5 inline mr-1" /> Researching market...</>}
               {loadingStage === "generating" && <><Code2 className="w-3.5 h-3.5 inline mr-1" /> Generating code...</>}
               {loadingStage === "decomposing" && <><Layers className="w-3.5 h-3.5 inline mr-1" /> Planning tasks...</>}
@@ -154,12 +154,12 @@ export function PromptBox() {
 
           {/* Research Preview */}
           {researchPreview && (
-            <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 space-y-2">
-              <div className="flex items-center gap-2 text-xs text-cyan-400 mb-2">
+            <div className="bg-white border border-gray-200 rounded-lg p-3 space-y-2 shadow-sm">
+              <div className="flex items-center gap-2 text-xs text-cyan-600 mb-2">
                 <CheckCircle className="w-3.5 h-3.5" />
                 Research completed
               </div>
-              <div className="text-xs text-slate-300 max-h-24 overflow-y-auto">
+              <div className="text-xs text-gray-600 max-h-24 overflow-y-auto">
                 {researchPreview.content?.slice(0, 300)}...
               </div>
             </div>
@@ -174,7 +174,7 @@ export function PromptBox() {
             <button
               key={i}
               onClick={() => setPrompt(p)}
-              className="text-xs bg-slate-800 border border-slate-700 text-slate-400 px-3 py-1.5 rounded-full hover:border-cyan-500/50 hover:text-cyan-400 transition-colors"
+              className="text-xs bg-white border border-gray-200 text-gray-500 px-3 py-1.5 rounded-full hover:border-cyan-500/50 hover:text-cyan-600 transition-colors"
             >
               <Wand2 className="w-3 h-3 inline mr-1" />
               {p.length > 40 ? p.slice(0, 40) + "..." : p}
