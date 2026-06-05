@@ -25,14 +25,29 @@ export function PromptBox() {
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ prompt, type: appType, skipResearch }),
+        body: JSON.stringify({ 
+          prompt, 
+          type: appType, 
+          skipResearch 
+        }),
       });
+      
+      if (!res.ok) {
+        const errorData = await res.json().catch(() => ({ error: "Unknown error" }));
+        console.error("Generation failed:", errorData);
+        alert(`Error: ${errorData.error || "Failed to generate"}`);
+        setIsLoading(false);
+        setLoadingStage("");
+        return;
+      }
+      
       const data = await res.json();
 
+      // Show research results if available
       if (data.research) {
-        setResearchPreview(data.research);
         setLoadingStage("generating");
-        await new Promise(r => setTimeout(r, 500)); // Brief pause to show research
+        setResearchPreview(data.research);
+        await new Promise(r => setTimeout(r, 800)); // Brief pause to show research
       }
 
       setLoadingStage("decomposing");
@@ -40,9 +55,13 @@ export function PromptBox() {
 
       if (data.projectId) {
         router.push(`/project/${data.projectId}`);
+      } else {
+        console.error("No projectId in response:", data);
+        alert("Project created but no ID returned. Check console.");
       }
     } catch (err) {
       console.error("Generation failed:", err);
+      alert(`Network error: ${err instanceof Error ? err.message : "Failed to connect"}`);
       setIsLoading(false);
       setLoadingStage("");
     }
@@ -138,23 +157,11 @@ export function PromptBox() {
             <div className="bg-slate-800/50 border border-slate-700 rounded-lg p-3 space-y-2">
               <div className="flex items-center gap-2 text-xs text-cyan-400 mb-2">
                 <CheckCircle className="w-3.5 h-3.5" />
-                Research found {researchPreview.competitorCount} competitors
+                Research completed
               </div>
-              {researchPreview.keyFeatures?.length > 0 && (
-                <div className="flex flex-wrap gap-1">
-                  {researchPreview.keyFeatures.map((f: string, i: number) => (
-                    <span key={i} className="text-xs bg-slate-700 text-slate-300 px-2 py-0.5 rounded">
-                      {f}
-                    </span>
-                  ))}
-                </div>
-              )}
-              {researchPreview.gaps?.length > 0 && (
-                <div className="text-xs text-slate-500">
-                  <Zap className="w-3 h-3 inline mr-1 text-yellow-400" />
-                  {researchPreview.gaps.length} market gap{researchPreview.gaps.length > 1 ? "s" : ""} identified
-                </div>
-              )}
+              <div className="text-xs text-slate-300 max-h-24 overflow-y-auto">
+                {researchPreview.content?.slice(0, 300)}...
+              </div>
             </div>
           )}
         </div>
@@ -170,7 +177,7 @@ export function PromptBox() {
               className="text-xs bg-slate-800 border border-slate-700 text-slate-400 px-3 py-1.5 rounded-full hover:border-cyan-500/50 hover:text-cyan-400 transition-colors"
             >
               <Wand2 className="w-3 h-3 inline mr-1" />
-              {p}
+              {p.length > 40 ? p.slice(0, 40) + "..." : p}
             </button>
           ))}
         </div>

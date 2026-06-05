@@ -58,9 +58,58 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
       const data = await res.json();
       if (data.repoUrl) {
         window.open(data.repoUrl, '_blank');
+      } else {
+        alert('GitHub export not configured. Add a GitHub token in settings.');
       }
     } catch (err) {
       console.error('GitHub export failed:', err);
+      alert('GitHub export failed. Check console for details.');
+    }
+  };
+
+  const downloadWeb = async () => {
+    try {
+      const res = await fetch(`/api/project/${project.id}/download/web`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Download failed' }));
+        alert(data.error || 'No web files available. Generate web code first.');
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.name}-web.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Web download failed:', err);
+      alert('Web download failed. Check console for details.');
+    }
+  };
+
+  const downloadMobile = async () => {
+    try {
+      const res = await fetch(`/api/project/${project.id}/download/mobile`);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({ error: 'Download failed' }));
+        alert(data.error || 'No mobile files available. Generate mobile code first.');
+        return;
+      }
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `${project.name}-mobile.zip`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Mobile download failed:', err);
+      alert('Mobile download failed. Check console for details.');
     }
   };
 
@@ -84,6 +133,20 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
         </div>
         
         <div className="flex items-center gap-2">
+          <button 
+            onClick={downloadWeb}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+          >
+            <Globe className="w-3 h-3" />
+            Download Web
+          </button>
+          <button 
+            onClick={downloadMobile}
+            className="flex items-center gap-2 px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
+          >
+            <Smartphone className="w-3 h-3" />
+            Download Mobile
+          </button>
           <button 
             onClick={exportToGitHub}
             className="flex items-center gap-2 px-3 py-1.5 text-xs bg-slate-800 hover:bg-slate-700 text-white rounded-lg transition-colors"
@@ -189,17 +252,6 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
             >
               <Bot className="w-3 h-3" />
               Swarm
-            </button>
-            <button
-              onClick={() => setRightPanelTab('preview')}
-              className={`flex-1 px-3 py-2.5 text-xs font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                rightPanelTab === 'preview'
-                  ? 'text-cyan-400 border-b-2 border-cyan-500 bg-cyan-500/5'
-                  : 'text-slate-500 hover:text-slate-300'
-              }`}
-            >
-              <Eye className="w-3 h-3" />
-              Preview
             </button>
             <button
               onClick={() => setRightPanelTab('preview')}

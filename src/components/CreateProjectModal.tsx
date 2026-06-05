@@ -24,22 +24,43 @@ export function CreateProjectModal({ isOpen, onClose }: CreateProjectModalProps)
 
     setIsLoading(true);
     try {
-      const res = await fetch('/api/generate', {
+      // First, create the project
+      const createRes = await fetch('/api/projects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: description || name,
+          name,
+          description,
           type,
-          skipResearch: false,
         }),
       });
-      const data = await res.json();
-      if (data.projectId) {
-        router.push(`/project/${data.projectId}`);
+
+      const createData = await createRes.json();
+      
+      if (!createRes.ok || !createData.success) {
+        throw new Error(createData.error || 'Failed to create project');
       }
+
+      const projectId = createData.project.id;
+
+      // Then, generate initial code if description is provided
+      if (description?.trim()) {
+        await fetch('/api/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            projectId,
+            prompt: description,
+            type,
+          }),
+        });
+      }
+
+      router.push(`/project/${projectId}`);
+      onClose();
     } catch (err) {
       console.error('Failed to create project:', err);
-      alert('Failed to create project. Please try again.');
+      alert(err instanceof Error ? err.message : 'Failed to create project. Please try again.');
     } finally {
       setIsLoading(false);
     }
