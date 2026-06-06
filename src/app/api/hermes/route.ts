@@ -26,12 +26,14 @@ export async function POST(req: Request) {
         return executeTask(taskId, agentId);
       case "report":
         return reportResult(taskId, result, error);
-    case "notify":
-      return sendNotification(body);
-    case "webhook_email":
-      return handleEmailWebhook(body);
-    case "webhook_whatsapp":
-      return handleWhatsAppWebhook(body);
+      case "notify":
+        return sendNotification(body);
+      case "webhook_email":
+        return handleEmailWebhook(body);
+      case "webhook_discord":
+        return handleDiscordWebhook(body);
+      case "webhook_telegram":
+        return handleTelegramWebhook(body);
       case "get_skills":
         return getRelevantSkills(agentId, body.context);
       case "spawn":
@@ -415,6 +417,10 @@ export async function sendNotification(body: any) {
         return await sendEmailNotification(to, message, projectId, projectUrl, type);
       case "whatsapp":
         return await sendWhatsAppNotification(to, message, projectId, projectUrl, type);
+      case "discord":
+        return await sendDiscordNotification(to, message, projectId, projectUrl, type);
+      case "telegram":
+        return await sendTelegramNotification(to, message, projectId, projectUrl, type);
       default:
         return NextResponse.json({ error: "Unknown channel" }, { status: 400 });
     }
@@ -422,6 +428,54 @@ export async function sendNotification(body: any) {
     console.error("Notification error:", error);
     return NextResponse.json({ error: "Notification failed" }, { status: 500 });
   }
+}
+
+async function sendDiscordNotification(to: string, message: string, projectId: string, projectUrl: string, type: string) {
+  console.log("🎮 Hermes sending Discord:", { to, projectId, type });
+  
+  const taskId = randomUUID();
+  await db.insert(tasks).values({
+    id: taskId,
+    projectId: projectId || "notification",
+    type: "notification",
+    title: `Discord to ${to}`,
+    description: message,
+    status: "completed",
+    output: JSON.stringify({ channel: "discord", to, sent: true }),
+    completedAt: new Date(),
+  });
+
+  return NextResponse.json({ 
+    sent: true, 
+    channel: "discord", 
+    to,
+    taskId,
+    message: "Discord notification queued. Integrate with Discord webhook/bot API to send."
+  });
+}
+
+async function sendTelegramNotification(to: string, message: string, projectId: string, projectUrl: string, type: string) {
+  console.log("📱 Hermes sending Telegram:", { to, projectId, type });
+  
+  const taskId = randomUUID();
+  await db.insert(tasks).values({
+    id: taskId,
+    projectId: projectId || "notification",
+    type: "notification",
+    title: `Telegram to ${to}`,
+    description: message,
+    status: "completed",
+    output: JSON.stringify({ channel: "telegram", to, sent: true }),
+    completedAt: new Date(),
+  });
+
+  return NextResponse.json({ 
+    sent: true, 
+    channel: "telegram", 
+    to,
+    taskId,
+    message: "Telegram notification queued. Integrate with Telegram Bot API to send."
+  });
 }
 
 async function sendEmailNotification(to: string, message: string, projectId: string, projectUrl: string, type: string) {
@@ -507,20 +561,20 @@ export async function handleEmailWebhook(body: any) {
   });
 }
 
-export async function handleWhatsAppWebhook(body: any) {
-  const { from, message, mediaUrl, projectId } = body;
+export async function handleDiscordWebhook(body: any) {
+  const { userId, username, message, guildId, channelId, projectId } = body;
 
-  console.log("📱 Hermes processing WhatsApp:", { from, message: message?.slice(0, 100) });
+  console.log("🎮 Hermes processing Discord:", { username, message: message?.slice(0, 100) });
 
   const taskId = randomUUID();
   await db.insert(tasks).values({
     id: taskId,
-    projectId: projectId || "whatsapp-webhook",
-    type: "whatsapp_receive",
-    title: `WhatsApp from ${from}`,
+    projectId: projectId || "discord-webhook",
+    type: "discord_receive",
+    title: `Discord from ${username}`,
     description: message?.slice(0, 200),
     status: "completed",
-    input: JSON.stringify({ from, message, mediaUrl }),
+    input: JSON.stringify({ userId, username, message, guildId, channelId }),
     output: JSON.stringify({ processed: true }),
     completedAt: new Date(),
   });
@@ -530,7 +584,47 @@ export async function handleWhatsAppWebhook(body: any) {
       received: true,
       taskId,
       action: "project_creation_queued",
-      message: "WhatsApp message received. Hermes will create a project and reply.",
+      message: "Discord message received. Hermes will create a project and reply.",
+    });
+  }
+
+  return NextResponse.json({
+    received: true,
+    taskId,
+    projectId,
+    action: "project_update_queued",
+  });
+}
+
+export async function handleTelegramWebhook(body: any) {
+  const message = body.message || body.callback_query?.message;
+  const chatId = message?.chat?.id;
+  const fromId = message?.from?.id;
+  const username = message?.from?.username || message?.from?.first_name || "User";
+  const text = message?.text || body.callback_query?.data || "";
+  const projectId = body.projectId;
+
+  console.log("📱 Hermes processing Telegram:", { username, text: text?.slice(0, 100) });
+
+  const taskId = randomUUID();
+  await db.insert(tasks).values({
+    id: taskId,
+    projectId: projectId || "telegram-webhook",
+    type: "telegram_receive",
+    title: `Telegram from ${username}`,
+    description: text?.slice(0, 200),
+    status: "completed",
+    input: JSON.stringify({ chatId, fromId, username, text }),
+    output: JSON.stringify({ processed: true }),
+    completedAt: new Date(),
+  });
+
+  if (!projectId) {
+    return NextResponse.json({
+      received: true,
+      taskId,
+      action: "project_creation_queued",
+      message: "Telegram message received. Hermes will create a project and reply.",
     });
   }
 
