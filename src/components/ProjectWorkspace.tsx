@@ -2,9 +2,8 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot, Search, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Search, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
 import { AIChatPanel } from "./AIChatPanel";
-import { SwarmDashboard } from "./SwarmDashboard";
 import { ResearchPanel } from "./ResearchPanel";
 import { LivePreview } from "./LivePreview";
 import { MobilePreview } from "./MobilePreview";
@@ -21,7 +20,7 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
   const [chatInput, setChatInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [messages, setMessages] = useState(chatHistory);
-  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'swarm' | 'research' | 'preview' | 'mobile'>('chat');
+  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'research' | 'preview' | 'mobile'>(project.type === 'mobile' ? 'mobile' : 'preview');
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const router = useRouter();
@@ -252,17 +251,6 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                   Research
                 </button>
                 <button
-                  onClick={() => setRightPanelTab('swarm')}
-                  className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                    rightPanelTab === 'swarm'
-                      ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  <Bot className="w-4 h-4" />
-                  Swarm
-                </button>
-                <button
                   onClick={() => setRightPanelTab('preview')}
                   className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
                     rightPanelTab === 'preview'
@@ -273,22 +261,24 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                   <Eye className="w-4 h-4" />
                   Preview
                 </button>
-                <button
-                  onClick={() => setRightPanelTab('mobile')}
-                  className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                    rightPanelTab === 'mobile'
-                      ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  <Smartphone className="w-4 h-4" />
-                  Mobile
-                </button>
+                {project.type === 'mobile' && (
+                  <button
+                    onClick={() => setRightPanelTab('mobile')}
+                    className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
+                      rightPanelTab === 'mobile'
+                        ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
+                        : 'text-gray-400 hover:text-gray-600'
+                    }`}
+                  >
+                    <Smartphone className="w-4 h-4" />
+                    Mobile
+                  </button>
+                )}
               </div>
 
-              {rightPanelTab === 'mobile' ? (
+              {rightPanelTab === 'mobile' || (rightPanelTab === 'preview' && project.type === 'mobile') ? (
                 <MobilePreview projectId={project.id} />
-              ) : rightPanelTab === 'preview' ? (
+              ) : rightPanelTab === 'preview' && project.type !== 'mobile' ? (
                 <LivePreview project={project} files={files} activeFile={activeFile} />
               ) : rightPanelTab === 'chat' ? (
                 <>
@@ -342,7 +332,9 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
               ) : rightPanelTab === 'research' ? (
                 <ResearchPanel projectId={project.id} />
               ) : (
-                <SwarmDashboard projectId={project.id} />
+                <div className="flex-1 flex items-center justify-center text-gray-400">
+                  Select a tab to view content
+                </div>
               )}
             </>
           )}
