@@ -140,7 +140,25 @@ export const adrs = sqliteTable("adrs", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
-// ─── Agent Swarm ───
+// ─── Email Tracking ───
+
+export const emails = sqliteTable("emails", {
+  id: text("id").primaryKey(),
+  direction: text("direction").notNull(), // "inbound" | "outbound"
+  channel: text("channel").notNull().default("email"), // "email" | "telegram" | "discord" | "whatsapp"
+  fromAddress: text("from_address"),
+  toAddress: text("to_address"),
+  subject: text("subject"),
+  body: text("body"),
+  bodyHtml: text("body_html"),
+  status: text("status").default("received"), // "received" | "queued" | "sent" | "failed" | "delivered"
+  projectId: text("project_id"),
+  errorMessage: text("error_message"),
+  provider: text("provider"), // "resend" | "postfix" | "sendgrid"
+  providerMessageId: text("provider_message_id"),
+  sentAt: integer("sent_at", { mode: "timestamp" }),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
 
 export const agents = sqliteTable("agents", {
   id: text("id").primaryKey(),

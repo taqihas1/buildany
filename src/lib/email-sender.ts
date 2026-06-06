@@ -1,30 +1,83 @@
-// Email sender utility - stub for SMTP integration
-// In production, use nodemailer or a transactional email service (SendGrid, Mailgun, Resend)
+import { Resend } from 'resend';
+
+// Initialize Resend with API key from environment
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null;
 
 interface EmailOptions {
   to: string;
   subject: string;
   text: string;
   html: string;
+  from?: string;
 }
 
-export async function sendEmail(options: EmailOptions): Promise<void> {
+interface EmailResult {
+  success: boolean;
+  provider: string;
+  messageId?: string;
+  error?: string;
+}
+
+export async function sendEmail(options: EmailOptions): Promise<EmailResult> {
   console.log("📧 Sending email:", {
     to: options.to,
     subject: options.subject,
   });
 
-  // TODO: Integrate with actual email provider
-  // Option 1: Resend (recommended - free tier: 3,000 emails/month)
-  // Option 2: SendGrid
-  // Option 3: Mailgun
-  // Option 4: AWS SES
+  // If Resend is configured, use it
+  if (resend) {
+    try {
+      const result = await resend.emails.send({
+        from: options.from || 'BuildAny <create@base66.cloud>',
+        to: options.to,
+        subject: options.subject,
+        text: options.text,
+        html: options.html,
+      });
 
-  // For Postfix integration on the VPS:
-  // 1. Configure Postfix to relay emails
-  // 2. Use `sendmail` command or SMTP localhost:25
+      if (result.error) {
+        console.error("Resend error:", result.error);
+        return {
+          success: false,
+          provider: "resend",
+          error: result.error.message,
+        };
+      }
 
-  console.log("✅ Email prepared (integrate with email provider to send)");
+      console.log("✅ Email sent via Resend:", result.data?.id);
+      return {
+        success: true,
+        provider: "resend",
+        messageId: result.data?.id,
+      };
+    } catch (err) {
+      console.error("Resend exception:", err);
+      return {
+        success: false,
+        provider: "resend",
+        error: err instanceof Error ? err.message : String(err),
+      };
+    }
+  }
+
+  // Fallback: log only (Resend not configured)
+  console.log("⚠️ Resend not configured. Email logged but not sent.");
+  console.log("   To enable: Set RESEND_API_KEY in .env.local");
+  console.log("   Get one free at: https://resend.com");
+  
+  return {
+    success: false,
+    provider: "none",
+    error: "Resend API key not configured",
+  };
+}
+
+export async function sendBulkEmails(options: EmailOptions[]): Promise<EmailResult[]> {
+  const results: EmailResult[] = [];
+  for (const opt of options) {
+    results.push(await sendEmail(opt));
+  }
+  return results;
 }
 
 // Postfix setup instructions for the VPS:
@@ -58,13 +111,6 @@ curl -X POST https://base66.cloud/api/webhook/email \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer YOUR_WEBHOOK_SECRET" \
   -d "$JSON"
-
-# 5. Set up webhook secret
-# Set up webhook secret
-# Add to /etc/environment: WEBHOOK_SECRET=your-secret-here
-
-# For the actual email pipe script, use the webhook secret from env:
-# curl -H "Authorization: Bearer YOUR_WEBHOOK_SECRET" ...
 
 # For simple local relay without external SMTP:
 # sudo postconf -e "relayhost="
