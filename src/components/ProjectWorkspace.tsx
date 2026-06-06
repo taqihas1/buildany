@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useRouter } from 'next/navigation';
-import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot, Search, Eye, ChevronLeft, ChevronRight, Home, BookOpen, Trash2 } from 'lucide-react';
+import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot, Search, Eye, ChevronLeft, ChevronRight, Home, BookOpen, Trash2, AlertTriangle } from 'lucide-react';
 import { AIChatPanel } from "./AIChatPanel";
 import { SwarmDashboard } from "./SwarmDashboard";
 import { ResearchPanel } from "./ResearchPanel";
@@ -112,6 +112,9 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
     }
   };
 
+  const [showDeployModal, setShowDeployModal] = useState(false);
+  const [deployInfo, setDeployInfo] = useState<any>(null);
+
   const handleDeploy = async () => {
     try {
       setIsDeploying(true);
@@ -128,14 +131,18 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
       if (data.success) {
         setDeployStatus("ready");
         setDeployUrl(data.downloadUrl);
+        setDeployInfo(data);
+        setShowDeployModal(true);
       } else {
         setDeployStatus("error");
-        alert(data.error || 'Deploy failed');
+        setDeployInfo({ error: data.error || 'Deploy failed' });
+        setShowDeployModal(true);
       }
     } catch (err) {
       console.error('Deploy failed:', err);
       setDeployStatus("error");
-      alert('Deploy failed. Check console for details.');
+      setDeployInfo({ error: 'Network error. Check console.' });
+      setShowDeployModal(true);
     } finally {
       setIsDeploying(false);
     }
@@ -283,6 +290,97 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
           </button>
         </div>
       </header>
+
+      {/* Deploy Status Modal */}
+      {showDeployModal && deployInfo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl border border-gray-200">
+            <div className="flex items-center gap-2 mb-4">
+              {deployInfo.success ? (
+                <>
+                  <div className="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
+                    <Play className="w-4 h-4 text-green-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Deployment Package Ready</h3>
+                </>
+              ) : (
+                <>
+                  <div className="w-8 h-8 bg-red-100 rounded-lg flex items-center justify-center">
+                    <AlertTriangle className="w-4 h-4 text-red-600" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-900">Deploy Failed</h3>
+                </>
+              )}
+            </div>
+            
+            {deployInfo.success ? (
+              <div className="space-y-4">
+                <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
+                  <div className="text-sm text-gray-500 mb-1">Package URL</div>
+                  <a 
+                    href={deployInfo.downloadUrl} 
+                    className="text-sm text-blue-600 hover:text-blue-700 break-all font-mono"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    {deployInfo.downloadUrl}
+                  </a>
+                </div>
+                
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-600">
+                    <strong>Deployment ID:</strong> {deployInfo.deploymentId}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    <strong>Providers supported:</strong> {deployInfo.providers?.join(', ')}
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    {deployInfo.message}
+                  </p>
+                </div>
+                
+                <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
+                  <p className="text-xs text-yellow-800">
+                    <strong>Quick deploy to Vercel:</strong><br/>
+                    1. Download the ZIP<br/>
+                    2. Install Vercel CLI: npm i -g vercel<br/>
+                    3. Run: vercel
+                  </p>
+                </div>
+                
+                <div className="flex gap-3">
+                  <button
+                    onClick={() => setShowDeployModal(false)}
+                    className="flex-1 px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  >
+                    Close
+                  </button>
+                  <a
+                    href={deployInfo.downloadUrl}
+                    className="flex-1 px-4 py-2 text-sm bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-center"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    Download Package
+                  </a>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                <p className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
+                  {deployInfo.error}
+                </p>
+                <button
+                  onClick={() => setShowDeployModal(false)}
+                  className="w-full px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                >
+                  Close
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Delete Confirmation Overlay */}
       {showDeleteConfirm && (
@@ -538,7 +636,9 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                   </div>
                 ) : (
                   <div className="space-y-0.5">
-                    {files.map((file) => (
+                    {files
+                      .filter((file: any) => !file.path?.includes('research.md'))
+                      .map((file: any) => (
                       <button
                         key={file.id}
                         onClick={() => setActiveFile(file)}
