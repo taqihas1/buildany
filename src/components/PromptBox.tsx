@@ -16,9 +16,18 @@ export function PromptBox({ selectedModel }: { selectedModel?: string }) {
   const getProvider = () => {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('selectedModel');
+      // Map model IDs to provider names
+      if (stored === 'kimi-k2p6') return 'kimi';
+      if (stored === 'deepseek-chat') return 'deepseek';
+      if (stored === 'gpt-4o') return 'openai';
       if (stored) return stored;
     }
-    return selectedModel || 'deepseek-chat';
+    const map: Record<string, string> = {
+      'kimi-k2p6': 'kimi',
+      'deepseek-chat': 'deepseek',
+      'gpt-4o': 'openai',
+    };
+    return map[selectedModel || ''] || selectedModel || 'deepseek';
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
