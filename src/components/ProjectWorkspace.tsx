@@ -22,11 +22,11 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
   const [chatInput, setChatInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [messages, setMessages] = useState(chatHistory);
-  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'swarm' | 'research' | 'preview' | 'mobile' | 'wiki'>('chat');
+  const [leftPanelTab, setLeftPanelTab] = useState<'chat' | 'swarm' | 'research' | 'preview' | 'mobile' | 'wiki'>('chat');
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
-  const [leftPanelWidth, setLeftPanelWidth] = useState(320); // 320px = w-80
-  const [rightPanelWidth, setRightPanelWidth] = useState(288); // 288px = w-72
+  const [leftPanelWidth, setLeftPanelWidth] = useState(400); // wider left panel
+  const [rightPanelWidth, setRightPanelWidth] = useState(200); // narrower files panel
   const [isResizingLeft, setIsResizingLeft] = useState(false);
   const [isResizingRight, setIsResizingRight] = useState(false);
   const router = useRouter();
@@ -325,83 +325,87 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
           
           {!leftPanelCollapsed && (
             <>
-              {/* Tab Bar */}
-              <div className="flex border-b border-gray-200">
-                <button
-                  onClick={() => setRightPanelTab('chat')}
-                  className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                    rightPanelTab === 'chat'
-                      ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  <Send className="w-4 h-4" />
-                  AI
-                </button>
-                <button
-                  onClick={() => setRightPanelTab('research')}
-                  className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                    rightPanelTab === 'research'
-                      ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  <Search className="w-4 h-4" />
-                  Research
-                </button>
-                <button
-                  onClick={() => setRightPanelTab('swarm')}
-                  className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                    rightPanelTab === 'swarm'
-                      ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  <Bot className="w-4 h-4" />
-                  Swarm
-                </button>
-                <button
-                  onClick={() => setRightPanelTab('wiki')}
-                  className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                    rightPanelTab === 'wiki'
-                      ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  <BookOpen className="w-4 h-4" />
-                  Wiki
-                </button>
-                <button
-                  onClick={() => setRightPanelTab('preview')}
-                  className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                    rightPanelTab === 'preview'
-                      ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
-                      : 'text-gray-400 hover:text-gray-600'
-                  }`}
-                >
-                  <Eye className="w-4 h-4" />
-                  Preview
-                </button>
-                {project.type === 'mobile' && (
+              {/* Workspace Header */}
+              <div className="px-4 py-3 border-b border-gray-200 bg-gray-50/50">
+                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Workspace</div>
+                {/* Tab Bar */}
+                <div className="flex flex-wrap gap-1">
                   <button
-                    onClick={() => setRightPanelTab('mobile')}
-                    className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
-                      rightPanelTab === 'mobile'
-                        ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
-                        : 'text-gray-400 hover:text-gray-600'
+                    onClick={() => setLeftPanelTab('chat')}
+                    className={`px-3 py-1.5 text-xs font-medium uppercase transition-colors rounded-md flex items-center gap-1 ${
+                      leftPanelTab === 'chat'
+                        ? 'text-cyan-700 bg-cyan-50 border border-cyan-200'
+                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
                     }`}
                   >
-                    <Smartphone className="w-4 h-4" />
-                    Mobile
+                    <Send className="w-3 h-3" />
+                    AI
                   </button>
-                )}
+                  <button
+                    onClick={() => setLeftPanelTab('preview')}
+                    className={`px-3 py-1.5 text-xs font-medium uppercase transition-colors rounded-md flex items-center gap-1 ${
+                      leftPanelTab === 'preview'
+                        ? 'text-cyan-700 bg-cyan-50 border border-cyan-200'
+                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Eye className="w-3 h-3" />
+                    Preview
+                  </button>
+                  <button
+                    onClick={() => setLeftPanelTab('research')}
+                    className={`px-3 py-1.5 text-xs font-medium uppercase transition-colors rounded-md flex items-center gap-1 ${
+                      leftPanelTab === 'research'
+                        ? 'text-cyan-700 bg-cyan-50 border border-cyan-200'
+                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Search className="w-3 h-3" />
+                    Research
+                  </button>
+                  <button
+                    onClick={() => setLeftPanelTab('swarm')}
+                    className={`px-3 py-1.5 text-xs font-medium uppercase transition-colors rounded-md flex items-center gap-1 ${
+                      leftPanelTab === 'swarm'
+                        ? 'text-cyan-700 bg-cyan-50 border border-cyan-200'
+                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <Bot className="w-3 h-3" />
+                    Swarm
+                  </button>
+                  <button
+                    onClick={() => setLeftPanelTab('wiki')}
+                    className={`px-3 py-1.5 text-xs font-medium uppercase transition-colors rounded-md flex items-center gap-1 ${
+                      leftPanelTab === 'wiki'
+                        ? 'text-cyan-700 bg-cyan-50 border border-cyan-200'
+                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                    }`}
+                  >
+                    <BookOpen className="w-3 h-3" />
+                    Wiki
+                  </button>
+                  {project.type === 'mobile' && (
+                    <button
+                      onClick={() => setLeftPanelTab('mobile')}
+                      className={`px-3 py-1.5 text-xs font-medium uppercase transition-colors rounded-md flex items-center gap-1 ${
+                        leftPanelTab === 'mobile'
+                          ? 'text-cyan-700 bg-cyan-50 border border-cyan-200'
+                          : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
+                      }`}
+                    >
+                      <Smartphone className="w-3 h-3" />
+                      Mobile
+                    </button>
+                  )}
+                </div>
               </div>
 
-              {rightPanelTab === 'mobile' || (rightPanelTab === 'preview' && project.type === 'mobile') ? (
+              {leftPanelTab === 'mobile' || (leftPanelTab === 'preview' && project.type === 'mobile') ? (
                 <MobilePreview projectId={project.id} />
-              ) : rightPanelTab === 'preview' && project.type !== 'mobile' ? (
+              ) : leftPanelTab === 'preview' && project.type !== 'mobile' ? (
                 <LivePreview project={project} files={files} activeFile={activeFile} />
-              ) : rightPanelTab === 'chat' ? (
+              ) : leftPanelTab === 'chat' ? (
                 <>
                   <div className="flex-1 overflow-auto p-3 space-y-3">
                     {messages.length === 0 && (
@@ -450,11 +454,11 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                     </div>
                   </form>
                 </>
-              ) : rightPanelTab === 'research' ? (
+              ) : leftPanelTab === 'research' ? (
                 <ResearchPanel projectId={project.id} />
-              ) : rightPanelTab === 'swarm' ? (
+              ) : leftPanelTab === 'swarm' ? (
                 <SwarmDashboard projectId={project.id} />
-              ) : rightPanelTab === 'wiki' ? (
+              ) : leftPanelTab === 'wiki' ? (
                 <WikiViewer projectId={project.id} />
               ) : (
                 <div className="flex-1 flex items-center justify-center text-gray-400">
