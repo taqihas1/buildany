@@ -2,7 +2,7 @@ import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
-export type LLMProvider = "deepseek" | "kimi" | "openai";
+export type LLMProvider = "deepseek" | "kimi" | "openai" | "gemma";
 
 interface LLMConfig {
   baseUrl: string;
@@ -126,6 +126,12 @@ export class LLMRouter {
           model: "gpt-4o",
           apiKey: key.keyValue,
         });
+      } else if (provider === "gemma") {
+        this.configs.set(provider, {
+          baseUrl: "http://localhost:1234/v1",
+          model: "gemma-4-e2b",
+          apiKey: key.keyValue || "not-needed",
+        });
       }
     }
   }
@@ -140,9 +146,11 @@ export class LLMRouter {
       'deepseek-chat': 'deepseek',
       'kimi-k2p6': 'kimi',
       'gpt-4o': 'openai',
+      'gemma-4': 'gemma',
       'kimi': 'kimi',
       'deepseek': 'deepseek',
       'openai': 'openai',
+      'gemma': 'gemma',
     };
     
     const normalizedPreferred = preferred ? modelToProvider[preferred] || (preferred as LLMProvider) : undefined;

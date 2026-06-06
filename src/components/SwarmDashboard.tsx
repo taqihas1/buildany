@@ -105,7 +105,7 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
         <div className="flex items-center gap-2">
           <Bot className="w-4 h-4 text-cyan-400" />
           <span className="text-sm font-medium text-white">Agent Swarm</span>
-          <span className="text-xs bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full">
+          <span className="text-sm bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full">
             {agents.length} agents • {tasks.length} tasks
           </span>
         </div>
@@ -114,7 +114,7 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
             <button
               key={tab}
               onClick={() => setActiveTab(tab)}
-              className={`px-3 py-1 text-xs rounded transition-colors capitalize ${
+              className={`px-3 py-1 text-sm rounded transition-colors capitalize ${
                 activeTab === tab
                   ? 'bg-cyan-500/20 text-cyan-400'
                   : 'text-slate-500 hover:text-white'
@@ -131,17 +131,17 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
         {activeTab === 'agents' && (
           <div className="space-y-2">
             <div className="flex justify-between items-center mb-3">
-              <span className="text-xs text-slate-500 uppercase">Active Agents</span>
+              <span className="text-sm text-slate-500 uppercase">Active Agents</span>
               <div className="flex gap-1">
                 <button
                   onClick={() => spawnAgent('hermes')}
-                  className="flex items-center gap-1 px-2 py-1 text-xs bg-cyan-500/10 text-cyan-400 rounded hover:bg-cyan-500/20"
+                  className="flex items-center gap-1 px-2 py-1 text-sm bg-cyan-500/10 text-cyan-400 rounded hover:bg-cyan-500/20"
                 >
                   <Plus className="w-3 h-3" /> Hermes
                 </button>
                 <button
                   onClick={() => spawnAgent('tester')}
-                  className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-500/10 text-purple-400 rounded hover:bg-purple-500/20"
+                  className="flex items-center gap-1 px-2 py-1 text-sm bg-purple-500/10 text-purple-400 rounded hover:bg-purple-500/20"
                 >
                   <Plus className="w-3 h-3" /> Tester
                 </button>
@@ -163,9 +163,9 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${statusColors[agent.status] || 'bg-slate-500'}`} />
                       <span className="text-sm font-medium text-white">{agent.name}</span>
-                      <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{agent.type}</span>
+                      <span className="text-sm text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{agent.type}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-xs text-slate-500">
+                    <div className="flex items-center gap-3 text-sm text-slate-500">
                       <span className="flex items-center gap-1">
                         <Play className="w-3 h-3" /> {agent.activeTasks || 0}
                       </span>
@@ -180,7 +180,7 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
                   {agent.capabilities?.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
                       {agent.capabilities.map((cap: string, i: number) => (
-                        <span key={i} className="text-xs bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">
+                        <span key={i} className="text-sm bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">
                           {cap}
                         </span>
                       ))}
@@ -195,11 +195,11 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
         {activeTab === 'tasks' && (
           <div className="space-y-2">
             <div className="flex justify-between items-center mb-3">
-              <span className="text-xs text-slate-500 uppercase">Task Queue</span>
+              <span className="text-sm text-slate-500 uppercase">Task Queue</span>
               {projectId && (
                 <button
                   onClick={decomposeProject}
-                  className="flex items-center gap-1 px-2 py-1 text-xs bg-cyan-500/10 text-cyan-400 rounded hover:bg-cyan-500/20"
+                  className="flex items-center gap-1 px-2 py-1 text-sm bg-cyan-500/10 text-cyan-400 rounded hover:bg-cyan-500/20"
                 >
                   <Layers className="w-3 h-3" /> Decompose
                 </button>
@@ -226,15 +226,15 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
                     <div className="flex items-center gap-2">
                       <div className={`w-2 h-2 rounded-full ${statusColors[task.status] || 'bg-slate-500'}`} />
                       <span className="text-sm font-medium text-white">{task.title}</span>
-                      <span className="text-xs text-slate-500">{task.type}</span>
+                      <span className="text-sm text-slate-500">{task.type}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       {task.attempts > 0 && (
-                        <span className="text-xs text-amber-400">
+                        <span className="text-sm text-amber-400">
                           {task.attempts}/{task.maxAttempts || 3}
                         </span>
                       )}
-                      <span className={`text-xs px-1.5 py-0.5 rounded ${
+                      <span className={`text-sm px-1.5 py-0.5 rounded ${
                         task.priority >= 4 ? 'bg-red-500/10 text-red-400' :
                         task.priority >= 3 ? 'bg-amber-500/10 text-amber-400' :
                         'bg-slate-800 text-slate-400'
@@ -244,15 +244,15 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
                     </div>
                   </div>
                   {task.description && (
-                    <p className="mt-1 text-xs text-slate-500">{task.description}</p>
+                    <p className="mt-1 text-sm text-slate-500">{task.description}</p>
                   )}
                   {task.errorLog && (
-                    <div className="mt-2 p-2 bg-red-950/30 border border-red-900/30 rounded text-xs text-red-400 font-mono overflow-auto max-h-20">
+                    <div className="mt-2 p-2 bg-red-950/30 border border-red-900/30 rounded text-sm text-red-400 font-mono overflow-auto max-h-20">
                       {task.errorLog}
                     </div>
                   )}
                   {task.agentId && (
-                    <div className="mt-2 flex items-center gap-1 text-xs text-slate-500">
+                    <div className="mt-2 flex items-center gap-1 text-sm text-slate-500">
                       <Bot className="w-3 h-3" />
                       {agents.find(a => a.id === task.agentId)?.name || task.agentId}
                     </div>
@@ -266,8 +266,8 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
         {activeTab === 'skills' && (
           <div className="space-y-2">
             <div className="flex justify-between items-center mb-3">
-              <span className="text-xs text-slate-500 uppercase">Skill Library</span>
-              <span className="text-xs text-slate-500">{skills.length} shared skills</span>
+              <span className="text-sm text-slate-500 uppercase">Skill Library</span>
+              <span className="text-sm text-slate-500">{skills.length} shared skills</span>
             </div>
 
             {skills.length === 0 ? (
@@ -285,9 +285,9 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
                     <div className="flex items-center gap-2">
                       <Puzzle className="w-4 h-4 text-cyan-400" />
                       <span className="text-sm font-medium text-white">{skill.name}</span>
-                      <span className="text-xs text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">v{skill.version}</span>
+                      <span className="text-sm text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">v{skill.version}</span>
                     </div>
-                    <div className="flex items-center gap-2 text-xs">
+                    <div className="flex items-center gap-2 text-sm">
                       {skill.successRate !== null && (
                         <span className={`${
                           skill.successRate > 0.8 ? 'text-emerald-400' :
@@ -299,11 +299,11 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
                       )}
                     </div>
                   </div>
-                  <p className="mt-1 text-xs text-slate-500">{skill.description}</p>
+                  <p className="mt-1 text-sm text-slate-500">{skill.description}</p>
                   {skill.triggerPatterns?.length > 0 && (
                     <div className="mt-2 flex flex-wrap gap-1">
                       {skill.triggerPatterns.map((tp: string, i: number) => (
-                        <span key={i} className="text-xs bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">
+                        <span key={i} className="text-sm bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">
                           {tp}
                         </span>
                       ))}

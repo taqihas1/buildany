@@ -33,6 +33,14 @@ const models = [
     color: 'text-purple-600',
     bgColor: 'bg-purple-50',
   },
+  {
+    id: 'gemma-4',
+    name: 'Gemma 4',
+    description: 'Local fallback (free)',
+    icon: Cpu,
+    color: 'text-green-600',
+    bgColor: 'bg-green-50',
+  },
 ];
 
 export function LLMSelector({ selectedModel, onSelect }: LLMSelectorProps) {
