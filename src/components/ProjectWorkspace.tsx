@@ -10,6 +10,7 @@ import { SwarmDashboard } from "./SwarmDashboard";
 import { ResearchPanel } from "./ResearchPanel";
 import { LivePreview } from "./LivePreview";
 import { MobilePreview } from "./MobilePreview";
+import { DeployValueProposition } from "./DeployValueProposition";
 import { WikiViewer } from "./WikiViewer";
 
 interface ProjectWorkspaceProps {
@@ -90,6 +91,7 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployStatus, setDeployStatus] = useState<"" | "building" | "ready" | "error">("");
   const [deployUrl, setDeployUrl] = useState("");
+  const [showDeployDialog, setShowDeployDialog] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const handleDeleteProject = async () => {
