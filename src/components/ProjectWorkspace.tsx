@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useRouter } from 'next/navigation';
 import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot, Search, Eye, ChevronLeft, ChevronRight, Home, BookOpen, Trash2 } from 'lucide-react';
 import { AIChatPanel } from "./AIChatPanel";
@@ -425,7 +427,13 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                         }`}
                       >
                         <div className="text-sm opacity-50 mb-1">{msg.role} {msg.model && `• ${msg.model}`}</div>
-                        {msg.content}
+                        {msg.role === 'assistant' ? (
+                          <div className="prose prose-sm max-w-none">
+                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
+                          </div>
+                        ) : (
+                          msg.content
+                        )}
                       </div>
                     ))}
                     {isGenerating && (

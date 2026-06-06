@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Search, Target, Zap, Users, Layout, Code, Star, ExternalLink, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
 
 interface ResearchPanelProps {
@@ -186,6 +188,21 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
                 {complaint}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Raw Research Content (if structured data not available) */}
+      {research.content && (
+        <div className="space-y-2">
+          <div className="flex items-center gap-1.5 text-xs text-gray-500 uppercase tracking-wide font-medium">
+            <Search className="w-3 h-3" />
+            Research Analysis
+          </div>
+          <div className="bg-gray-50 rounded-lg p-3 border border-gray-200 prose prose-sm max-w-none">
+            <ReactMarkdown remarkPlugins={[remarkGfm]}>
+              {research.content}
+            </ReactMarkdown>
           </div>
         </div>
       )}

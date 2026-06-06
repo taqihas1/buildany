@@ -335,23 +335,78 @@ export interface ParsedFile {
 
 export function parseGeneratedCode(content: string): ParsedFile[] {
   const files: ParsedFile[] = [];
-  const regex = /```(?:(\w+):)?([^\n]+)\n([\s\S]*?)```/g;
+  
+  // Try format: ```language:path
+  const formatWithPath = /```(?:(\w+):)?([^\n]+)\n([\s\S]*?)```/g;
   let match;
-
-  while ((match = regex.exec(content)) !== null) {
-    const language = match[1] || "tsx";
+  while ((match = formatWithPath.exec(content)) !== null) {
+    const language = match[1] || "html";
     const path = match[2].trim();
     const fileContent = match[3].trim();
-
-    if (path && fileContent) {
-      files.push({
-        path,
-        content: fileContent,
-        language,
-      });
+    if (path && fileContent && !files.find(f => f.path === path)) {
+      files.push({ path, content: fileContent, language });
     }
   }
-
+  
+  // If no files found, try format: // filepath or # filepath followed by ```language
+  if (files.length === 0) {
+    const lines = content.split('\n');
+    let currentPath = '';
+    let currentContent = '';
+    let currentLang = 'html';
+    
+    for (let i = 0; i < lines.length; i++) {
+      const line = lines[i];
+      
+      // Check for file path markers
+      const pathMatch = line.match(/^\s*(?:\/\/|#|\/\*|\*)\s*(\S+\.(?:html|css|js|tsx|jsx|ts|json|md))\s*$/i);
+      if (pathMatch) {
+        if (currentPath && currentContent) {
+          files.push({ path: currentPath, content: currentContent.trim(), language: currentLang });
+        }
+        currentPath = pathMatch[1];
+        currentContent = '';
+        continue;
+      }
+      
+      // Check for code block start
+      const blockMatch = line.match(/^```(\w+)?/);
+      if (blockMatch) {
+        if (currentPath && currentContent) {
+          files.push({ path: currentPath, content: currentContent.trim(), language: currentLang });
+        }
+        currentLang = blockMatch[1] || 'html';
+        currentContent = '';
+        continue;
+      }
+      
+      // Check for code block end
+      if (line.trim() === '```') {
+        if (currentPath && currentContent) {
+          files.push({ path: currentPath, content: currentContent.trim(), language: currentLang });
+        }
+        currentPath = '';
+        currentContent = '';
+        continue;
+      }
+      
+      // If we have a path, accumulate content
+      if (currentPath) {
+        currentContent += line + '\n';
+      }
+    }
+    
+    // Don't forget the last file
+    if (currentPath && currentContent) {
+      files.push({ path: currentPath, content: currentContent.trim(), language: currentLang });
+    }
+  }
+  
+  // If still no files, assume it's a single HTML file
+  if (files.length === 0 && content.includes('<!DOCTYPE html>') || content.includes('<html')) {
+    files.push({ path: 'index.html', content, language: 'html' });
+  }
+  
   return files;
 }
 
