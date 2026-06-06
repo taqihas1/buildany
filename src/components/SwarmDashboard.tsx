@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { 
   Bot, Play, Square, Cpu, GitBranch, Zap, Layers, 
   CheckCircle, XCircle, RotateCcw, ArrowRight, Plus,
-  Terminal, Sparkles, BrainCircuit, Puzzle, Code2
+  Terminal, Sparkles, BrainCircuit, Puzzle, Code2, Trash2
 } from 'lucide-react';
 
 interface SwarmDashboardProps {
@@ -103,8 +103,8 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
       {/* Header */}
       <div className="h-12 border-b border-slate-800 flex items-center justify-between px-4">
         <div className="flex items-center gap-2">
-          <Bot className="w-4 h-4 text-cyan-400" />
-          <span className="text-sm font-medium text-white">Agent Swarm</span>
+          <Bot className="w-5 h-5 text-cyan-400" />
+          <span className="text-base font-medium text-white">Agent Swarm</span>
           <span className="text-sm bg-cyan-500/10 text-cyan-400 px-2 py-0.5 rounded-full">
             {agents.length} agents • {tasks.length} tasks
           </span>
@@ -129,21 +129,21 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
       {/* Content */}
       <div className="flex-1 overflow-auto p-3">
         {activeTab === 'agents' && (
-          <div className="space-y-2">
+          <div className="space-y-3">
             <div className="flex justify-between items-center mb-3">
               <span className="text-sm text-slate-500 uppercase">Active Agents</span>
-              <div className="flex gap-1">
+              <div className="flex gap-2">
                 <button
                   onClick={() => spawnAgent('hermes')}
-                  className="flex items-center gap-1 px-2 py-1 text-sm bg-cyan-500/10 text-cyan-400 rounded hover:bg-cyan-500/20"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-cyan-500/10 text-cyan-400 rounded hover:bg-cyan-500/20"
                 >
-                  <Plus className="w-3 h-3" /> Hermes
+                  <Plus className="w-4 h-4" /> Hermes
                 </button>
                 <button
                   onClick={() => spawnAgent('tester')}
-                  className="flex items-center gap-1 px-2 py-1 text-sm bg-purple-500/10 text-purple-400 rounded hover:bg-purple-500/20"
+                  className="flex items-center gap-1 px-3 py-1.5 text-sm bg-purple-500/10 text-purple-400 rounded hover:bg-purple-500/20"
                 >
-                  <Plus className="w-3 h-3" /> Tester
+                  <Plus className="w-4 h-4" /> Tester
                 </button>
               </div>
             </div>
@@ -159,33 +159,46 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
                   key={agent.id}
                   className="bg-slate-900/50 border border-slate-800 rounded-lg p-3"
                 >
-                  <div className="flex items-center justify-between">
+                  {/* Row 1: Name, Status, Type */}
+                  <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
-                      <div className={`w-2 h-2 rounded-full ${statusColors[agent.status] || 'bg-slate-500'}`} />
-                      <span className="text-sm font-medium text-white">{agent.name}</span>
-                      <span className="text-sm text-slate-500 bg-slate-800 px-1.5 py-0.5 rounded">{agent.type}</span>
+                      <div 
+                        className={`w-3 h-3 rounded-full ${statusColors[agent.status] || 'bg-slate-500'}`} 
+                        title={`Status: ${agent.status}`}
+                      />
+                      <span className="text-base font-semibold text-white">{agent.name}</span>
+                      <span className="text-sm text-slate-500 bg-slate-800 px-2 py-1 rounded">{agent.type}</span>
                     </div>
-                    <div className="flex items-center gap-3 text-sm text-slate-500">
-                      <span className="flex items-center gap-1">
-                        <Play className="w-3 h-3" /> {agent.activeTasks || 0}
+                    <div className="flex items-center gap-3 text-sm text-slate-400">
+                      <span className="flex items-center gap-1" title="Active tasks">
+                        <Play className="w-4 h-4 text-blue-400" /> <span className="text-white font-medium">{agent.activeTasks || 0}</span>
                       </span>
-                      <span className="flex items-center gap-1">
-                        <CheckCircle className="w-3 h-3" /> {agent.completedTasks || 0}
+                      <span className="flex items-center gap-1" title="Completed tasks">
+                        <CheckCircle className="w-4 h-4 text-emerald-400" /> <span className="text-white font-medium">{agent.completedTasks || 0}</span>
                       </span>
-                      <span className="flex items-center gap-1">
-                        <XCircle className="w-3 h-3" /> {agent.failedTasks || 0}
+                      <span className="flex items-center gap-1" title="Failed tasks">
+                        <XCircle className="w-4 h-4 text-red-400" /> <span className="text-white font-medium">{agent.failedTasks || 0}</span>
                       </span>
                     </div>
                   </div>
+                  
+                  {/* Row 2: Capabilities */}
                   {agent.capabilities?.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-1">
+                    <div className="flex flex-wrap gap-2">
                       {agent.capabilities.map((cap: string, i: number) => (
-                        <span key={i} className="text-sm bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">
+                        <span key={i} className="text-sm bg-cyan-950/30 text-cyan-400 border border-cyan-900/30 px-2 py-1 rounded flex items-center gap-1">
+                          <Zap className="w-3 h-3" />
                           {cap}
                         </span>
                       ))}
                     </div>
                   )}
+                  
+                  {/* Row 3: Explanation */}
+                  <div className="mt-2 text-sm text-slate-500">
+                    <span className="text-slate-400">Status:</span> {agent.status} • 
+                    <span className="text-slate-400"> Tasks:</span> {agent.activeTasks || 0} active, {agent.completedTasks || 0} done, {agent.failedTasks || 0} failed
+                  </div>
                 </div>
               ))
             )}
