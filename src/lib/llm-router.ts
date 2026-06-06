@@ -13,7 +13,7 @@ interface LLMConfig {
 interface GenerateOptions {
   prompt: string;
   systemPrompt?: string;
-  provider?: LLMProvider;
+  provider?: string;
   temperature?: number;
   maxTokens?: number;
   stream?: boolean;
@@ -134,10 +134,22 @@ export class LLMRouter {
     return this.configs.get(provider);
   }
 
-  selectProvider(prompt: string, preferred?: LLMProvider): LLMProvider {
+  selectProvider(prompt: string, preferred?: string): LLMProvider {
+    // Map model IDs to provider names
+    const modelToProvider: Record<string, LLMProvider> = {
+      'deepseek-chat': 'deepseek',
+      'kimi-k2p6': 'kimi',
+      'gpt-4o': 'openai',
+      'kimi': 'kimi',
+      'deepseek': 'deepseek',
+      'openai': 'openai',
+    };
+    
+    const normalizedPreferred = preferred ? modelToProvider[preferred] || (preferred as LLMProvider) : undefined;
+
     // If preferred provider is available, use it
-    if (preferred && this.configs.has(preferred)) {
-      return preferred;
+    if (normalizedPreferred && this.configs.has(normalizedPreferred)) {
+      return normalizedPreferred;
     }
 
     // Check for Chinese language - prefer Kimi
@@ -153,9 +165,9 @@ export class LLMRouter {
       return "deepseek";
     }
 
-    // Default to DeepSeek if available, then Kimi, then OpenAI
-    if (this.configs.has("deepseek")) return "deepseek";
+    // Default to available provider: Kimi first, then DeepSeek, then OpenAI
     if (this.configs.has("kimi")) return "kimi";
+    if (this.configs.has("deepseek")) return "deepseek";
     if (this.configs.has("openai")) return "openai";
 
     throw new Error("No LLM providers configured. Add API keys in admin panel.");
