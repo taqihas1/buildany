@@ -91,16 +91,21 @@ App idea: ${prompt}`;
             gaps: researchResponse.content.match(/gap|opportunity/gi) || [],
           };
 
-          // Save research to conversation
-          await db.insert(conversations).values({
-            id: crypto.randomUUID(),
-            projectId: project.id,
-            role: "assistant",
-            content: `## Research Results\n\n${researchResponse.content}`,
-            model: `${researchResponse.provider}/${researchResponse.model}`,
-            tokensUsed: researchResponse.tokensUsed,
-            createdAt: new Date(),
-          });
+          // Save research to the research API (not conversation - to avoid cluttering AI chat)
+          try {
+            await db.insert(projectFiles).values({
+              id: crypto.randomUUID(),
+              projectId: project.id,
+              path: "research.md",
+              content: researchResponse.content,
+              language: "markdown",
+              isGenerated: true,
+              createdAt: new Date(),
+              updatedAt: new Date(),
+            });
+          } catch (err) {
+            console.error("Failed to save research file:", err);
+          }
         }
       } catch (err) {
         console.error("Research failed (non-blocking):", err);
