@@ -1,8 +1,8 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/DashboardHeader";
-import { ClearKeyButton } from "@/components/ClearKeyButton";
-import { Settings, Key, Save, Check, AlertTriangle, Globe, Smartphone, Trash2 } from "lucide-react";
+import { ProviderSettingsCard } from "@/components/ProviderSettingsCard";
+import { Settings, Key, AlertTriangle, Globe, Smartphone } from "lucide-react";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -136,58 +136,12 @@ export default async function SettingsPage() {
             </div>
 
             {providers.map((provider) => (
-              <form
+              <ProviderSettingsCard
                 key={provider.id}
-                action={saveApiKey}
-                className="bg-white border border-gray-200 rounded-xl p-6 space-y-4 shadow-sm relative"
-              >
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-base font-medium text-gray-900">{provider.name}</h3>
-                    <p className="text-sm text-gray-500">{provider.description}</p>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
-                      <input
-                        type="checkbox"
-                        name="isActive"
-                        defaultChecked={provider.active}
-                        className="w-4 h-4 rounded border-gray-300 bg-white text-cyan-500"
-                      />
-                      Active
-                    </label>
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <div className="flex gap-2">
-                    <input
-                      type="password"
-                      name="keyValue"
-                      defaultValue={provider.key}
-                      placeholder={provider.placeholder}
-                      className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-500"
-                    />
-                    <input type="hidden" name="provider" value={provider.id} />
-                    <button
-                      type="submit"
-                      className="flex items-center gap-1.5 px-4 py-2 text-base bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:opacity-90 transition-opacity"
-                    >
-                      <Save className="w-4 h-4" />
-                      Save
-                    </button>
-                    {provider.key && (
-                      <ClearKeyButton provider={provider.id} clearAction={clearApiKey} />
-                    )}
-                  </div>
-                  {provider.key && (
-                    <div className="flex items-center gap-1 text-sm text-green-600">
-                      <Check className="w-4 h-4" />
-                      Key configured
-                    </div>
-                  )}
-                </div>
-              </form>
+                provider={provider}
+                saveAction={saveApiKey}
+                clearAction={clearApiKey}
+              />
             ))}
             
             {/* Preferences */}
@@ -197,14 +151,14 @@ export default async function SettingsPage() {
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-base text-gray-900">Auto-research</div>
+                    <div className="text-base font-medium text-gray-900">Auto-research</div>
                     <div className="text-sm text-gray-500">Research competitors before building</div>
                   </div>
                   <input type="checkbox" defaultChecked className="w-4 h-4 rounded border-gray-300 bg-white text-cyan-500" />
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <div className="text-base text-gray-900">Default app type</div>
+                    <div className="text-base font-medium text-gray-900">Default app type</div>
                     <div className="text-sm text-gray-500">Pre-selected when creating projects</div>
                   </div>
                   <div className="flex gap-2">
@@ -223,7 +177,7 @@ export default async function SettingsPage() {
             <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4 flex items-start gap-3">
               <AlertTriangle className="w-5 h-5 text-yellow-600 shrink-0 mt-0.5" />
               <div>
-                <h3 className="text-sm font-medium text-yellow-700 mb-1">Important</h3>
+                <h3 className="text-base font-medium text-yellow-700 mb-1">Important</h3>
                 <p className="text-sm text-yellow-600/80 leading-relaxed">
                   API keys are stored in the database. Never share your keys or commit them to version control. 
                   The DeepSeek key currently configured appears to be invalid — please update it.
