@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot, Search, Eye, ChevronLeft, ChevronRight, Home } from 'lucide-react';
+import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot, Search, Eye, ChevronLeft, ChevronRight, Home, BookOpen, Trash2 } from 'lucide-react';
 import { AIChatPanel } from "./AIChatPanel";
 import { SwarmDashboard } from "./SwarmDashboard";
 import { ResearchPanel } from "./ResearchPanel";
 import { LivePreview } from "./LivePreview";
 import { MobilePreview } from "./MobilePreview";
+import { WikiViewer } from "./WikiViewer";
 
 interface ProjectWorkspaceProps {
   project: any;
@@ -21,7 +22,7 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
   const [chatInput, setChatInput] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [messages, setMessages] = useState(chatHistory);
-  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'swarm' | 'research' | 'preview' | 'mobile'>('chat');
+  const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'swarm' | 'research' | 'preview' | 'mobile' | 'wiki'>('chat');
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
   const [leftPanelWidth, setLeftPanelWidth] = useState(320); // 320px = w-80
@@ -87,6 +88,25 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployStatus, setDeployStatus] = useState<"" | "building" | "ready" | "error">("");
   const [deployUrl, setDeployUrl] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+
+  const handleDeleteProject = async () => {
+    if (!showDeleteConfirm) {
+      setShowDeleteConfirm(true);
+      return;
+    }
+    try {
+      const res = await fetch(`/api/projects?id=${project.id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        router.push('/');
+      } else {
+        alert('Failed to delete: ' + data.error);
+      }
+    } catch (err) {
+      alert('Error deleting project');
+    }
+  };
 
   const handleDeploy = async () => {
     try {
@@ -209,6 +229,13 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
             <Home className="w-4 h-4" />
             Home
           </button>
+          <button
+            onClick={handleDeleteProject}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-red-200 hover:bg-red-50 text-red-600 rounded-lg transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Delete
+          </button>
           <button 
             onClick={downloadWeb}
             className="flex items-center gap-2 px-3 py-1.5 text-xs bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors"
@@ -252,6 +279,36 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
           </button>
         </div>
       </header>
+
+      {/* Delete Confirmation Overlay */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4 shadow-xl">
+            <div className="flex items-center gap-2 mb-4 text-red-600">
+              <Trash2 className="w-6 h-6" />
+              <h3 className="text-lg font-semibold">Delete Project?</h3>
+            </div>
+            <p className="text-sm text-gray-600 mb-4">
+              Are you sure you want to delete <span className="font-medium text-gray-900">"{project.name}"</span>? 
+              This will permanently delete all files, chat history, and wiki pages. This action cannot be undone.
+            </p>
+            <div className="flex gap-3 justify-end">
+              <button
+                onClick={() => setShowDeleteConfirm(false)}
+                className="px-4 py-2 text-sm text-gray-600 hover:text-gray-900 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleDeleteProject}
+                className="px-4 py-2 text-sm bg-red-50 text-red-600 border border-red-200 rounded-lg hover:bg-red-100 transition-colors"
+              >
+                Delete Project
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
@@ -302,6 +359,17 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                 >
                   <Bot className="w-4 h-4" />
                   Swarm
+                </button>
+                <button
+                  onClick={() => setRightPanelTab('wiki')}
+                  className={`flex-1 px-3 py-2.5 text-sm font-medium uppercase transition-colors flex items-center justify-center gap-1.5 ${
+                    rightPanelTab === 'wiki'
+                      ? 'text-cyan-600 border-b-2 border-cyan-500 bg-cyan-50/50'
+                      : 'text-gray-400 hover:text-gray-600'
+                  }`}
+                >
+                  <BookOpen className="w-4 h-4" />
+                  Wiki
                 </button>
                 <button
                   onClick={() => setRightPanelTab('preview')}
@@ -386,6 +454,8 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                 <ResearchPanel projectId={project.id} />
               ) : rightPanelTab === 'swarm' ? (
                 <SwarmDashboard projectId={project.id} />
+              ) : rightPanelTab === 'wiki' ? (
+                <WikiViewer projectId={project.id} />
               ) : (
                 <div className="flex-1 flex items-center justify-center text-gray-400">
                   Select a tab to view content
