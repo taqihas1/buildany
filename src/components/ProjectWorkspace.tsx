@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot, Search, Eye, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot, Search, Eye, ChevronLeft, ChevronRight, Home } from 'lucide-react';
 import { AIChatPanel } from "./AIChatPanel";
 import { SwarmDashboard } from "./SwarmDashboard";
 import { ResearchPanel } from "./ResearchPanel";
@@ -24,6 +24,10 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
   const [rightPanelTab, setRightPanelTab] = useState<'chat' | 'swarm' | 'research' | 'preview' | 'mobile'>('chat');
   const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
   const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
+  const [leftPanelWidth, setLeftPanelWidth] = useState(320); // 320px = w-80
+  const [rightPanelWidth, setRightPanelWidth] = useState(288); // 288px = w-72
+  const [isResizingLeft, setIsResizingLeft] = useState(false);
+  const [isResizingRight, setIsResizingRight] = useState(false);
   const router = useRouter();
 
   const handleChat = async (e: React.FormEvent) => {
@@ -49,6 +53,36 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
       setIsGenerating(false);
     }
   };
+
+  // Resize handlers
+  useEffect(() => {
+    const handleMouseMove = (e: MouseEvent) => {
+      if (isResizingLeft) {
+        const newWidth = Math.max(200, Math.min(500, e.clientX));
+        setLeftPanelWidth(newWidth);
+      }
+      if (isResizingRight) {
+        const newWidth = Math.max(200, Math.min(500, window.innerWidth - e.clientX));
+        setRightPanelWidth(newWidth);
+      }
+    };
+    const handleMouseUp = () => {
+      setIsResizingLeft(false);
+      setIsResizingRight(false);
+    };
+    if (isResizingLeft || isResizingRight) {
+      window.addEventListener('mousemove', handleMouseMove);
+      window.addEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+    }
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+  }, [isResizingLeft, isResizingRight]);
 
   const [isDeploying, setIsDeploying] = useState(false);
   const [deployStatus, setDeployStatus] = useState<"" | "building" | "ready" | "error">("");
@@ -168,6 +202,13 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
         </div>
         
         <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push('/')}
+            className="flex items-center gap-1 px-3 py-1.5 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors"
+          >
+            <Home className="w-4 h-4" />
+            Home
+          </button>
           <button 
             onClick={downloadWeb}
             className="flex items-center gap-2 px-3 py-1.5 text-xs bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors"
@@ -215,7 +256,7 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
       {/* Main Content */}
       <div className="flex-1 flex overflow-hidden">
         {/* LEFT Panel - AI Chat / Swarm / Research / Preview / Mobile */}
-        <div className={`${leftPanelCollapsed ? 'w-10' : 'w-80'} border-r border-gray-200 bg-gray-50/50 flex flex-col transition-all duration-200`}>
+        <div style={{ width: leftPanelCollapsed ? 40 : leftPanelWidth }} className="border-r border-gray-200 bg-gray-50/50 flex flex-col transition-all duration-200">
           {/* Collapse toggle */}
           <button
             onClick={() => setLeftPanelCollapsed(!leftPanelCollapsed)}
@@ -354,8 +395,15 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
           )}
         </div>
 
+        {/* Resize Handle - Left */}
+        <div
+          className="w-1 cursor-col-resize hover:bg-cyan-500/50 active:bg-cyan-500 transition-colors z-10"
+          onMouseDown={() => setIsResizingLeft(true)}
+          title="Drag to resize"
+        />
+
         {/* CENTER - Code Editor */}
-        <div className="flex-1 flex flex-col bg-white">
+        <div className="flex-1 flex flex-col bg-white min-w-0">
           {activeFile ? (
             <>
               <div className="h-9 flex items-center px-4 border-b border-gray-200 text-sm text-gray-400">
@@ -377,8 +425,15 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
           )}
         </div>
 
+        {/* Resize Handle - Right */}
+        <div
+          className="w-1 cursor-col-resize hover:bg-cyan-500/50 active:bg-cyan-500 transition-colors z-10"
+          onMouseDown={() => setIsResizingRight(true)}
+          title="Drag to resize"
+        />
+
         {/* RIGHT Panel - File Tree */}
-        <div className={`${rightPanelCollapsed ? 'w-10' : 'w-72'} border-l border-gray-200 bg-gray-50/50 flex flex-col transition-all duration-200`}>
+        <div style={{ width: rightPanelCollapsed ? 40 : rightPanelWidth }} className="border-l border-gray-200 bg-gray-50/50 flex flex-col transition-all duration-200">
           {/* Collapse toggle */}
           <button
             onClick={() => setRightPanelCollapsed(!rightPanelCollapsed)}

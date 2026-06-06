@@ -23,6 +23,13 @@ export function LivePreview({ project, files, activeFile }: LivePreviewProps) {
     }
   }, [project]);
 
+  // Auto-generate preview when files are available
+  useEffect(() => {
+    if (files.length > 0 && !iframeUrl) {
+      handlePreview();
+    }
+  }, [files]);
+
   const handlePreview = async () => {
     setIsLoading(true);
     try {
@@ -97,13 +104,13 @@ ${js}
       <div className="h-10 flex items-center justify-between px-3 border-b border-slate-800 bg-slate-900">
         <div className="flex items-center gap-2">
           <Eye className="w-4 h-4 text-cyan-400" />
-          <span className="text-xs font-medium text-white">Live Preview</span>
+          <span className="text-sm font-medium text-white">Live Preview</span>
           
           {/* Device Toggle */}
           <div className="flex bg-slate-800 rounded-lg p-0.5 ml-2">
             <button
               onClick={() => setPreviewType('web')}
-              className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+              className={`flex items-center gap-1 px-2 py-1 text-sm rounded transition-colors ${
                 previewType === 'web' ? 'bg-slate-700 text-cyan-400' : 'text-slate-500 hover:text-slate-300'
               }`}
             >
@@ -112,7 +119,7 @@ ${js}
             </button>
             <button
               onClick={() => setPreviewType('mobile')}
-              className={`flex items-center gap-1 px-2 py-1 text-xs rounded transition-colors ${
+              className={`flex items-center gap-1 px-2 py-1 text-sm rounded transition-colors ${
                 previewType === 'mobile' ? 'bg-slate-700 text-purple-400' : 'text-slate-500 hover:text-slate-300'
               }`}
             >
@@ -126,14 +133,14 @@ ${js}
           <button
             onClick={handlePreview}
             disabled={isLoading}
-            className="flex items-center gap-1 px-2 py-1 text-xs bg-cyan-500/10 text-cyan-400 rounded hover:bg-cyan-500/20 transition-colors disabled:opacity-50"
+            className="flex items-center gap-1 px-2 py-1 text-sm bg-cyan-500/10 text-cyan-400 rounded hover:bg-cyan-500/20 transition-colors disabled:opacity-50"
           >
             <RefreshCw className={`w-3 h-3 ${isLoading ? 'animate-spin' : ''}`} />
             {isLoading ? 'Building...' : 'Refresh'}
           </button>
           <button
             onClick={() => setShowCode(!showCode)}
-            className={`text-xs px-2 py-1 rounded transition-colors ${
+            className={`text-sm px-2 py-1 rounded transition-colors ${
               showCode ? 'bg-cyan-500/10 text-cyan-400' : 'text-slate-500 hover:text-slate-300'
             }`}
           >
@@ -162,7 +169,7 @@ ${js}
               <p className="text-sm text-slate-500 mb-2">No preview available</p>
               <button
                 onClick={handlePreview}
-                className="text-xs text-cyan-400 hover:text-cyan-300 underline"
+                className="text-sm text-cyan-400 hover:text-cyan-300 underline"
               >
                 Generate preview
               </button>
@@ -175,11 +182,11 @@ ${js}
       {showCode && activeFile && (
         <div className="absolute inset-0 bg-slate-950/95 z-50 flex flex-col">
           <div className="h-10 flex items-center justify-between px-3 border-b border-slate-800">
-            <span className="text-xs text-white">{activeFile.path}</span>
+            <span className="text-sm text-white">{activeFile.path}</span>
             <div className="flex items-center gap-2">
               <button
                 onClick={copyCode}
-                className="flex items-center gap-1 text-xs text-cyan-400 hover:text-cyan-300"
+                className="flex items-center gap-1 text-sm text-cyan-400 hover:text-cyan-300"
               >
                 {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
                 {copied ? 'Copied!' : 'Copy'}
@@ -192,7 +199,7 @@ ${js}
               </button>
             </div>
           </div>
-          <pre className="flex-1 overflow-auto p-4 text-xs font-mono text-slate-300">
+          <pre className="flex-1 overflow-auto p-4 text-sm font-mono text-slate-300">
             <code>{activeFile.content}</code>
           </pre>
         </div>
@@ -202,12 +209,12 @@ ${js}
       {consoleLogs.length > 0 && (
         <div className="h-32 border-t border-slate-800 bg-slate-900/50">
           <div className="h-6 flex items-center justify-between px-2 border-b border-slate-800">
-            <span className="text-xs text-slate-500">Console</span>
-            <button onClick={clearLogs} className="text-xs text-slate-600 hover:text-slate-400">Clear</button>
+            <span className="text-sm text-slate-500">Console</span>
+            <button onClick={clearLogs} className="text-sm text-slate-600 hover:text-slate-400">Clear</button>
           </div>
           <div className="overflow-auto p-2 space-y-1">
             {consoleLogs.map((log, i) => (
-              <div key={i} className="text-xs font-mono text-slate-400">{log}</div>
+              <div key={i} className="text-sm font-mono text-slate-400">{log}</div>
             ))}
           </div>
         </div>
