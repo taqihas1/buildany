@@ -201,26 +201,62 @@ App idea: ${prompt}`;
 
     // Auto-decompose into tasks
     let tasksCreated = [];
+    let agentsCreated = [];
     try {
-      const { decomposeProject } = await import('@/app/api/decompose/decompose-logic');
+      const { decomposeProject, matchAgentToTask } = await import('@/app/api/decompose/decompose-logic');
       const { tasks: taskDefs } = decomposeProject(project.description || prompt, type, files);
       
-      // Import tasks schema
-      const { tasks } = await import('@/lib/db/schema');
+      // Import schema
+      const { tasks, agents } = await import('@/lib/db/schema');
       
+      // Create default agents based on task types
+      const taskTypes = [...new Set(taskDefs.map((t: any) => t.type || 'code'))] as string[];
+      agentsCreated = await Promise.all(taskTypes.map(async (taskType: string, i: number) => {
+        const agentId = crypto.randomUUID();
+        const agentName = `${taskType.charAt(0).toUpperCase() + taskType.slice(1)} Agent`;
+        await db.insert(agents).values({
+          id: agentId,
+          name: agentName,
+          type: taskType,
+          status: 'ready',
+          capabilities: JSON.stringify([taskType, 'build', 'test']),
+          metadata: JSON.stringify({ projectId: project.id, userId: userId }),
+          createdAt: new Date(),
+        });
+        return { id: agentId, name: agentName, type: taskType };
+      }));
+      
+      // Create tasks and assign to agents
       for (const taskDef of taskDefs) {
         const taskId = crypto.randomUUID();
+        // Infer task type from title
+        const taskTitle = taskDef.title.toLowerCase();
+        const taskType = taskTitle.includes('css') || taskTitle.includes('style') ? 'css' :
+                         taskTitle.includes('javascript') || taskTitle.includes('js') ? 'javascript' :
+                         taskTitle.includes('html') ? 'html' :
+                         taskTitle.includes('test') ? 'test' :
+                         'code';
+        
+        // Find matching agent
+        const matchingAgent = agentsCreated.find((a: any) =>
+          a.type === taskType || 
+          (taskType === 'css' && a.type === 'css') ||
+          (taskType === 'javascript' && a.type === 'javascript') ||
+          (taskType === 'html' && a.type === 'html') ||
+          (taskType === 'test' && a.type === 'test')
+        ) || agentsCreated[0];
+        
         await db.insert(tasks).values({
           id: taskId,
           projectId: project.id,
-          agentId: null,
+          agentId: matchingAgent?.id || null,
           parentTaskId: null,
-          type: 'code',
+          type: taskType,
           status: 'pending',
           priority: taskDef.priority === 'high' ? 5 : taskDef.priority === 'medium' ? 3 : 1,
           title: taskDef.title,
           description: taskDef.description,
-          input: JSON.stringify({ dependencies: taskDef.dependencies || [] }),
+          input: JSON.stringify({ dependencies: taskDef.dependencies || [], agentName: matchingAgent?.name }),
           output: null,
           errorLog: null,
           attempts: 0,
@@ -229,12 +265,84 @@ App idea: ${prompt}`;
           completedAt: null,
           createdAt: new Date(),
         });
-        tasksCreated.push({ id: taskId, title: taskDef.title });
+        tasksCreated.push({ id: taskId, title: taskDef.title, agentId: matchingAgent?.id, agentName: matchingAgent?.name });
       }
       
-      console.log(`Auto-decomposed into ${tasksCreated.length} tasks`);
+      console.log(`Auto-decomposed into ${tasksCreated.length} tasks with ${agentsCreated.length} agents`);
     } catch (err) {
       console.error("Auto-decomposition failed (non-blocking):", err);
+    }
+
+    // Auto-generate preview for web projects
+    if (type === 'web' && files.length > 0) {
+      try {
+        const htmlFile = files.find((f: any) => f.path.endsWith('.html') || f.path === 'index.html');
+        const cssFiles = files.filter((f: any) => f.path.endsWith('.css'));
+        const jsFiles = files.filter((f: any) => f.path.endsWith('.js'));
+        
+        let previewContent = '';
+        
+        if (htmlFile) {
+          // Use the HTML file directly but inject CSS and JS
+          previewContent = htmlFile.content;
+          
+          // Inject CSS files
+          for (const css of cssFiles) {
+            if (!previewContent.includes(css.path)) {
+              const styleTag = `<style>\n${css.content}\n</style>`;
+              previewContent = previewContent.replace('</head>', `${styleTag}\n</head>`);
+            }
+          }
+          
+          // Inject JS files
+          for (const js of jsFiles) {
+            if (!previewContent.includes(js.path)) {
+              const scriptTag = `<script>\n${js.content}\n</script>`;
+              previewContent = previewContent.replace('</body>', `${scriptTag}\n</body>`);
+            }
+          }
+        } else {
+          // Create a simple HTML wrapper
+          previewContent = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>${project.name}</title>
+  ${cssFiles.map((css: any) => `<style>${css.content}</style>`).join('\n')}
+</head>
+<body>
+  <div id="app">
+    <h1>${project.name}</h1>
+    <p>${project.description || 'App preview'}</p>
+    <div class="files-list">
+      <h2>Generated Files:</h2>
+      <ul>
+        ${files.map((f: any) => `<li>${f.path}</li>`).join('')}
+      </ul>
+    </div>
+  </div>
+  ${jsFiles.map((js: any) => `<script>${js.content}</script>`).join('\n')}
+</body>
+</html>`;
+        }
+        
+        // Save preview as a special file
+        await db.insert(projectFiles).values({
+          id: crypto.randomUUID(),
+          projectId: project.id,
+          path: '__preview.html',
+          content: previewContent,
+          language: 'html',
+          isGenerated: true,
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        });
+        
+        console.log("Preview auto-generated");
+      } catch (err) {
+        console.error("Preview generation failed (non-blocking):", err);
+      }
     }
 
     // Update project status

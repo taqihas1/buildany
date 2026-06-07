@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { 
   Bot, Play, Square, Cpu, GitBranch, Zap, Layers, 
   CheckCircle, XCircle, RotateCcw, ArrowRight, Plus,
@@ -16,7 +15,6 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
   const [skills, setSkills] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'agents' | 'tasks' | 'skills'>('agents');
-  const router = useRouter();
 
   useEffect(() => {
     loadData();
@@ -26,9 +24,24 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
 
   const loadData = async () => {
     try {
-      // Fetch agents from Hermes
-      const agentsRes = await fetch('/api/hermes');
-      const agentsData = await agentsRes.json();
+      // Fetch agents from DB first, then Hermes as fallback
+      let agentsList: any[] = [];
+      
+      if (projectId) {
+        // Try to fetch agents from project API
+        const projectAgentsRes = await fetch(`/api/project/${projectId}/agents`).catch(() => null);
+        if (projectAgentsRes && projectAgentsRes.ok) {
+          const projectAgentsData = await projectAgentsRes.json();
+          agentsList = projectAgentsData.agents || [];
+        }
+      }
+      
+      // Fallback to Hermes API
+      if (agentsList.length === 0) {
+        const agentsRes = await fetch('/api/hermes');
+        const agentsData = await agentsRes.json();
+        agentsList = agentsData.agents || [];
+      }
       
       // Fetch tasks from project API (which reads from DB)
       const tasksRes = projectId 
@@ -54,7 +67,7 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
       const mergedTasks = dbTasks.length > 0 ? dbTasks : planTasks;
       
       // Create default agents if none exist but tasks do
-      let agents: any[] = agentsData.agents || [];
+      let agents: any[] = agentsList;
       if (agents.length === 0 && mergedTasks.length > 0) {
         // Create default agents based on task types
         const taskTypes = [...new Set(mergedTasks.map((t: any) => t.type || 'code'))] as string[];
@@ -310,7 +323,7 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
                   {task.agentId && (
                     <div className="mt-2 flex items-center gap-1 text-sm text-gray-500">
                       <Bot className="w-3 h-3" />
-                      {agents.find(a => a.id === task.agentId)?.name || task.agentId}
+                      {agents.find(a => a.id === task.agentId)?.name || task.agentName || task.agentId}
                     </div>
                   )}
                 </div>
