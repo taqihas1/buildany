@@ -1,5 +1,3 @@
-'use client';
-
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { 
@@ -28,18 +26,63 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
 
   const loadData = async () => {
     try {
-      const [agentsRes, tasksRes, skillsRes] = await Promise.all([
-        fetch('/api/hermes'),
-        projectId ? fetch(`/api/decompose?projectId=${projectId}`) : Promise.resolve({ json: () => ({ tasks: [] }) }),
-        fetch('/api/skills?shared=true'),
-      ]);
-
+      // Fetch agents from Hermes
+      const agentsRes = await fetch('/api/hermes');
       const agentsData = await agentsRes.json();
-      const tasksData = await tasksRes.json();
+      
+      // Fetch tasks from project API (which reads from DB)
+      const tasksRes = projectId 
+        ? await fetch(`/api/project/${projectId}/tasks`) 
+        : null;
+      
+      // Also try decompose API as fallback
+      const decomposeRes = projectId 
+        ? await fetch(`/api/decompose?projectId=${projectId}`).catch(() => null)
+        : null;
+      
+      const skillsRes = await fetch('/api/skills?shared=true');
+
+      const tasksData = tasksRes && tasksRes.ok ? await tasksRes.json() : { tasks: [] };
+      const decomposeData = decomposeRes && decomposeRes.ok ? await decomposeRes.json() : { tasks: [] };
       const skillsData = await skillsRes.json();
 
-      setAgents(agentsData.agents || []);
-      setTasks(tasksData.tasks || []);
+      // Merge tasks from both sources (decompose for plan, DB for status)
+      const dbTasks = tasksData.tasks || [];
+      const planTasks = decomposeData.tasks || [];
+      
+      // If we have DB tasks, use them; otherwise use plan tasks
+      const mergedTasks = dbTasks.length > 0 ? dbTasks : planTasks;
+      
+      // Create default agents if none exist but tasks do
+      let agents: any[] = agentsData.agents || [];
+      if (agents.length === 0 && mergedTasks.length > 0) {
+        // Create default agents based on task types
+        const taskTypes = [...new Set(mergedTasks.map((t: any) => t.type || 'code'))] as string[];
+        agents = taskTypes.map((type: string, i: number) => ({
+          id: `agent-${type}-${i}`,
+          name: `${type.charAt(0).toUpperCase() + type.slice(1)} Agent`,
+          type: type,
+          status: 'ready',
+          capabilities: [type, 'build', 'test'],
+          activeTasks: mergedTasks.filter((t: any) => t.status === 'running' && t.type === type).length,
+          completedTasks: mergedTasks.filter((t: any) => t.status === 'completed' && t.type === type).length,
+          failedTasks: mergedTasks.filter((t: any) => t.status === 'failed' && t.type === type).length,
+        }));
+      }
+      
+      // Assign agents to tasks for display
+      const tasksWithAgents = mergedTasks.map((task: any, index: number) => {
+        if (!task.agentId && agents.length > 0) {
+          // Assign agent based on task type or round-robin
+          const matchingAgent = agents.find((a: any) => a.type === task.type || a.capabilities?.includes(task.type));
+          const assignedAgent = matchingAgent || agents[index % agents.length];
+          return { ...task, agentId: assignedAgent.id, agentName: assignedAgent.name };
+        }
+        return task;
+      });
+
+      setAgents(agents);
+      setTasks(tasksWithAgents);
       setSkills(skillsData.skills || []);
     } catch (err) {
       console.error('Swarm data error:', err);
@@ -106,7 +149,7 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
           <Bot className="w-5 h-5 text-cyan-600" />
           <span className="text-base font-medium text-gray-900">Agent Swarm</span>
           <span className="text-sm bg-cyan-50 text-cyan-600 px-2 py-0.5 rounded-full">
-            {agents.length} agents • {tasks.length} tasks
+            {agents.length} agents &bull; {tasks.length} tasks
           </span>
         </div>
         <div className="flex gap-1">
@@ -196,7 +239,7 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
                   
                   {/* Row 3: Explanation */}
                   <div className="mt-2 text-sm text-gray-500">
-                    <span className="text-gray-700 font-medium">Status:</span> {agent.status} • 
+                    <span className="text-gray-700 font-medium">Status:</span> {agent.status} &bull; 
                     <span className="text-gray-700 font-medium"> Tasks:</span> {agent.activeTasks || 0} active, {agent.completedTasks || 0} done, {agent.failedTasks || 0} failed
                   </div>
                 </div>
