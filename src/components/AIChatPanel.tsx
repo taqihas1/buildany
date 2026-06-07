@@ -37,11 +37,19 @@ export function AIChatPanel({
       role: "assistant",
       content: "Hi! I'm your AI developer. Describe what you want to build, and I'll generate the code for you. I'll keep you updated on every step of the process!",
     },
-    ...initialMessages.map((m: any) => ({
-      id: m.id || Date.now().toString() + Math.random(),
-      role: m.role as "user" | "assistant" | "system",
-      content: m.content || m.message || "",
-    })),
+    ...initialMessages
+      .filter((m: any) => {
+        // Filter out research system messages from chat
+        if (m.role === 'system' && (m.content?.includes('RESEARCH REPORT') || m.model === 'research-system')) return false;
+        // Filter out raw code in assistant messages
+        if (m.role === 'assistant' && m.content?.includes('```')) return false;
+        return true;
+      })
+      .map((m: any) => ({
+        id: m.id || Date.now().toString() + Math.random(),
+        role: m.role as "user" | "assistant" | "system",
+        content: m.content || m.message || "",
+      })),
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
