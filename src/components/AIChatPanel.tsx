@@ -1,29 +1,93 @@
-import { useState } from "react";
-import { Send, Bot, User, Loader2, Sparkles } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Send, Bot, User, Loader2, Sparkles, CheckCircle, AlertCircle, MessageSquare, Clock, ArrowRight } from "lucide-react";
 
 interface Message {
   id: string;
-  role: "user" | "assistant";
+  role: "user" | "assistant" | "system";
   content: string;
   isLoading?: boolean;
+  statusType?: "code" | "preview" | "research" | "swarm" | "wiki" | "deploy" | "general";
+  variant?: "success" | "info" | "warning";
 }
 
 interface AIChatPanelProps {
   projectId: string;
   type: string;
+  initialMessages?: any[];
+  onStatusClick?: (tab: string) => void;
+  projectStatus?: string;
+  files?: any[];
+  tasks?: any[];
 }
 
-export function AIChatPanel({ projectId, type }: AIChatPanelProps) {
+export function AIChatPanel({ 
+  projectId, 
+  type, 
+  initialMessages = [], 
+  onStatusClick,
+  projectStatus = "draft",
+  files = [],
+  tasks = [],
+}: AIChatPanelProps) {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "welcome",
       role: "assistant",
-      content:
-        "Hi! I'm your AI developer. Describe what you want to build, and I'll generate the code for you. For example: 'Create a todo app with categories and due dates'.",
+      content: "Hi! I'm your AI developer. Describe what you want to build, and I'll generate the code for you. I'll keep you updated on every step of the process!",
     },
+    ...initialMessages.map((m: any) => ({
+      id: m.id || Date.now().toString() + Math.random(),
+      role: m.role as "user" | "assistant" | "system",
+      content: m.content || m.message || "",
+    })),
   ]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll to bottom
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // Watch for project status changes and add status messages
+  useEffect(() => {
+    if (files.length > 0 && !messages.some(m => m.statusType === "code")) {
+      addStatusMessage(
+        "code",
+        "✅ Code has been generated! In order to see the code, please click on Code in the menu at the top of the workspace.",
+        "success"
+      );
+    }
+  }, [files.length]);
+
+  useEffect(() => {
+    if (tasks.length > 0 && !messages.some(m => m.statusType === "swarm")) {
+      addStatusMessage(
+        "swarm",
+        `✅ Project has been decomposed into ${tasks.length} tasks and assigned to agents. Click on "Agents Swarm" in the workspace menu to view tasks and agents.`,
+        "success"
+      );
+    }
+  }, [tasks.length]);
+
+  const addStatusMessage = (statusType: string, content: string, variant: "success" | "info" | "warning" = "info") => {
+    setMessages(prev => [...prev, {
+      id: `status-${statusType}-${Date.now()}`,
+      role: "system",
+      content,
+      statusType: statusType as any,
+      variant,
+    }]);
+  };
+
+  // Expose addStatusMessage to parent via a global (not ideal but works for now)
+  useEffect(() => {
+    (window as any).__addStatusMessage = addStatusMessage;
+    return () => {
+      delete (window as any).__addStatusMessage;
+    };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,18 +128,27 @@ export function AIChatPanel({ projectId, type }: AIChatPanelProps) {
       // Remove loading message
       setMessages((prev) => prev.filter((m) => m.id !== "loading"));
 
-      if (data.success) {
+      if (data.success || data.projectId) {
         const aiMessage: Message = {
           id: Date.now().toString(),
           role: "assistant",
-          content:
-            data.files.length > 0
-              ? `✅ Generated ${data.files.length} files:\n\n${data.files
-                  .map((f: { path: string }) => `• ${f.path}`)
-                  .join("\n")}\n\n**Tokens used:** ${data.tokensUsed || "N/A"} | **Provider:** ${data.provider}`
-              : "I generated the code but couldn't parse it into files. Please try again with a more specific request.",
+          content: data.message || 
+            (data.filesGenerated 
+              ? `✅ Generated ${data.filesGenerated} files! The project is ready. Check the Code tab or Preview tab to see your app.`
+              : "I've started working on your request. You can track progress in the workspace tabs."),
         };
         setMessages((prev) => [...prev, aiMessage]);
+
+        // Add status messages for each completed phase
+        if (data.research) {
+          addStatusMessage("research", "📊 Research complete! Market analysis and competitor research has been saved. Click on Research to view.", "success");
+        }
+        if (data.filesGenerated > 0) {
+          addStatusMessage("code", `✅ Code has been generated! ${data.filesGenerated} files created. Click on "Code" in the workspace menu to view the files.`, "success");
+        }
+        if (data.tasksCreated > 0) {
+          addStatusMessage("swarm", `✅ Project decomposed into ${data.tasksCreated} tasks and assigned to agents. Click on "Agents Swarm" to view tasks and execution order.`, "success");
+        }
       } else {
         const errorMessage: Message = {
           id: Date.now().toString(),
@@ -85,15 +158,12 @@ export function AIChatPanel({ projectId, type }: AIChatPanelProps) {
         setMessages((prev) => [...prev, errorMessage]);
       }
     } catch (error) {
-      // Remove loading message
       setMessages((prev) => prev.filter((m) => m.id !== "loading"));
 
       const errorMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
-        content: `❌ Error: ${
-          error instanceof Error ? error.message : String(error)
-        }`,
+        content: `❌ Error: ${error instanceof Error ? error.message : String(error)}`,
       };
       setMessages((prev) => [...prev, errorMessage]);
     } finally {
@@ -101,65 +171,121 @@ export function AIChatPanel({ projectId, type }: AIChatPanelProps) {
     }
   };
 
+  const renderStatusMessage = (msg: Message) => {
+    const isSuccess = msg.variant === "success";
+    const isWarning = msg.variant === "warning";
+    const tabMap: Record<string, string> = {
+      code: "code",
+      preview: "preview",
+      research: "research",
+      swarm: "swarm",
+      wiki: "wiki",
+      deploy: "deploy",
+    };
+    const tabName = msg.statusType ? tabMap[msg.statusType] : null;
+
+    return (
+      <div className={`p-3 rounded-lg border text-xs ${
+        isSuccess 
+          ? "bg-emerald-500/10 border-emerald-500/20 text-emerald-300" 
+          : isWarning 
+          ? "bg-amber-500/10 border-amber-500/20 text-amber-300"
+          : "bg-blue-500/10 border-blue-500/20 text-blue-300"
+      }`}>
+        <div className="flex items-start gap-2">
+          {isSuccess ? <CheckCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> : 
+           isWarning ? <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> : 
+           <Sparkles className="w-3.5 h-3.5 mt-0.5 shrink-0" />}
+          <div className="flex-1">
+            <div className="whitespace-pre-wrap">{msg.content}</div>
+            {tabName && onStatusClick && (
+              <button
+                onClick={() => onStatusClick(tabName)}
+                className="mt-1.5 text-xs text-cyan-400 hover:text-cyan-300 underline underline-offset-2 flex items-center gap-1"
+              >
+                Click to view <ArrowRight className="w-3 h-3" />
+              </button>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="flex flex-col h-full bg-slate-900/50 border-l border-slate-700">
+    <div className="flex flex-col h-full bg-slate-950 border-r border-slate-800">
       {/* Header */}
-      <div className="flex items-center gap-2 px-4 py-3 border-b border-slate-700 bg-slate-800/50">
-        <Sparkles className="w-4 h-4 text-cyan-400" />
-        <h3 className="text-sm font-medium text-white">AI Developer</h3>
+      <div className="h-12 border-b border-slate-800 flex items-center px-4 bg-slate-900">
+        <div className="flex items-center gap-2">
+          <MessageSquare className="w-4 h-4 text-cyan-400" />
+          <h3 className="text-sm font-medium text-white">AI Assistant</h3>
+        </div>
+        <div className="ml-auto flex items-center gap-1.5">
+          <span className={`w-2 h-2 rounded-full ${
+            projectStatus === "ready" ? "bg-emerald-400" : 
+            projectStatus === "generating" ? "bg-amber-400 animate-pulse" : 
+            "bg-slate-500"
+          }`} />
+          <span className="text-xs text-slate-500 capitalize">{projectStatus}</span>
+        </div>
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {messages.map((message) => (
-          <div
-            key={message.id}
-            className={`flex gap-3 ${
-              message.role === "user" ? "justify-end" : "justify-start"
-            }`}
-          >
-            {message.role === "assistant" && (
-              <div className="w-7 h-7 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center shrink-0">
-                <Bot className="w-4 h-4 text-white" />
-              </div>
-            )}
+      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+        {messages.map((message) => {
+          if (message.role === "system") {
+            return <div key={message.id}>{renderStatusMessage(message)}</div>;
+          }
+
+          return (
             <div
-              className={`max-w-[80%] rounded-xl px-3 py-2 text-sm ${
-                message.role === "user"
-                  ? "bg-gradient-to-r from-cyan-500 to-blue-500 text-white"
-                  : "bg-slate-800 text-slate-200"
-              }`}
+              key={message.id}
+              className={`flex gap-2 ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
-              {message.isLoading ? (
-                <div className="flex items-center gap-2">
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                  Generating code...
+              {message.role === "assistant" && (
+                <div className="w-6 h-6 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center shrink-0 mt-1">
+                  <Bot className="w-3.5 h-3.5 text-white" />
                 </div>
-              ) : (
-                <div className="whitespace-pre-wrap">{message.content}</div>
+              )}
+              <div
+                className={`max-w-[85%] rounded-lg px-3 py-2 text-xs ${
+                  message.role === "user"
+                    ? "bg-cyan-500/10 text-cyan-100 border border-cyan-500/20 ml-4"
+                    : "bg-slate-800 text-slate-300 mr-4 border border-slate-700"
+                }`}
+              >
+                {message.isLoading ? (
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="w-3 h-3 animate-spin" />
+                    Generating code...
+                  </div>
+                ) : (
+                  <div className="whitespace-pre-wrap">{message.content}</div>
+                )}
+              </div>
+              {message.role === "user" && (
+                <div className="w-6 h-6 bg-slate-700 rounded-full flex items-center justify-center shrink-0 mt-1">
+                  <User className="w-3.5 h-3.5 text-slate-300" />
+                </div>
               )}
             </div>
-            {message.role === "user" && (
-              <div className="w-7 h-7 bg-slate-700 rounded-full flex items-center justify-center shrink-0">
-                <User className="w-4 h-4 text-slate-300" />
-              </div>
-            )}
-          </div>
-        ))}
+          );
+        })}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input */}
       <form
         onSubmit={handleSubmit}
-        className="p-3 border-t border-slate-700 bg-slate-800/50"
+        className="p-3 border-t border-slate-800"
       >
         <div className="flex gap-2">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Describe your app..."
-            className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
+            placeholder="Ask the AI to modify your app..."
+            className="flex-1 bg-slate-800 border border-slate-700 rounded-lg px-3 py-2 text-xs text-white placeholder:text-slate-500 focus:outline-none focus:border-cyan-500"
             disabled={isLoading}
           />
           <button
