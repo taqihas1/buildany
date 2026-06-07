@@ -1,72 +1,54 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useRouter } from 'next/navigation';
-import { Code2, GitBranch, Play, Send, FileCode, Folder, Loader2, Smartphone, Globe, Bot, Search, Eye, ChevronLeft, ChevronRight, Home, BookOpen, Trash2, AlertTriangle } from 'lucide-react';
+import {
+  Code2, GitBranch, Play, Send, FileCode, Folder, Loader2,
+  Smartphone, Globe, Bot, Search, Eye, BookOpen, Layers,
+  ArrowRight, AlertTriangle, CheckCircle, Trash2, Home,
+  ChevronLeft, ChevronRight, MessageSquare
+} from 'lucide-react';
 import { AIChatPanel } from "./AIChatPanel";
 import { SwarmDashboard } from "./SwarmDashboard";
 import { ResearchPanel } from "./ResearchPanel";
 import { LivePreview } from "./LivePreview";
 import { MobilePreview } from "./MobilePreview";
-import { DeployValueProposition } from "./DeployValueProposition";
 import { WikiViewer } from "./WikiViewer";
+
+type WorkspaceTab = 'preview' | 'code' | 'research' | 'swarm' | 'wiki';
 
 interface ProjectWorkspaceProps {
   project: any;
   files: any[];
   chatHistory: any[];
+  tasks: any[];
   user: any;
 }
 
-export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectWorkspaceProps) {
+export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: ProjectWorkspaceProps) {
   const [activeFile, setActiveFile] = useState(files[0] || null);
-  const [chatInput, setChatInput] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [messages, setMessages] = useState(chatHistory);
-  const [leftPanelTab, setLeftPanelTab] = useState<'chat' | 'swarm' | 'research' | 'preview' | 'mobile' | 'wiki'>('chat');
-  const [leftPanelCollapsed, setLeftPanelCollapsed] = useState(false);
-  const [rightPanelCollapsed, setRightPanelCollapsed] = useState(false);
-  const [leftPanelWidth, setLeftPanelWidth] = useState(400); // wider left panel
-  const [rightPanelWidth, setRightPanelWidth] = useState(200); // narrower files panel
+  const [workspaceTab, setWorkspaceTab] = useState<WorkspaceTab>('preview');
+  const [leftPanelWidth, setLeftPanelWidth] = useState(340);
+  const [rightPanelWidth, setRightPanelWidth] = useState(240);
   const [isResizingLeft, setIsResizingLeft] = useState(false);
   const [isResizingRight, setIsResizingRight] = useState(false);
+  const [isDeploying, setIsDeploying] = useState(false);
+  const [showDeployModal, setShowDeployModal] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deployInfo, setDeployInfo] = useState<any>(null);
   const router = useRouter();
-
-  const handleChat = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || isGenerating) return;
-
-    const userMsg = { id: Date.now(), role: 'user', content: chatInput };
-    setMessages([...messages, userMsg]);
-    setChatInput('');
-    setIsGenerating(true);
-
-    try {
-      const res = await fetch(`/api/project/${project.id}/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: chatInput }),
-      });
-      const data = await res.json();
-      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'assistant', content: data.response, model: data.model }]);
-    } catch (err) {
-      setMessages(prev => [...prev, { id: Date.now() + 1, role: 'system', content: 'Error: Failed to get response' }]);
-    } finally {
-      setIsGenerating(false);
-    }
-  };
 
   // Resize handlers
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
       if (isResizingLeft) {
-        const newWidth = Math.max(200, Math.min(500, e.clientX));
+        const newWidth = Math.max(280, Math.min(480, e.clientX));
         setLeftPanelWidth(newWidth);
       }
       if (isResizingRight) {
-        const newWidth = Math.max(200, Math.min(500, window.innerWidth - e.clientX));
+        const newWidth = Math.max(180, Math.min(400, window.innerWidth - e.clientX));
         setRightPanelWidth(newWidth);
       }
     };
@@ -88,11 +70,13 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
     };
   }, [isResizingLeft, isResizingRight]);
 
-  const [isDeploying, setIsDeploying] = useState(false);
-  const [deployStatus, setDeployStatus] = useState<"" | "building" | "ready" | "error">("");
-  const [deployUrl, setDeployUrl] = useState("");
-  const [showDeployDialog, setShowDeployDialog] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const handleStatusClick = useCallback((tab: string) => {
+    if (tab === 'code') setWorkspaceTab('code');
+    if (tab === 'preview') setWorkspaceTab('preview');
+    if (tab === 'research') setWorkspaceTab('research');
+    if (tab === 'swarm') setWorkspaceTab('swarm');
+    if (tab === 'wiki') setWorkspaceTab('wiki');
+  }, []);
 
   const handleDeleteProject = async () => {
     if (!showDeleteConfirm) {
@@ -112,36 +96,20 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
     }
   };
 
-  const [showDeployModal, setShowDeployModal] = useState(false);
-  const [deployInfo, setDeployInfo] = useState<any>(null);
-
   const handleDeploy = async () => {
     try {
       setIsDeploying(true);
-      setDeployStatus("building");
-      
       const res = await fetch('/api/deploy', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectId: project.id }),
       });
-      
       const data = await res.json();
-      
-      if (data.success) {
-        setDeployStatus("ready");
-        setDeployUrl(data.downloadUrl);
-        setDeployInfo(data);
-        setShowDeployModal(true);
-      } else {
-        setDeployStatus("error");
-        setDeployInfo({ error: data.error || 'Deploy failed' });
-        setShowDeployModal(true);
-      }
+      setDeployInfo(data);
+      setShowDeployModal(true);
     } catch (err) {
       console.error('Deploy failed:', err);
-      setDeployStatus("error");
-      setDeployInfo({ error: 'Network error. Check console.' });
+      setDeployInfo({ success: false, error: 'Network error. Check console.' });
       setShowDeployModal(true);
     } finally {
       setIsDeploying(false);
@@ -213,6 +181,14 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
     }
   };
 
+  const tabs = [
+    { id: 'preview' as WorkspaceTab, label: 'Preview', icon: Eye },
+    { id: 'code' as WorkspaceTab, label: 'Code', icon: Code2 },
+    { id: 'research' as WorkspaceTab, label: 'Research', icon: Search },
+    { id: 'swarm' as WorkspaceTab, label: 'Agents Swarm', icon: Bot },
+    { id: 'wiki' as WorkspaceTab, label: 'Wiki Pages', icon: BookOpen },
+  ];
+
   return (
     <div className="h-screen flex flex-col bg-white">
       {/* Header */}
@@ -268,25 +244,13 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
             <GitBranch className="w-3 h-3" />
             Export to GitHub
           </button>
-          {deployStatus === 'ready' && deployUrl && (
-            <a 
-              href={deployUrl}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs bg-green-50 text-green-600 rounded-lg border border-green-200 hover:bg-green-100 transition-colors"
-            >
-              Download Package
-            </a>
-          )}
           <button 
             onClick={handleDeploy}
             disabled={isDeploying}
-            className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-colors ${
-              deployStatus === 'ready' 
-                ? 'bg-green-50 text-green-600 border border-green-200' 
-                : 'bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:opacity-90'
-            } disabled:opacity-50`}
+            className={`flex items-center gap-2 px-3 py-1.5 text-xs rounded-lg transition-colors bg-gradient-to-r from-cyan-500 to-blue-500 text-white hover:opacity-90 disabled:opacity-50`}
           >
             <Play className="w-3 h-3" />
-            {isDeploying ? 'Deploying...' : deployStatus === 'ready' ? 'Deployed' : 'Deploy'}
+            {isDeploying ? 'Deploying...' : 'Deploy'}
           </button>
         </div>
       </header>
@@ -326,7 +290,6 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                     {deployInfo.downloadUrl}
                   </a>
                 </div>
-                
                 <div className="space-y-2">
                   <p className="text-sm text-gray-600">
                     <strong>Deployment ID:</strong> {deployInfo.deploymentId}
@@ -338,7 +301,6 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                     {deployInfo.message}
                   </p>
                 </div>
-                
                 <div className="bg-yellow-50 rounded-lg p-3 border border-yellow-200">
                   <p className="text-xs text-yellow-800">
                     <strong>Quick deploy to Vercel:</strong><br/>
@@ -347,7 +309,6 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
                     3. Run: vercel
                   </p>
                 </div>
-                
                 <div className="flex gap-3">
                   <button
                     onClick={() => setShowDeployModal(false)}
@@ -412,169 +373,19 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
         </div>
       )}
 
-      {/* Main Content */}
+      {/* Main 3-Panel Layout */}
       <div className="flex-1 flex overflow-hidden">
-        {/* LEFT Panel - AI Chat / Swarm / Research / Preview / Mobile */}
-        <div style={{ width: leftPanelCollapsed ? 40 : leftPanelWidth }} className="border-r border-gray-200 bg-gray-50/50 flex flex-col transition-all duration-200">
-          {/* Collapse toggle */}
-          <button
-            onClick={() => setLeftPanelCollapsed(!leftPanelCollapsed)}
-            className="w-full h-8 flex items-center justify-center border-b border-gray-200 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-            title={leftPanelCollapsed ? "Expand panel" : "Collapse panel"}
-          >
-            <ChevronLeft className={`w-4 h-4 transition-transform ${leftPanelCollapsed ? 'rotate-180' : ''}`} />
-          </button>
-          
-          {!leftPanelCollapsed && (
-            <>
-              {/* Workspace Header */}
-              <div className="px-4 py-3 border-b border-gray-200 bg-gray-50/50">
-                <div className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-2">Workspace</div>
-                {/* Tab Bar */}
-                <div className="flex flex-wrap gap-1">
-                  <button
-                    onClick={() => setLeftPanelTab('chat')}
-                    className={`px-3 py-1.5 text-xs font-medium uppercase transition-colors rounded-md flex items-center gap-1 ${
-                      leftPanelTab === 'chat'
-                        ? 'text-cyan-700 bg-cyan-50 border border-cyan-200'
-                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Send className="w-3 h-3" />
-                    AI
-                  </button>
-                  <button
-                    onClick={() => setLeftPanelTab('preview')}
-                    className={`px-3 py-1.5 text-xs font-medium uppercase transition-colors rounded-md flex items-center gap-1 ${
-                      leftPanelTab === 'preview'
-                        ? 'text-cyan-700 bg-cyan-50 border border-cyan-200'
-                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Eye className="w-3 h-3" />
-                    Preview
-                  </button>
-                  <button
-                    onClick={() => setLeftPanelTab('research')}
-                    className={`px-3 py-1.5 text-xs font-medium uppercase transition-colors rounded-md flex items-center gap-1 ${
-                      leftPanelTab === 'research'
-                        ? 'text-cyan-700 bg-cyan-50 border border-cyan-200'
-                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Search className="w-3 h-3" />
-                    Research
-                  </button>
-                  <button
-                    onClick={() => setLeftPanelTab('swarm')}
-                    className={`px-3 py-1.5 text-xs font-medium uppercase transition-colors rounded-md flex items-center gap-1 ${
-                      leftPanelTab === 'swarm'
-                        ? 'text-cyan-700 bg-cyan-50 border border-cyan-200'
-                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <Bot className="w-3 h-3" />
-                    Swarm
-                  </button>
-                  <button
-                    onClick={() => setLeftPanelTab('wiki')}
-                    className={`px-3 py-1.5 text-xs font-medium uppercase transition-colors rounded-md flex items-center gap-1 ${
-                      leftPanelTab === 'wiki'
-                        ? 'text-cyan-700 bg-cyan-50 border border-cyan-200'
-                        : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                    }`}
-                  >
-                    <BookOpen className="w-3 h-3" />
-                    Wiki
-                  </button>
-                  {project.type === 'mobile' && (
-                    <button
-                      onClick={() => setLeftPanelTab('mobile')}
-                      className={`px-3 py-1.5 text-xs font-medium uppercase transition-colors rounded-md flex items-center gap-1 ${
-                        leftPanelTab === 'mobile'
-                          ? 'text-cyan-700 bg-cyan-50 border border-cyan-200'
-                          : 'text-gray-400 hover:text-gray-600 hover:bg-gray-100'
-                      }`}
-                    >
-                      <Smartphone className="w-3 h-3" />
-                      Mobile
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {leftPanelTab === 'mobile' || (leftPanelTab === 'preview' && project.type === 'mobile') ? (
-                <MobilePreview projectId={project.id} />
-              ) : leftPanelTab === 'preview' && project.type !== 'mobile' ? (
-                <LivePreview project={project} files={files} activeFile={activeFile} />
-              ) : leftPanelTab === 'chat' ? (
-                <>
-                  <div className="flex-1 overflow-auto p-3 space-y-3">
-                    {messages.length === 0 && (
-                      <div className="text-base text-gray-400 text-center py-8">
-                        Ask the AI to modify your app...
-                      </div>
-                    )}
-                    {messages.map((msg) => (
-                      <div 
-                        key={msg.id} 
-                        className={`text-base p-3 rounded-lg ${
-                          msg.role === 'user' 
-                            ? 'bg-cyan-50 text-cyan-900 ml-4' 
-                            : msg.role === 'assistant'
-                            ? 'bg-white border border-gray-200 text-gray-700 mr-4'
-                            : 'bg-gray-100 text-gray-500 text-sm'
-                        }`}
-                      >
-                        <div className="text-sm opacity-50 mb-1">{msg.role} {msg.model && `• ${msg.model}`}</div>
-                        {msg.role === 'assistant' ? (
-                          <div className="prose prose-sm max-w-none">
-                            <ReactMarkdown remarkPlugins={[remarkGfm]}>{msg.content}</ReactMarkdown>
-                          </div>
-                        ) : (
-                          msg.content
-                        )}
-                      </div>
-                    ))}
-                    {isGenerating && (
-                      <div className="flex items-center gap-2 text-base text-gray-400">
-                        <Loader2 className="w-4 h-4 animate-spin" />
-                        Thinking...
-                      </div>
-                    )}
-                  </div>
-
-                  <form onSubmit={handleChat} className="p-3 border-t border-gray-200">
-                    <div className="flex gap-2">
-                      <input
-                        value={chatInput}
-                        onChange={(e) => setChatInput(e.target.value)}
-                        placeholder="Ask to modify..."
-                        className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-base text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-500"
-                      />
-                      <button 
-                        type="submit"
-                        disabled={isGenerating}
-                        className="bg-gradient-to-r from-cyan-500 to-blue-500 text-white p-2 rounded-lg hover:opacity-90 disabled:opacity-50"
-                      >
-                        <Send className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </form>
-                </>
-              ) : leftPanelTab === 'research' ? (
-                <ResearchPanel projectId={project.id} />
-              ) : leftPanelTab === 'swarm' ? (
-                <SwarmDashboard projectId={project.id} />
-              ) : leftPanelTab === 'wiki' ? (
-                <WikiViewer projectId={project.id} />
-              ) : (
-                <div className="flex-1 flex items-center justify-center text-gray-400">
-                  Select a tab to view content
-                </div>
-              )}
-            </>
-          )}
+        {/* PANEL 1: AI Chat (Left) */}
+        <div style={{ width: leftPanelWidth }} className="flex-shrink-0 flex flex-col">
+          <AIChatPanel
+            projectId={project.id}
+            type={project.type}
+            initialMessages={chatHistory}
+            onStatusClick={handleStatusClick}
+            projectStatus={project.status}
+            files={files}
+            tasks={tasks}
+          />
         </div>
 
         {/* Resize Handle - Left */}
@@ -584,27 +395,75 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
           title="Drag to resize"
         />
 
-        {/* CENTER - Code Editor */}
-        <div className="flex-1 flex flex-col bg-white min-w-0">
-          {activeFile ? (
-            <>
-              <div className="h-9 flex items-center px-4 border-b border-gray-200 text-sm text-gray-400">
-                <FileCode className="w-4 h-4 mr-2" />
-                {activeFile.path}
-                <span className="ml-2 text-gray-400">{activeFile.language}</span>
+        {/* PANEL 2: Workspace (Middle) */}
+        <div className="flex-1 flex flex-col min-w-0">
+          {/* Workspace Tabs - Horizontal at top */}
+          <div className="h-10 border-b border-gray-200 bg-gray-50 flex items-center px-2 gap-0.5">
+            {tabs.map((tab) => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setWorkspaceTab(tab.id)}
+                  className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
+                    workspaceTab === tab.id
+                      ? 'text-cyan-700 bg-cyan-50 border border-cyan-200'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5" />
+                  {tab.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Workspace Content */}
+          <div className="flex-1 overflow-hidden">
+            {workspaceTab === 'preview' && (
+              project.type === 'mobile' ? (
+                <MobilePreview projectId={project.id} />
+              ) : (
+                <LivePreview project={project} files={files} activeFile={activeFile} />
+              )
+            )}
+
+            {workspaceTab === 'code' && (
+              <div className="h-full flex flex-col bg-white">
+                {activeFile ? (
+                  <>
+                    <div className="h-9 flex items-center px-4 border-b border-gray-200 text-sm text-gray-400">
+                      <FileCode className="w-4 h-4 mr-2" />
+                      {activeFile.path}
+                      <span className="ml-2 text-gray-400">{activeFile.language}</span>
+                    </div>
+                    <pre className="flex-1 p-4 overflow-auto text-sm font-mono text-gray-700">
+                      <code>{activeFile.content}</code>
+                    </pre>
+                  </>
+                ) : (
+                  <div className="flex-1 flex items-center justify-center text-gray-400">
+                    <div className="text-center">
+                      <Folder className="w-12 h-12 mx-auto mb-3" />
+                      <p className="text-sm">Select a file from the right panel to view code</p>
+                    </div>
+                  </div>
+                )}
               </div>
-              <pre className="flex-1 p-4 overflow-auto text-base font-mono text-gray-700">
-                <code>{activeFile.content}</code>
-              </pre>
-            </>
-          ) : (
-            <div className="flex-1 flex items-center justify-center text-gray-400">
-              <div className="text-center">
-                <Folder className="w-12 h-12 mx-auto mb-3" />
-                <p>Select a file to view</p>
-              </div>
-            </div>
-          )}
+            )}
+
+            {workspaceTab === 'research' && (
+              <ResearchPanel projectId={project.id} />
+            )}
+
+            {workspaceTab === 'swarm' && (
+              <SwarmDashboard projectId={project.id} />
+            )}
+
+            {workspaceTab === 'wiki' && (
+              <WikiViewer projectId={project.id} />
+            )}
+          </div>
         </div>
 
         {/* Resize Handle - Right */}
@@ -614,49 +473,39 @@ export function ProjectWorkspace({ project, files, chatHistory, user }: ProjectW
           title="Drag to resize"
         />
 
-        {/* RIGHT Panel - File Tree */}
-        <div style={{ width: rightPanelCollapsed ? 40 : rightPanelWidth }} className="border-l border-gray-200 bg-gray-50/50 flex flex-col transition-all duration-200">
-          {/* Collapse toggle */}
-          <button
-            onClick={() => setRightPanelCollapsed(!rightPanelCollapsed)}
-            className="w-full h-8 flex items-center justify-center border-b border-gray-200 hover:bg-gray-100 text-gray-400 hover:text-gray-600 transition-colors"
-            title={rightPanelCollapsed ? "Expand panel" : "Collapse panel"}
-          >
-            <ChevronRight className={`w-4 h-4 transition-transform ${rightPanelCollapsed ? 'rotate-180' : ''}`} />
-          </button>
-          
-          {!rightPanelCollapsed && (
-            <>
-              <div className="p-3 text-sm font-medium text-gray-400 uppercase">Files</div>
-              <div className="flex-1 overflow-auto">
-                {files.length === 0 ? (
-                  <div className="p-4 text-base text-gray-400 text-center">
-                    <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
-                    Generating code...
-                  </div>
-                ) : (
-                  <div className="space-y-0.5">
-                    {files
-                      .filter((file: any) => !file.path?.includes('research.md'))
-                      .map((file: any) => (
-                      <button
-                        key={file.id}
-                        onClick={() => setActiveFile(file)}
-                        className={`w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors ${
-                          activeFile?.id === file.id 
-                            ? 'bg-cyan-50 text-cyan-600 border-l-2 border-cyan-500' 
-                            : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-                        }`}
-                      >
-                        <FileCode className="w-4 h-4 shrink-0" />
-                        <span className="truncate">{file.path.split('/').pop()}</span>
-                      </button>
-                    ))}
-                  </div>
-                )}
+        {/* PANEL 3: Files (Right) */}
+        <div style={{ width: rightPanelWidth }} className="flex-shrink-0 border-l border-gray-200 bg-gray-50/50 flex flex-col">
+          <div className="p-3 text-sm font-medium text-gray-400 uppercase">Files</div>
+          <div className="flex-1 overflow-auto">
+            {files.length === 0 ? (
+              <div className="p-4 text-sm text-gray-400 text-center">
+                <Loader2 className="w-5 h-5 animate-spin mx-auto mb-2" />
+                Generating code...
               </div>
-            </>
-          )}
+            ) : (
+              <div className="space-y-0.5">
+                {files
+                  .filter((file: any) => !file.path?.includes('research.md'))
+                  .map((file: any) => (
+                  <button
+                    key={file.id}
+                    onClick={() => {
+                      setActiveFile(file);
+                      setWorkspaceTab('code');
+                    }}
+                    className={`w-full flex items-center gap-2 px-3 py-2 text-sm transition-colors ${
+                      activeFile?.id === file.id 
+                        ? 'bg-cyan-50 text-cyan-600 border-l-2 border-cyan-500' 
+                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                    }`}
+                  >
+                    <FileCode className="w-4 h-4 shrink-0" />
+                    <span className="truncate">{file.path.split('/').pop()}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
