@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
 import { DashboardHeader } from "@/components/DashboardHeader";
 import { ProviderSettingsCard } from "@/components/ProviderSettingsCard";
-import { Settings, Key, AlertTriangle, Globe, Smartphone } from "lucide-react";
+import { Settings, Key, AlertTriangle, Globe, Smartphone, Home } from "lucide-react";
 import { db } from "@/lib/db";
 import { apiKeys } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -116,16 +116,25 @@ export default async function SettingsPage() {
       
       <div className="container mx-auto px-4 py-12">
         <div className="max-w-3xl mx-auto">
-          <div className="flex items-center gap-3 mb-8">
-            <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
-              <Settings className="w-5 h-5 text-white" />
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+                <Settings className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
+                <p className="text-base text-gray-500">
+                  Manage API keys and preferences
+                </p>
+              </div>
             </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
-              <p className="text-base text-gray-500">
-                Manage API keys and preferences
-              </p>
-            </div>
+            <a
+              href="/"
+              className="flex items-center gap-2 px-4 py-2 text-sm bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 rounded-lg transition-colors"
+            >
+              <Home className="w-4 h-4" />
+              Home
+            </a>
           </div>
           
           <div className="space-y-6">
