@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { BookOpen, FileText, Code, Wrench, Lightbulb, ChevronDown, ChevronUp, Clock, Sparkles, Edit3, Save, X } from 'lucide-react';
 
 interface WikiViewerProps {
@@ -81,6 +83,15 @@ export function WikiViewer({ projectId }: WikiViewerProps) {
     setEditingPage(page.id);
     setEditTitle(page.title);
     setEditContent(page.content);
+  };
+
+  // Clean up wiki content - remove LLM references
+  const cleanContent = (content: string): string => {
+    return content
+      .replace(/using LLM \(deepseek\/deepseek-chat\)/g, '')
+      .replace(/using LLM \([^)]+\)/g, '')
+      .replace(/\n\n+/g, '\n\n')
+      .trim();
   };
 
   if (loading) {
@@ -217,10 +228,10 @@ export function WikiViewer({ projectId }: WikiViewerProps) {
                           <Edit3 className="w-4 h-4" /> Edit
                         </button>
                       </div>
-                      <div className="prose prose-sm max-w-none">
-                        <pre className="whitespace-pre-wrap text-sm text-gray-700 font-mono bg-gray-50 p-4 rounded-lg border border-gray-200 overflow-auto max-h-96">
-                          {page.content}
-                        </pre>
+                      <div className="prose prose-sm max-w-none text-gray-700">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
+                          {cleanContent(page.content)}
+                        </ReactMarkdown>
                       </div>
                       {page.isTruncated && (
                         <p className="text-sm text-gray-500 mt-2 text-center">
