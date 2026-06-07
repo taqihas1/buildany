@@ -212,6 +212,20 @@ export function AIChatPanel({
     );
   };
 
+  // Filter out assistant messages that contain raw code (should be in Code tab, not chat)
+  const isCodeContent = (content: string): boolean => {
+    if (!content) return false;
+    // Check for code block indicators
+    if (content.includes('```')) return true;
+    if (content.includes('<!DOCTYPE')) return true;
+    if (content.includes('<html')) return true;
+    if (content.includes('function(') || content.includes('function ')) return true;
+    if (content.includes('const ') || content.includes('let ')) return true;
+    // Check if it's very long (likely code)
+    if (content.length > 500) return true;
+    return false;
+  };
+
   return (
     <div className="flex flex-col h-full bg-slate-950 border-r border-slate-800">
       {/* Header */}
@@ -233,8 +247,14 @@ export function AIChatPanel({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.map((message) => {
+          // Skip system messages and code-containing assistant messages
           if (message.role === "system") {
             return <div key={message.id}>{renderStatusMessage(message)}</div>;
+          }
+          
+          // Skip assistant messages that contain raw code (should be in Code tab)
+          if (message.role === "assistant" && isCodeContent(message.content)) {
+            return null;
           }
 
           return (
