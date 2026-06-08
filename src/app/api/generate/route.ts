@@ -380,6 +380,17 @@ App idea: ${prompt}`;
       console.error("Wiki generation failed (non-blocking):", err);
     }
 
+    // Auto-trigger code review (non-blocking)
+    try {
+      fetch(`${process.env.NEXT_PUBLIC_APP_URL || ''}/api/project/${project.id}/review`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'start' }),
+      }).catch(err => console.error("Review trigger failed:", err));
+    } catch (err) {
+      console.error("Review trigger error (non-blocking):", err);
+    }
+
     return NextResponse.json({
       success: true,
       projectId: project.id,

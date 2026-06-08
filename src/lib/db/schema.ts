@@ -207,3 +207,17 @@ export const skills = sqliteTable("skills", {
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
+
+
+export const codeReviews = sqliteTable("code_reviews", {
+  id: text("id").primaryKey(),
+  projectId: text("project_id").notNull(),
+  status: text("status").default("pending"),
+  result: text("result"),
+  issues: text("issues"),
+  summary: text("summary"),
+  errorMessage: text("error_message"),
+  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+});
+
