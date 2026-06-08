@@ -6,7 +6,7 @@ import remarkGfm from 'remark-gfm';
 import { useRouter } from 'next/navigation';
 import {
   Code2, GitBranch, Play, Send, FileCode, Folder, Loader2,
-  Smartphone, Globe, Bot, Search, Eye, BookOpen, Layers,
+  Smartphone, Globe, Bot, Search, Eye, Shield, BookOpen, Layers,
   ArrowRight, AlertTriangle, CheckCircle, Trash2, Home,
   ChevronLeft, ChevronRight, MessageSquare
 } from 'lucide-react';
@@ -16,8 +16,9 @@ import { ResearchPanel } from "./ResearchPanel";
 import { LivePreview } from "./LivePreview";
 import { MobilePreview } from "./MobilePreview";
 import { WikiViewer } from "./WikiViewer";
+import CodeReviewPanel from "./CodeReviewPanel";
 
-type WorkspaceTab = 'preview' | 'code' | 'research' | 'swarm' | 'wiki';
+type WorkspaceTab = 'preview' | 'code' | 'research' | 'swarm' | 'wiki' | 'review';
 
 interface ProjectWorkspaceProps {
   project: any;
@@ -76,6 +77,7 @@ export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: P
     if (tab === 'research') setWorkspaceTab('research');
     if (tab === 'swarm') setWorkspaceTab('swarm');
     if (tab === 'wiki') setWorkspaceTab('wiki');
+    if (tab === 'review') setWorkspaceTab('review');
   }, []);
 
   const handleDeleteProject = async () => {
@@ -187,6 +189,7 @@ export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: P
     { id: 'research' as WorkspaceTab, label: 'Research', icon: Search },
     { id: 'swarm' as WorkspaceTab, label: 'Agents Swarm', icon: Bot },
     { id: 'wiki' as WorkspaceTab, label: 'Wiki Pages', icon: BookOpen },
+    { id: 'review' as WorkspaceTab, label: 'Code Review', icon: Shield },
   ];
 
   return (
@@ -462,6 +465,10 @@ export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: P
 
             {workspaceTab === 'wiki' && (
               <WikiViewer projectId={project.id} />
+            )}
+
+            {workspaceTab === 'review' && (
+              <CodeReviewPanel projectId={project.id} />
             )}
           </div>
         </div>
