@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * useHermesOrchestrator - React Hook for Chat Panel Integration
  * Now includes manual correction methods!

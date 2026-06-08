@@ -1,3 +1,5 @@
+"use client";
+
 /**
  * ChatOrchestratorPanel - React Component for AI Chat Panel
  * 
