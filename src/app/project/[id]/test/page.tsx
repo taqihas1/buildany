@@ -41,7 +41,7 @@ export default async function TestOrchestratorPage({ params }: PageProps) {
         
         <div className="mt-8 text-sm text-gray-500">
           <p>Test project ID: {id}</p>
-          <p>Platform: {project.platform}</p>
+          <p>Platform: {project.type}</p>
         </div>
       </div>
     </div>
