@@ -161,6 +161,7 @@ export class HermesOrchestrator {
         previousOutcomes: this.loadPreviousOutcomes(),
       },
     };
+  }
 
   async start() {
     await this.transitionTo('analyzing');
@@ -620,28 +621,6 @@ export class HermesOrchestrator {
     if (typeof window !== 'undefined') {
       localStorage.setItem('hermes_outcomes', JSON.stringify(outcomes));
     }
-  }
-
-  // Determine optimal flow based on learning
-  private determineFlow(): OrchestrationPhase[] {
-    const outcomes = this.state.learningContext.previousOutcomes;
-    const sameType = outcomes.filter(o => 
-      o.platform === this.state.platform
-    );
-    
-    // If high failure rate in testing, add extra validation
-    const testFailures = sameType.filter(o => o.failedPhase === 'testing').length;
-    const testSuccess = sameType.filter(o => o.success).length;
-    
-    let flow: OrchestrationPhase[] = ['coding', 'testing', 'reviewing', 'previewing'];
-    
-    // Learning adjustments
-    if (testFailures > testSuccess && testFailures > 2) {
-      // Insert validation phase before testing (not implemented yet)
-      this.onStatusUpdate('📚 Learning: High test failure rate detected, running extra validation...');
-    }
-    
-    return flow;
   }
 
   // Get current state for UI
