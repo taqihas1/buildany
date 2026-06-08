@@ -58,7 +58,7 @@ export function LivePreview({ project, files, activeFile }: LivePreviewProps) {
         const url = URL.createObjectURL(blob);
         setIframeUrl(url);
       } else {
-        const htmlFile = htmlFiles[0];
+        const htmlFile = htmlFiles.find(f => f.path === '__preview.html') || htmlFiles[0];
         const blob = new Blob([htmlFile.content || ''], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         setIframeUrl(url);
@@ -79,7 +79,7 @@ export function LivePreview({ project, files, activeFile }: LivePreviewProps) {
     const js = jsFiles.map(f => f.content || '').join('\n');
 
     if (htmlFiles.length > 0) {
-      return htmlFiles[0].content || '';
+      return (htmlFiles.find(f => f.path === '__preview.html') || htmlFiles[0]).content || '';
     }
 
     return `<!DOCTYPE html>
