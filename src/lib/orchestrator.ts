@@ -152,13 +152,8 @@ export class HermesOrchestrator {
       phases: [],
       startedAt: Date.now(),
       updatedAt: Date.now(),
-      learningContext: {
-        projectType: this.inferProjectType(prompt),
-        complexity: this.inferComplexity(prompt),
-        patterns: [],
-        previousOutcomes: this.loadPreviousOutcomes(),
-      },
-    };
+      manualCorrections: [],
+      appliedRules: [],
   }
 
   async start() {
