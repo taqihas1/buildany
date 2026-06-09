@@ -17,7 +17,7 @@ jobs:
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            cd /docker/buildany
+            cd /root/buildany
             git fetch origin main
             git reset --hard origin/main
             npm install --legacy-peer-deps
