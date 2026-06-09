@@ -42,13 +42,21 @@ export function WikiViewer({ projectId }: WikiViewerProps) {
 
   const fetchWiki = async () => {
     try {
+      setLoading(true);
       const res = await fetch(`/api/project/${projectId}/wiki`);
       const data = await res.json();
-      if (data.success) {
+      if (data.success && data.pages && data.pages.length > 0) {
         setPages(data.pages || []);
+      } else if (data.pages && data.pages.length > 0) {
+        // Some APIs return pages without success flag
+        setPages(data.pages || []);
+      } else {
+        console.log('Wiki API returned no pages:', data);
+        setPages([]);
       }
     } catch (err) {
       console.error('Wiki fetch error:', err);
+      setPages([]);
     } finally {
       setLoading(false);
     }

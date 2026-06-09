@@ -20,13 +20,21 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
 
   const fetchResearch = async () => {
     try {
+      setLoading(true);
       const res = await fetch(`/api/project/${projectId}/research`);
       const data = await res.json();
-      if (data.hasResearch) {
+      if (data.hasResearch && data.research) {
         setResearch(data.research);
+      } else if (data.research) {
+        // Some APIs return research without hasResearch flag
+        setResearch(data.research);
+      } else {
+        console.log('Research API returned no research:', data);
+        setResearch(null);
       }
     } catch (err) {
       console.error('Failed to fetch research:', err);
+      setResearch(null);
     } finally {
       setLoading(false);
     }

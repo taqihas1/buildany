@@ -62,16 +62,7 @@ export function AIChatPanel({
 
   // Watch for project status changes and add status messages
   useEffect(() => {
-    if (files.length > 0 && !messages.some(m => m.statusType === "code")) {
-      addStatusMessage(
-        "code",
-        "✅ Code has been generated! In order to see the code, please click on Code in the menu at the top of the workspace.",
-        "success"
-      );
-    }
-  }, [files.length]);
-
-  useEffect(() => {
+    // Always add swarm message first if tasks exist, then code message
     if (tasks.length > 0 && !messages.some(m => m.statusType === "swarm")) {
       addStatusMessage(
         "swarm",
@@ -79,7 +70,15 @@ export function AIChatPanel({
         "success"
       );
     }
-  }, [tasks.length]);
+    
+    if (files.length > 0 && !messages.some(m => m.statusType === "code")) {
+      addStatusMessage(
+        "code",
+        "✅ Code has been generated! In order to see the code, please click on Code in the menu at the top of the workspace.",
+        "success"
+      );
+    }
+  }, [files.length, tasks.length]);
 
   const addStatusMessage = (statusType: string, content: string, variant: "success" | "info" | "warning" = "info") => {
     setMessages(prev => [...prev, {
@@ -194,6 +193,9 @@ export function AIChatPanel({
     };
     const tabName = msg.statusType ? tabMap[msg.statusType] : null;
 
+    // Strip markdown bold for cleaner display
+    const cleanContent = msg.content?.replace(/\*\*/g, '') || '';
+
     return (
       <div className={`p-3 rounded-lg border text-xs ${
         isSuccess 
@@ -207,7 +209,7 @@ export function AIChatPanel({
            isWarning ? <AlertCircle className="w-3.5 h-3.5 mt-0.5 shrink-0" /> : 
            <Sparkles className="w-3.5 h-3.5 mt-0.5 shrink-0" />}
           <div className="flex-1">
-            <div className="whitespace-pre-wrap">{msg.content}</div>
+            <div className="whitespace-pre-wrap">{cleanContent}</div>
             {tabName && onStatusClick && (
               <button
                 onClick={() => onStatusClick(tabName)}
