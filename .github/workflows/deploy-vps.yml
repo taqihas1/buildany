@@ -3,12 +3,29 @@ name: Deploy to VPS
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Why are you deploying manually?'
+        required: false
+        default: 'Manual deploy'
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
+      
+      - name: Check SSH key exists
+        run: |
+          if [ -z "${{ secrets.VPS_SSH_KEY }}" ]; then
+            echo "❌ VPS_SSH_KEY secret is NOT set!"
+            echo "Go to: Settings → Secrets → Actions → New repository secret"
+            echo "Name: VPS_SSH_KEY"
+            echo "Value: Your SSH private key (cat ~/.ssh/id_rsa)"
+            exit 1
+          fi
+          echo "✅ VPS_SSH_KEY is set"
       
       - name: Deploy to VPS
         uses: appleboy/ssh-action@v1.2.0
@@ -16,13 +33,25 @@ jobs:
           host: 2.25.170.135
           username: root
           key: ${{ secrets.VPS_SSH_KEY }}
+          script_stop: true
           script: |
-            cd /docker/buildany
-            git fetch origin main
+            echo "🚀 Starting deploy..."
+            cd /docker/buildany || (echo "❌ Directory /docker/buildany not found!" && exit 1)
+            
+            echo "📥 Fetching latest code..."
+            git fetch origin main || (echo "❌ Git fetch failed!" && exit 1)
             git reset --hard origin/main
-            npm install --legacy-peer-deps
-            npm run build || exit 1
-            pm2 restart buildany --update-env
+            
+            echo "📦 Installing dependencies..."
+            npm install --legacy-peer-deps || (echo "❌ npm install failed!" && exit 1)
+            
+            echo "🔨 Building..."
+            npm run build || (echo "❌ Build failed!" && exit 1)
+            
+            echo "🔄 Restarting PM2..."
+            pm2 restart buildany --update-env || (echo "❌ PM2 restart failed!" && exit 1)
+            
+            echo "✅ Deploy complete!"
             
       - name: Create Issue on Failure
         if: failure()
@@ -33,5 +62,5 @@ jobs:
               owner: context.repo.owner,
               repo: context.repo.repo,
               title: '🚨 VPS Deploy Failed - ' + context.sha.substring(0,7),
-              body: `Commit: ${context.sha}\n\nLogs: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
+              body: `**Trigger:** ${context.eventName}\n**Commit:** ${context.sha}\n**Reason:** ${{ github.event.inputs.reason || 'Push to main' }}\n\n**Logs:** ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}\n\nCommon fixes:\n1. Check VPS_SSH_KEY secret is set (Settings → Secrets → Actions)\n2. Verify VPS IP (2.25.170.135) is reachable\n3. Check SSH key is the correct private key for root@2.25.170.135`
             })
