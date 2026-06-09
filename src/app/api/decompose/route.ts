@@ -51,7 +51,17 @@ export async function POST(req: Request) {
           capabilities: JSON.stringify([def.type, "build", "test"]),
           metadata: JSON.stringify({ projectId, createdBy: "decompose" }),
         });
-        availableAgents.push({ id: agentId, name: def.name, type: def.type, status: "idle" });
+        availableAgents.push({ 
+          id: agentId, 
+          name: def.name, 
+          type: def.type, 
+          status: "idle",
+          projectId,
+          capabilities: JSON.stringify([def.type, "build", "test"]),
+          metadata: JSON.stringify({ projectId, createdBy: "decompose" }),
+          lastHeartbeat: null,
+          createdAt: new Date(),
+        });
       }
     }
 
