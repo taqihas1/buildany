@@ -162,6 +162,7 @@ export const emails = sqliteTable("emails", {
 
 export const agents = sqliteTable("agents", {
   id: text("id").primaryKey(),
+  projectId: text("project_id"), // ← added for project-scoped agents
   name: text("name").notNull(),
   type: text("type").notNull(), // "hermes" | "orchestrator" | "tester" | "deployer"
   status: text("status").default("idle"), // "idle" | "busy" | "offline"

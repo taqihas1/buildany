@@ -68,6 +68,8 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
       
       // Create default agents if none exist but tasks do
       let agents: any[] = agentsList;
+      let tasksWithAgents = mergedTasks;
+      
       if (agents.length === 0 && mergedTasks.length > 0) {
         // Create default agents based on task types
         const taskTypes = [...new Set(mergedTasks.map((t: any) => t.type || 'code'))] as string[];
@@ -77,22 +79,36 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
           type: type,
           status: 'ready',
           capabilities: [type, 'build', 'test'],
-          activeTasks: mergedTasks.filter((t: any) => t.status === 'running' && t.type === type).length,
-          completedTasks: mergedTasks.filter((t: any) => t.status === 'completed' && t.type === type).length,
-          failedTasks: mergedTasks.filter((t: any) => t.status === 'failed' && t.type === type).length,
+          activeTasks: 0,
+          completedTasks: 0,
+          failedTasks: 0,
         }));
-      }
-      
-      // Assign agents to tasks for display
-      const tasksWithAgents = mergedTasks.map((task: any, index: number) => {
-        if (!task.agentId && agents.length > 0) {
-          // Assign agent based on task type or round-robin
+        
+        // Assign tasks to fake agents by type and recompute counts
+        tasksWithAgents = mergedTasks.map((task: any) => {
           const matchingAgent = agents.find((a: any) => a.type === task.type || a.capabilities?.includes(task.type));
-          const assignedAgent = matchingAgent || agents[index % agents.length];
+          const assignedAgent = matchingAgent || agents[0];
           return { ...task, agentId: assignedAgent.id, agentName: assignedAgent.name };
-        }
-        return task;
-      });
+        });
+        
+        // Recompute agent counts based on assigned tasks
+        agents = agents.map((agent: any) => ({
+          ...agent,
+          activeTasks: tasksWithAgents.filter((t: any) => (t.status === 'running' || t.status === 'pending') && t.agentId === agent.id).length,
+          completedTasks: tasksWithAgents.filter((t: any) => t.status === 'completed' && t.agentId === agent.id).length,
+          failedTasks: tasksWithAgents.filter((t: any) => t.status === 'failed' && t.agentId === agent.id).length,
+        }));
+      } else {
+        // Assign agents to tasks for display (for real agents too)
+        tasksWithAgents = mergedTasks.map((task: any, index: number) => {
+          if (!task.agentId && agents.length > 0) {
+            const matchingAgent = agents.find((a: any) => a.type === task.type || a.capabilities?.includes(task.type));
+            const assignedAgent = matchingAgent || agents[index % agents.length];
+            return { ...task, agentId: assignedAgent.id, agentName: assignedAgent.name };
+          }
+          return task;
+        });
+      }
 
       setAgents(agents);
       setTasks(tasksWithAgents);

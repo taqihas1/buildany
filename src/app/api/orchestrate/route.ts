@@ -69,7 +69,7 @@ class HermesOrchestrator {
     for (const taskType of taskTypes) {
       const agentId = crypto.randomUUID();
       await db.insert(agents).values({
-        id: agentId, name: `${taskType.charAt(0).toUpperCase() + taskType.slice(1)} Agent`,
+        id: agentId, projectId: this.projectId, name: `${taskType.charAt(0).toUpperCase() + taskType.slice(1)} Agent`,
         type: taskType, status: "working",
         capabilities: JSON.stringify([taskType, "build"]),
         metadata: JSON.stringify({ projectId: this.projectId }),
@@ -105,7 +105,7 @@ class HermesOrchestrator {
       });
 
       if (llmResult.success && llmResult.content) {
-        await db.update(tasks).set({ status: "done", output: llmResult.content, completedAt: new Date() }).where(eq(tasks.id, task.id));
+        await db.update(tasks).set({ status: "completed", output: llmResult.content, completedAt: new Date() }).where(eq(tasks.id, task.id));
         return { task, code: llmResult.content, success: true };
       } else {
         await db.update(tasks).set({ status: "failed", errorLog: llmResult.error || "LLM failed" }).where(eq(tasks.id, task.id));
@@ -113,9 +113,9 @@ class HermesOrchestrator {
       }
     }));
 
-    const doneCount = results.filter(r => r.success).length;
+    const completedCount = results.filter(r => r.success).length;
     const failCount = results.filter(r => !r.success).length;
-    await this.report(`✅ Hermes: BUILD phase complete! ${doneCount}/${results.length} tasks done.${failCount > 0 ? ` ${failCount} failed.` : ""}`);
+    await this.report(`✅ Hermes: BUILD phase complete! ${completedCount}/${results.length} tasks completed.${failCount > 0 ? ` ${failCount} failed.` : ""}`);
 
     return results;
   }
