@@ -27,8 +27,33 @@ export async function POST(req: Request) {
     const files = await db.select().from(projectFiles).where(eq(projectFiles.projectId, projectId));
     const fileList = files.map(f => f.path).join("\n");
 
-    // Find available agents
-    const availableAgents = await db.select().from(agents).where(eq(agents.status, "idle"));
+    // Find available agents — create defaults if none exist
+    let availableAgents = await db.select().from(agents).where(eq(agents.status, "idle"));
+    
+    // If no idle agents, try any agents
+    if (availableAgents.length === 0) {
+      availableAgents = await db.select().from(agents).all();
+    }
+    
+    // Create default agents for this project if none exist at all
+    if (availableAgents.length === 0) {
+      const defaultAgentTypes = type === "mobile" 
+        ? [{ name: "Hermes", type: "hermes" }, { name: "Code Agent", type: "code" }]
+        : [{ name: "Html Agent", type: "html" }, { name: "Css Agent", type: "css" }, { name: "Js Agent", type: "javascript" }];
+      
+      for (const def of defaultAgentTypes) {
+        const agentId = randomUUID();
+        await db.insert(agents).values({
+          id: agentId,
+          name: def.name,
+          type: def.type,
+          status: "idle",
+          capabilities: JSON.stringify([def.type, "build", "test"]),
+          metadata: JSON.stringify({ projectId, createdBy: "decompose" }),
+        });
+        availableAgents.push({ id: agentId, name: def.name, type: def.type, status: "idle" });
+      }
+    }
 
     // Decompose project into tasks based on type and complexity
     const taskPlan = decomposeProject(prompt, type, fileList);

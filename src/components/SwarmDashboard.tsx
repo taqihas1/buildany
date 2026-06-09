@@ -90,14 +90,6 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
           const assignedAgent = matchingAgent || agents[0];
           return { ...task, agentId: assignedAgent.id, agentName: assignedAgent.name };
         });
-        
-        // Recompute agent counts based on assigned tasks
-        agents = agents.map((agent: any) => ({
-          ...agent,
-          activeTasks: tasksWithAgents.filter((t: any) => (t.status === 'running' || t.status === 'pending') && t.agentId === agent.id).length,
-          completedTasks: tasksWithAgents.filter((t: any) => t.status === 'completed' && t.agentId === agent.id).length,
-          failedTasks: tasksWithAgents.filter((t: any) => t.status === 'failed' && t.agentId === agent.id).length,
-        }));
       } else {
         // Assign agents to tasks for display (for real agents too)
         tasksWithAgents = mergedTasks.map((task: any, index: number) => {
@@ -109,6 +101,25 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
           return task;
         });
       }
+
+      // Recompute agent counts from assigned tasks (covers both fallback and real agents)
+      const activeStatuses = ['running', 'pending', 'ready', 'working', 'in_progress'];
+      const completedStatuses = ['completed', 'done', 'success'];
+      const failedStatuses = ['failed', 'error'];
+      
+      agents = agents.map((agent: any) => {
+        const agentTasks = tasksWithAgents.filter((t: any) => t.agentId === agent.id);
+        const activeCount = agentTasks.filter((t: any) => activeStatuses.includes(t.status)).length;
+        const completedCount = agentTasks.filter((t: any) => completedStatuses.includes(t.status)).length;
+        const failedCount = agentTasks.filter((t: any) => failedStatuses.includes(t.status)).length;
+        return {
+          ...agent,
+          activeTasks: activeCount,
+          completedTasks: completedCount,
+          failedTasks: failedCount,
+          status: activeCount > 0 ? 'working' : (agent.status || 'ready'),
+        };
+      });
 
       setAgents(agents);
       setTasks(tasksWithAgents);
