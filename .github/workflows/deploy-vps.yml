@@ -23,15 +23,3 @@ jobs:
             npm install --legacy-peer-deps
             npm run build || exit 1
             pm2 restart buildany --update-env
-            
-      - name: Create Issue on Failure
-        if: failure()
-        uses: actions/github-script@v7
-        with:
-          script: |
-            github.rest.issues.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              title: '🚨 VPS Deploy Failed - ' + context.sha.substring(0,7),
-              body: `Commit: ${context.sha}\n\nLogs: ${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
-            })
