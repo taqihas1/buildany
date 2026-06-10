@@ -38,7 +38,7 @@ export async function POST(req: Request) {
     // Create default agents for this project if none exist at all
     if (availableAgents.length === 0) {
       const defaultAgentTypes = type === "mobile" 
-        ? [{ name: "Hermes", type: "hermes" }, { name: "Code Agent", type: "code" }]
+        ? [{ name: "AI Assistant", type: "hermes" }, { name: "Code Agent", type: "code" }]
         : [{ name: "Html Agent", type: "html" }, { name: "Css Agent", type: "css" }, { name: "Js Agent", type: "javascript" }];
       
       for (const def of defaultAgentTypes) {
