@@ -549,7 +549,7 @@ export async function handleEmailWebhook(body: any) {
       received: true,
       taskId,
       action: "project_creation_queued",
-      message: "Email received. Hermes will create a project and notify you.",
+      message: "Email received. AI Assistant will create a project and notify you.",
     });
   }
 
@@ -584,7 +584,7 @@ export async function handleDiscordWebhook(body: any) {
       received: true,
       taskId,
       action: "project_creation_queued",
-      message: "Discord message received. Hermes will create a project and reply.",
+      message: "Discord message received. AI Assistant will create a project and reply.",
     });
   }
 
@@ -624,7 +624,7 @@ export async function handleTelegramWebhook(body: any) {
       received: true,
       taskId,
       action: "project_creation_queued",
-      message: "Telegram message received. Hermes will create a project and reply.",
+      message: "Telegram message received. AI Assistant will create a project and reply.",
     });
   }
 
