@@ -8,6 +8,7 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
   }
+  return NextResponse.next();
 });
 
 export const config = {

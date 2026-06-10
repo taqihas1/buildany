@@ -31,11 +31,46 @@ export function LivePreview({ project, files, activeFile }: LivePreviewProps) {
     }
   }, [files]);
 
-  const handlePreview = async () => {
+  const [fileList, setFileList] = useState(files);
+  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+
+  // Poll for new files when project is generating
+  useEffect(() => {
+    setFileList(files);
+  }, [files]);
+
+  useEffect(() => {
+    if (project?.status === 'generating') {
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/project/${project.id}/files`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.files && data.files.length !== fileList.length) {
+              setFileList(data.files);
+              // Auto-regenerate preview if __preview.html was added
+              const hasPreview = data.files.some((f: any) => f.path === '__preview.html');
+              if (hasPreview && !iframeUrl) {
+                handlePreviewWithFiles(data.files);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('File poll error:', err);
+        }
+      }, 3000);
+      setRefreshInterval(interval);
+      return () => clearInterval(interval);
+    } else if (refreshInterval) {
+      clearInterval(refreshInterval);
+      setRefreshInterval(null);
+    }
+  }, [project?.status, project?.id]);
+
+  const handlePreviewWithFiles = async (filesToUse: any[]) => {
     setIsLoading(true);
     try {
-      // Check if this is a Next.js app (has layout.tsx, page.tsx, etc.)
-      const hasNextJsFiles = files.some(f => 
+      const hasNextJsFiles = filesToUse.some(f => 
         f.path?.includes('layout.tsx') || 
         f.path?.includes('page.tsx') ||
         f.path?.includes('next.config')
@@ -44,16 +79,15 @@ export function LivePreview({ project, files, activeFile }: LivePreviewProps) {
       if (hasNextJsFiles) {
         setIsNextJs(true);
         setIsLoading(false);
-        return; // Can't preview Next.js in iframe
+        return;
       }
       
       setIsNextJs(false);
       
-      // Build a preview from the generated files
-      const htmlFiles = files.filter(f => f.path?.endsWith('.html') || f.path?.endsWith('.tsx') || f.path?.endsWith('.jsx'));
+      const htmlFiles = filesToUse.filter(f => f.path?.endsWith('.html') || f.path?.endsWith('.tsx') || f.path?.endsWith('.jsx'));
       
       if (htmlFiles.length === 0) {
-        const previewHtml = buildPreviewHtml(files, previewType);
+        const previewHtml = buildPreviewHtml(filesToUse, previewType);
         const blob = new Blob([previewHtml], { type: 'text/html' });
         const url = URL.createObjectURL(blob);
         setIframeUrl(url);
@@ -68,6 +102,10 @@ export function LivePreview({ project, files, activeFile }: LivePreviewProps) {
     } finally {
       setIsLoading(false);
     }
+  };
+
+  const handlePreview = async () => {
+    handlePreviewWithFiles(fileList);
   };
 
   const buildPreviewHtml = (files: any[], type: 'web' | 'mobile') => {
