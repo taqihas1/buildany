@@ -45,6 +45,7 @@ export async function POST(req: Request) {
         const agentId = randomUUID();
         await db.insert(agents).values({
           id: agentId,
+          projectId,
           name: def.name,
           type: def.type,
           status: "idle",
@@ -53,10 +54,10 @@ export async function POST(req: Request) {
         });
         availableAgents.push({ 
           id: agentId, 
+          projectId,
           name: def.name, 
           type: def.type, 
           status: "idle",
-          projectId,
           capabilities: JSON.stringify([def.type, "build", "test"]),
           metadata: JSON.stringify({ projectId, createdBy: "decompose" }),
           lastHeartbeat: null,

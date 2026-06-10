@@ -20,8 +20,11 @@ export async function GET(
     // Fetch all agents (they're not project-specific in the current schema, but we filter by metadata)
     const allAgents = await db.select().from(agents).all();
     
-    // Filter agents that belong to this project (stored in metadata JSON)
+    // Filter agents that belong to this project (direct projectId OR metadata)
     const projectAgents = allAgents.filter((agent: any) => {
+      // Check direct projectId column first
+      if (agent.projectId === id) return true;
+      // Fallback to metadata
       try {
         const metadata = agent.metadata ? JSON.parse(agent.metadata) : {};
         return metadata.projectId === id;
