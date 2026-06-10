@@ -240,11 +240,11 @@ export async function POST(req: NextRequest) {
     });
 
     const hermes = new HermesOrchestrator(project.id, prompt, type, userId);
-    hermes.run().catch(err => console.error("Hermes run error:", err));
+    hermes.run().catch(err => console.error("AI Assistant run error:", err));
 
     return NextResponse.json({
       success: true, projectId: project.id,
-      message: "🚀 Hermes Orchestrator started! Watch progress in the AI Chat...",
+      message: "🚀 AI Assistant started! Watch progress in the AI Chat...",
     });
   } catch (error) {
     console.error("Orchestrate error:", error);
