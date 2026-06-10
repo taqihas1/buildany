@@ -3,6 +3,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { projects, projectFiles, conversations } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { generateShortName } from "@/lib/project-name-generator";
 
 // GET /api/projects - List all projects for the current user
 export async function GET(req: NextRequest) {
@@ -52,7 +53,17 @@ export async function POST(req: NextRequest) {
     const body = await req.json();
     const { name, description, type = "web" } = body;
 
-    if (!name?.trim()) {
+    // Generate short name from description if name is too long or generic
+    let projectName = name?.trim();
+    if (!projectName || projectName.length > 30 ||
+        projectName.toLowerCase().includes('a ') ||
+        projectName.toLowerCase().includes('an ') ||
+        projectName.toLowerCase().includes('build a') ||
+        projectName.toLowerCase().includes('create a')) {
+      projectName = generateShortName(projectName || description || 'New Project');
+    }
+
+    if (!projectName?.trim()) {
       return NextResponse.json(
         { error: "Project name is required" },
         { status: 400 }
@@ -64,7 +75,7 @@ export async function POST(req: NextRequest) {
     await db.insert(projects).values({
       id: projectId,
       userId,
-      name: name.trim(),
+      name: projectName.trim(),
       description: description || "",
       type: type as "web" | "mobile" | "dashboard",
       status: "draft",
