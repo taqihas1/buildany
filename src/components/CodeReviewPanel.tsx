@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface Review {
   id: string;
@@ -13,6 +13,7 @@ interface Review {
 export default function CodeReviewPanel({ projectId }: { projectId: string }) {
   const [review, setReview] = useState<Review | null>(null);
   const [loading, setLoading] = useState(false);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const fetchReview = useCallback(async () => {
     try {
@@ -24,7 +25,7 @@ export default function CodeReviewPanel({ projectId }: { projectId: string }) {
     }
   }, [projectId]);
 
-  const runReview = async () => {
+  const runReview = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch('/api/project/' + projectId + '/review', {
@@ -43,17 +44,30 @@ export default function CodeReviewPanel({ projectId }: { projectId: string }) {
       alert('Error: ' + e);
     }
     setLoading(false);
-  };
+  }, [projectId]);
 
-  useEffect(() => {
-    if (review?.status !== 'running') return;
-    const interval = setInterval(fetchReview, 15000);
-    return () => clearInterval(interval);
-  }, [review?.status, fetchReview]);
-
+  // Initial fetch
   useEffect(() => {
     fetchReview();
   }, [fetchReview]);
+
+  // Poll when review is running
+  useEffect(() => {
+    // Clear any existing interval
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+      intervalRef.current = null;
+    }
+
+    if (review?.status === 'running') {
+      const interval = setInterval(fetchReview, 15000);
+      intervalRef.current = interval;
+      return () => {
+        clearInterval(interval);
+        intervalRef.current = null;
+      };
+    }
+  }, [review?.status, fetchReview]);
 
   // Safely parse JSON with fallback defaults
   let summary = null;

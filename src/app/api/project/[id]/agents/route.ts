@@ -11,9 +11,7 @@ export async function GET(
   try {
     const authData = await auth();
     const userId = authData.userId;
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Allow guest access — project-scoped data
 
     const { id } = await params;
 

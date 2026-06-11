@@ -1,0 +1,1 @@
+cd /root/buildany && npm run build && pm2 restart buildany
