@@ -10,7 +10,7 @@
  */
 
 import React from 'react';
-import { Loader2, CheckCircle, AlertTriangle, Play, RotateCcw, SkipForward, Wrench } from 'lucide-react';
+import { Loader2, CheckCircle, AlertTriangle, RotateCcw, SkipForward } from 'lucide-react';
 import { useHermesOrchestrator } from '../hooks/useHermesOrchestrator';
 
 interface ChatOrchestratorPanelProps {
@@ -29,14 +29,13 @@ export const ChatOrchestratorPanel: React.FC<ChatOrchestratorPanelProps> = ({
   const {
     status,
     startOrchestration,
-    userDecision,
-    reset,
-    isRunning,
-    isAwaitingUser,
-    progress,
-    userOptions,
-    failedContext,
+    applyCorrection,
+    skipPhase,
+    retry,
+    abort,
   } = useHermesOrchestrator();
+
+  const { isRunning, isAwaitingUser, progress, phase, message, phases } = status;
 
   React.useEffect(() => {
     if (status.phase === 'idle') {
@@ -49,30 +48,6 @@ export const ChatOrchestratorPanel: React.FC<ChatOrchestratorPanelProps> = ({
       onComplete?.();
     }
   }, [status.phase]);
-
-  const getDecisionButtonIcon = (option: string) => {
-    if (option.includes('fix') || option.includes('Fix')) return <Wrench size={14} />;
-    if (option.includes('retry') || option.includes('Retry')) return <RotateCcw size={14} />;
-    if (option.includes('skip') || option.includes('Skip')) return <SkipForward size={14} />;
-    if (option.includes('regenerate') || option.includes('Regenerate')) return <RotateCcw size={14} />;
-    return <Play size={14} />;
-  };
-
-  const getDecisionButtonStyle = (option: string) => {
-    if (option.includes('fix') || option.includes('Fix')) return 'bg-amber-500 hover:bg-amber-600 text-white';
-    if (option.includes('retry') || option.includes('Retry')) return 'bg-blue-500 hover:bg-blue-600 text-white';
-    if (option.includes('skip') || option.includes('Skip')) return 'bg-gray-500 hover:bg-gray-600 text-white';
-    if (option.includes('regenerate') || option.includes('Regenerate')) return 'bg-purple-500 hover:bg-purple-600 text-white';
-    return 'bg-green-500 hover:bg-green-600 text-white';
-  };
-
-  const mapOptionToDecision = (option: string): 'approve' | 'reject' | 'fix' | 'retry' => {
-    if (option.includes('fix') || option.includes('Fix')) return 'fix';
-    if (option.includes('retry') || option.includes('Retry')) return 'retry';
-    if (option.includes('skip') || option.includes('Skip')) return 'approve';
-    if (option.includes('regenerate') || option.includes('Regenerate')) return 'reject';
-    return 'retry';
-  };
 
   return (
     <div className="flex flex-col gap-2 p-3 bg-white rounded-lg border border-gray-200">
@@ -123,43 +98,58 @@ export const ChatOrchestratorPanel: React.FC<ChatOrchestratorPanelProps> = ({
       )}
 
       {/* User Decision Buttons */}
-      {isAwaitingUser && userOptions && (
+      {isAwaitingUser && (
         <div className="flex flex-col gap-2 mt-2">
           <div className="text-sm font-medium text-gray-700">
             What would you like to do?
           </div>
           <div className="flex flex-wrap gap-2">
-            {userOptions.map((option, index) => (
-              <button
-                key={index}
-                onClick={() => userDecision(mapOptionToDecision(option))}
-                className={`
-                  flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium
-                  transition-colors
-                  ${getDecisionButtonStyle(option)}
-                `}
-              >
-                {getDecisionButtonIcon(option)}
-                {option}
-              </button>
-            ))}
+            <button
+              onClick={() => retry()}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-blue-500 hover:bg-blue-600 text-white"
+            >
+              <RotateCcw size={14} />
+              Retry
+            </button>
+            <button
+              onClick={() => skipPhase()}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-gray-500 hover:bg-gray-600 text-white"
+            >
+              <SkipForward size={14} />
+              Skip
+            </button>
+            <button
+              onClick={() => abort()}
+              className="flex items-center gap-1 px-3 py-1.5 rounded-md text-sm font-medium transition-colors bg-red-500 hover:bg-red-600 text-white"
+            >
+              <AlertTriangle size={14} />
+              Abort
+            </button>
           </div>
-          {failedContext && (
+          {status.failedContext && (
             <div className="text-xs text-gray-400 mt-1">
-              Failed at: {failedContext.failedPhase} — {failedContext.error}
+              Error: {status.failedContext.error || 'Unknown error'}
             </div>
           )}
         </div>
       )}
 
-      {/* Reset Button (only when completed or failed) */}
+      {/* Action Buttons (only when completed or failed) */}
       {(status.phase === 'completed' || status.phase === 'failed') && (
-        <button
-          onClick={reset}
-          className="text-xs text-gray-400 hover:text-gray-600 underline self-start"
-        >
-          Reset
-        </button>
+        <div className="flex gap-2">
+          <button
+            onClick={() => retry()}
+            className="text-xs text-blue-500 hover:text-blue-600 underline self-start"
+          >
+            Retry
+          </button>
+          <button
+            onClick={() => abort()}
+            className="text-xs text-gray-400 hover:text-gray-600 underline self-start"
+          >
+            Reset
+          </button>
+        </div>
       )}
     </div>
   );

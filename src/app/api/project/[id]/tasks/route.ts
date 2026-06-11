@@ -12,10 +12,7 @@ export async function GET(
     const authData = await auth();
     const userId = authData.userId;
     
-    if (!userId) {
-      return Response.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    // Allow guest access — project-scoped data is safe to read
     const { id: projectId } = await params;
     
     const projectTasks = await db

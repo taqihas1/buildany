@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { 
   Bot, Play, Square, Cpu, GitBranch, Zap, Layers, 
   CheckCircle, XCircle, RotateCcw, ArrowRight, Plus,
@@ -16,13 +16,8 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'agents' | 'tasks' | 'skills'>('agents');
 
-  useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 5000);
-    return () => clearInterval(interval);
-  }, [projectId]);
-
-  const loadData = async () => {
+  // Define loadData BEFORE useEffect calls it
+  const loadData = useCallback(async () => {
     try {
       // Fetch agents from DB first, then Hermes as fallback
       let agentsList: any[] = [];
@@ -133,7 +128,13 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    loadData();
+    const interval = setInterval(loadData, 5000);
+    return () => clearInterval(interval);
+  }, [loadData]);
 
   const spawnAgent = async (type: string) => {
     try {

@@ -1,7 +1,5 @@
-import { useState, useEffect, useRef } from "react";
-import { Send, Bot, User, Loader2, Sparkles, CheckCircle, AlertCircle, MessageSquare, Clock, ArrowRight } from "lucide-react";
-import ReactMarkdown from "react-markdown";
-import remarkGfm from "remark-gfm";
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Send, Bot, User, Loader2, Sparkles, CheckCircle, AlertCircle, MessageSquare, ArrowRight } from "lucide-react";
 
 interface Message {
   id: string;
@@ -12,14 +10,34 @@ interface Message {
   variant?: "success" | "info" | "warning";
 }
 
+interface RawMessage {
+  id?: string;
+  role?: string;
+  content?: string;
+  message?: string;
+  model?: string;
+}
+
 interface AIChatPanelProps {
   projectId: string;
   type: string;
-  initialMessages?: any[];
+  initialMessages?: RawMessage[];
   onStatusClick?: (tab: string) => void;
   projectStatus?: string;
-  files?: any[];
-  tasks?: any[];
+  files?: Array<Record<string, unknown>>;
+  tasks?: Array<Record<string, unknown>>;
+}
+
+let statusCounter = 0;
+function getStatusId(type: string): string {
+  statusCounter += 1;
+  return `status-${type}-${statusCounter}`;
+}
+
+let messageCounter = 0;
+function getMessageId(): string {
+  messageCounter += 1;
+  return `msg-${messageCounter}`;
 }
 
 export function AIChatPanel({ 
@@ -31,29 +49,47 @@ export function AIChatPanel({
   files = [],
   tasks = [],
 }: AIChatPanelProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      id: "welcome",
-      role: "assistant",
-      content: "Hi! I'm your AI developer. Describe what you want to build, and I'll generate the code for you. I'll keep you updated on every step of the process!",
-    },
-    ...initialMessages
-      .filter((m: any) => {
-        // Filter out research system messages from chat
+  const [messages, setMessages] = useState<Message[]>(() => {
+    const filtered = initialMessages
+      .filter((m) => {
         if (m.role === 'system' && (m.content?.includes('RESEARCH REPORT') || m.model === 'research-system')) return false;
-        // Filter out raw code in assistant messages
         if (m.role === 'assistant' && m.content?.includes('```')) return false;
         return true;
       })
-      .map((m: any) => ({
-        id: m.id || Date.now().toString() + Math.random(),
+      .map((m) => ({
+        id: m.id || getMessageId(),
         role: m.role as "user" | "assistant" | "system",
         content: m.content || m.message || "",
-      })),
-  ]);
+      }));
+    return [
+      {
+        id: "welcome",
+        role: "assistant",
+        content: "Hi! I'm your AI developer. Describe what you want to build, and I'll generate the code for you. I'll keep you updated on every step of the process!",
+      },
+      ...filtered,
+    ];
+  });
+  
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const addStatusRef = useRef<((statusType: string, content: string, variant?: "success" | "info" | "warning") => void) | null>(null);
+
+  const addStatusMessage = useCallback((statusType: string, content: string, variant: "success" | "info" | "warning" = "info") => {
+    setMessages(prev => [...prev, {
+      id: getStatusId(statusType),
+      role: "system",
+      content,
+      statusType: statusType as Message["statusType"],
+      variant,
+    }]);
+  }, []);
+
+  // Store ref to addStatusMessage for effects
+  useEffect(() => {
+    addStatusRef.current = addStatusMessage;
+  }, [addStatusMessage]);
 
   // Auto-scroll to bottom
   useEffect(() => {
@@ -62,9 +98,11 @@ export function AIChatPanel({
 
   // Watch for project status changes and add status messages
   useEffect(() => {
-    // Always add swarm message first if tasks exist, then code message
+    const addMsg = addStatusRef.current;
+    if (!addMsg) return;
+    
     if (tasks.length > 0 && !messages.some(m => m.statusType === "swarm")) {
-      addStatusMessage(
+      addMsg(
         "swarm",
         `✅ Project has been decomposed into ${tasks.length} tasks and assigned to agents. Click on "Agents Swarm" in the workspace menu to view tasks and agents.`,
         "success"
@@ -72,7 +110,7 @@ export function AIChatPanel({
     }
     
     if (files.length > 0 && !messages.some(m => m.statusType === "code")) {
-      addStatusMessage(
+      addMsg(
         "code",
         "✅ Code has been generated! In order to see the code, please click on Code in the menu at the top of the workspace.",
         "success"
@@ -80,30 +118,21 @@ export function AIChatPanel({
     }
   }, [files.length, tasks.length]);
 
-  const addStatusMessage = (statusType: string, content: string, variant: "success" | "info" | "warning" = "info") => {
-    setMessages(prev => [...prev, {
-      id: `status-${statusType}-${Date.now()}`,
-      role: "system",
-      content,
-      statusType: statusType as any,
-      variant,
-    }]);
-  };
-
-  // Expose addStatusMessage to parent via a global (not ideal but works for now)
+  // Expose addStatusMessage to parent via window
   useEffect(() => {
-    (window as any).__addStatusMessage = addStatusMessage;
+    const w = window as unknown as Record<string, unknown>;
+    w.__addStatusMessage = addStatusMessage;
     return () => {
-      delete (window as any).__addStatusMessage;
+      delete w.__addStatusMessage;
     };
-  }, []);
+  }, [addStatusMessage]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: getMessageId(),
       role: "user",
       content: input.trim(),
     };
@@ -139,7 +168,7 @@ export function AIChatPanel({
 
       if (data.success || data.projectId) {
         const aiMessage: Message = {
-          id: Date.now().toString(),
+          id: getMessageId(),
           role: "assistant",
           content: data.message || 
             (data.filesGenerated 
@@ -160,7 +189,7 @@ export function AIChatPanel({
         }
       } else {
         const errorMessage: Message = {
-          id: Date.now().toString(),
+          id: getMessageId(),
           role: "assistant",
           content: `❌ Error: ${data.error || "Generation failed. Please check your API keys in the admin panel."}`,
         };
@@ -170,7 +199,7 @@ export function AIChatPanel({
       setMessages((prev) => prev.filter((m) => m.id !== "loading"));
 
       const errorMessage: Message = {
-        id: Date.now().toString(),
+        id: getMessageId(),
         role: "assistant",
         content: `❌ Error: ${error instanceof Error ? error.message : String(error)}`,
       };

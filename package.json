@@ -7,6 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "quality-check": "./scripts/quality-check.sh",
+    "quality-check-strict": "./scripts/quality-check.sh --strict",
     "db:generate": "drizzle-kit generate:sqlite",
     "db:migrate": "drizzle-kit push:sqlite",
     "db:studio": "drizzle-kit studio"

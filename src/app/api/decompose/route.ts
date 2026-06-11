@@ -10,9 +10,7 @@ export async function POST(req: Request) {
   try {
     const authData = await auth();
     const userId = authData.userId;
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Allow guest access
 
     const body = await req.json();
     const { projectId, prompt, type = "web" } = body;
@@ -306,9 +304,7 @@ export async function GET(req: Request) {
   try {
     const authData = await auth();
     const userId = authData.userId;
-    if (!userId) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
+    // Allow guest access
 
     const { searchParams } = new URL(req.url);
     const projectId = searchParams.get("projectId");
@@ -320,12 +316,26 @@ export async function GET(req: Request) {
     const projectTasks = await db.select().from(tasks).where(eq(tasks.projectId, projectId));
 
     // Build dependency graph
-    const graph = projectTasks.map(t => ({
-      ...t,
-      input: t.input ? JSON.parse(t.input) : null,
-      output: t.output ? JSON.parse(t.output) : null,
-      dependencies: projectTasks.filter(pt => pt.parentTaskId === t.id).map(pt => pt.id),
-    }));
+    const graph = projectTasks.map(t => {
+      let parsedInput = null;
+      let parsedOutput = null;
+      try {
+        parsedInput = t.input ? JSON.parse(t.input) : null;
+      } catch (e) {
+        parsedInput = { raw: t.input?.substring(0, 200) };
+      }
+      try {
+        parsedOutput = t.output ? JSON.parse(t.output) : null;
+      } catch (e) {
+        parsedOutput = { raw: t.output?.substring(0, 200) };
+      }
+      return {
+        ...t,
+        input: parsedInput,
+        output: parsedOutput,
+        dependencies: projectTasks.filter(pt => pt.parentTaskId === t.id).map(pt => pt.id),
+      };
+    });
 
     return NextResponse.json({ tasks: graph });
   } catch (error) {

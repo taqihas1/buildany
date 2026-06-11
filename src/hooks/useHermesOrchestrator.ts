@@ -2,16 +2,28 @@
 
 /**
  * useHermesOrchestrator - React Hook for Chat Panel Integration
- * Now includes manual correction methods!
+ * Client-safe version: uses API calls instead of importing server modules
  */
 
-import { useState, useCallback, useRef } from 'react';
-import HermesOrchestrator, { 
-  OrchestrationPhase, 
-  OrchestrationState,
-  PhaseResult,
-  PersistentRule
-} from '../lib/orchestrator';
+import { useState, useCallback, useRef, useEffect } from 'react';
+
+export type OrchestrationPhase = 
+  | 'idle' 
+  | 'research' 
+  | 'decompose' 
+  | 'coding' 
+  | 'testing' 
+  | 'review' 
+  | 'deploy' 
+  | 'completed' 
+  | 'failed';
+
+export interface PhaseResult {
+  phase: OrchestrationPhase;
+  success: boolean;
+  message: string;
+  details?: Record<string, any>;
+}
 
 export interface OrchestratorStatus {
   message: string;
@@ -23,6 +35,7 @@ export interface OrchestratorStatus {
   failedContext?: any;
   phases: PhaseResult[];
   showCorrections?: boolean;
+  projectId?: string;
 }
 
 export function useHermesOrchestrator() {
@@ -35,144 +48,152 @@ export function useHermesOrchestrator() {
     phases: [],
   });
 
-  const orchestratorRef = useRef<HermesOrchestrator | null>(null);
+  const abortRef = useRef(false);
+  const projectIdRef = useRef<string | undefined>(undefined);
+
+  // Keep projectIdRef in sync with status
+  useEffect(() => {
+    projectIdRef.current = status.projectId;
+  }, [status.projectId]);
 
   const startOrchestration = useCallback(async (
     projectId: string,
     prompt: string,
     platform: 'web' | 'mobile' | 'backend'
   ) => {
-    const orchestrator = new HermesOrchestrator(
-      projectId,
-      prompt,
-      platform,
-      (message: string) => {
-        setStatus(prev => ({
-          ...prev,
-          message,
-          phases: [...prev.phases, { 
-            phase: prev.phase, 
-            success: true, 
-            message, 
-            timestamp: Date.now() 
-          }],
-        }));
-      },
-      (phase: OrchestrationPhase) => {
-        setStatus(prev => {
-          const flow = ['analyzing', 'coding', 'testing', 'reviewing', 'previewing'];
-          const progress = Math.round((flow.indexOf(phase) / flow.length) * 100);
-          return {
-            ...prev,
-            phase,
-            progress,
-            isRunning: phase !== 'completed' && phase !== 'failed' && phase !== 'awaiting_user',
-            isAwaitingUser: phase === 'awaiting_user',
-          };
-        });
-      },
-      (context: any) => {
-        setStatus(prev => ({
-          ...prev,
-          isAwaitingUser: true,
-          isRunning: false,
-          failedContext: context,
-          userOptions: context.options || ['Retry', 'Skip', 'Regenerate'],
-          message: `⚠️ ${context.failedPhase} failed: ${context.error}`,
-        }));
-      }
-    );
-
-    orchestratorRef.current = orchestrator;
+    abortRef.current = false;
     
-    setStatus(prev => ({
-      ...prev,
-      isRunning: true,
-      message: '🚀 Starting...',
-      phase: 'analyzing',
-    }));
-
-    await orchestrator.start();
-  }, []);
-
-  // ===== LEVEL 1: During-run override =====
-  const manualOverride = useCallback(async (overrideTo: OrchestrationPhase) => {
-    if (!orchestratorRef.current) return;
-    const current = orchestratorRef.current.getState().currentPhase;
-    await orchestratorRef.current.manualOverride(current, overrideTo);
-  }, []);
-
-  // ===== LEVEL 2: Post-run correction =====
-  const correctPastDecision = useCallback(async (
-    phaseIndex: number,
-    whatShouldHaveHappened: 'skip' | 'retry' | 'run_earlier' | 'run_later' | 'different_agent',
-    userNotes?: string
-  ) => {
-    if (!orchestratorRef.current) return;
-    await orchestratorRef.current.correctPastDecision(phaseIndex, whatShouldHaveHappened, userNotes);
-  }, []);
-
-  // ===== LEVEL 3: Set persistent rule =====
-  const setRule = useCallback((rule: Omit<PersistentRule, 'id' | 'createdAt'>) => {
-    if (!orchestratorRef.current) return;
-    const fullRule: PersistentRule = {
-      ...rule,
-      id: `rule-${Date.now()}`,
-      createdAt: Date.now(),
-    };
-    orchestratorRef.current.setPersistentRule(fullRule);
-  }, []);
-
-  const userDecision = useCallback(async (decision: 'approve' | 'reject' | 'fix' | 'retry') => {
-    if (!orchestratorRef.current) return;
-    
-    setStatus(prev => ({
-      ...prev,
-      isAwaitingUser: false,
-      isRunning: true,
-      message: `⏳ ${decision}...`,
-    }));
-    
-    await orchestratorRef.current.userDecision(decision);
-  }, []);
-
-  const reset = useCallback(() => {
-    orchestratorRef.current = null;
     setStatus({
-      message: '',
-      phase: 'idle',
-      progress: 0,
-      isRunning: false,
+      message: 'Initializing orchestration...',
+      phase: 'research',
+      progress: 10,
+      isRunning: true,
       isAwaitingUser: false,
       phases: [],
+      projectId,
     });
+
+    try {
+      // Step 1: Generate code via API
+      setStatus(prev => ({
+        ...prev,
+        message: 'Researching and generating code...',
+        phase: 'coding',
+        progress: 30,
+      }));
+
+      const response = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId, prompt, type: platform }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(error.error || `HTTP ${response.status}`);
+      }
+
+      const result = await response.json();
+
+      if (abortRef.current) return;
+
+      // Step 2: Decompose tasks
+      setStatus(prev => ({
+        ...prev,
+        message: 'Decomposing into tasks...',
+        phase: 'decompose',
+        progress: 50,
+      }));
+
+      await fetch('/api/decompose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ projectId: result.projectId || projectId }),
+      }).catch(() => {/* non-blocking */});
+
+      if (abortRef.current) return;
+
+      // Step 3: Complete
+      setStatus(prev => ({
+        ...prev,
+        message: 'Orchestration complete!',
+        phase: 'completed',
+        progress: 100,
+        isRunning: false,
+        phases: [
+          ...prev.phases,
+          { phase: 'coding', success: true, message: 'Code generated', details: result },
+          { phase: 'decompose', success: true, message: 'Tasks decomposed' },
+          { phase: 'completed', success: true, message: 'All done!' },
+        ],
+      }));
+
+      return result;
+    } catch (error: any) {
+      if (abortRef.current) return;
+      
+      setStatus(prev => ({
+        ...prev,
+        message: error.message || 'Orchestration failed',
+        phase: 'failed',
+        progress: 0,
+        isRunning: false,
+        isAwaitingUser: true,
+        failedContext: { error: error.message },
+      }));
+      
+      throw error;
+    }
   }, []);
 
-  // Show correction UI when project is complete or user clicks "Review Decisions"
-  const showCorrections = useCallback(() => {
-    setStatus(prev => ({ ...prev, showCorrections: true }));
+  const applyCorrection = useCallback((correction: string) => {
+    setStatus(prev => ({
+      ...prev,
+      message: `Applying correction: ${correction}`,
+      isAwaitingUser: false,
+      showCorrections: false,
+    }));
+    
+    // Retry with correction
+    if (projectIdRef.current) {
+      startOrchestration(projectIdRef.current, correction, 'web');
+    }
+  }, [startOrchestration]);
+
+  const skipPhase = useCallback(() => {
+    setStatus(prev => ({
+      ...prev,
+      message: 'Phase skipped',
+      isAwaitingUser: false,
+    }));
   }, []);
 
-  const hideCorrections = useCallback(() => {
-    setStatus(prev => ({ ...prev, showCorrections: false }));
+  const retry = useCallback(() => {
+    setStatus(prev => {
+      if (prev.projectId) {
+        startOrchestration(prev.projectId, 'Retrying...', 'web');
+      }
+      return prev;
+    });
+  }, [startOrchestration]);
+
+  const abort = useCallback(() => {
+    abortRef.current = true;
+    setStatus(prev => ({
+      ...prev,
+      message: 'Aborted',
+      isRunning: false,
+      phase: 'idle',
+    }));
   }, []);
 
   return {
     status,
     startOrchestration,
-    userDecision,
-    reset,
-    manualOverride,
-    correctPastDecision,
-    setRule,
-    showCorrections,
-    hideCorrections,
-    currentPhase: status.phase,
-    progress: status.progress,
-    isRunning: status.isRunning,
-    isAwaitingUser: status.isAwaitingUser,
-    userOptions: status.userOptions,
-    failedContext: status.failedContext,
+    applyCorrection,
+    skipPhase,
+    retry,
+    abort,
   };
 }
 

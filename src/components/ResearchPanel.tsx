@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { Search, Target, Zap, Users, Layout, Code, Star, ExternalLink, ChevronDown, ChevronUp, AlertTriangle } from 'lucide-react';
@@ -14,11 +14,8 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
   const [loading, setLoading] = useState(true);
   const [expandedCompetitor, setExpandedCompetitor] = useState<number | null>(null);
 
-  useEffect(() => {
-    fetchResearch();
-  }, [projectId]);
-
-  const fetchResearch = async () => {
+  // Define fetchResearch BEFORE useEffect calls it
+  const fetchResearch = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/project/${projectId}/research`);
@@ -38,7 +35,11 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchResearch();
+  }, [fetchResearch]);
 
   if (loading) {
     return (

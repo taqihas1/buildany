@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { Eye, Smartphone, Globe, RefreshCw, X, ChevronDown, ChevronUp, Copy, Check, AlertTriangle } from 'lucide-react';
 
 interface LivePreviewProps {
@@ -17,57 +17,45 @@ export function LivePreview({ project, files, activeFile }: LivePreviewProps) {
   const [copied, setCopied] = useState(false);
   const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
   const [isNextJs, setIsNextJs] = useState(false);
-
-  useEffect(() => {
-    if (project?.type === 'mobile') {
-      setPreviewType('mobile');
-    }
-  }, [project]);
-
-  // Auto-generate preview when files are available
-  useEffect(() => {
-    if (files.length > 0 && !iframeUrl) {
-      handlePreview();
-    }
-  }, [files]);
-
   const [fileList, setFileList] = useState(files);
-  const [refreshInterval, setRefreshInterval] = useState<NodeJS.Timeout | null>(null);
+  
+  // Use ref for interval to avoid setState in cleanup
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Poll for new files when project is generating
-  useEffect(() => {
-    setFileList(files);
-  }, [files]);
+  // Define buildPreviewHtml BEFORE useEffect calls it
+  const buildPreviewHtml = useCallback((files: any[], type: 'web' | 'mobile') => {
+    const cssFiles = files.filter(f => f.path?.endsWith('.css') || f.path?.endsWith('.scss'));
+    const jsFiles = files.filter(f => f.path?.endsWith('.js') || f.path?.endsWith('.ts') || f.path?.endsWith('.jsx') || f.path?.endsWith('.tsx'));
+    const htmlFiles = files.filter(f => f.path?.endsWith('.html'));
 
-  useEffect(() => {
-    if (project?.status === 'generating') {
-      const interval = setInterval(async () => {
-        try {
-          const res = await fetch(`/api/project/${project.id}/files`);
-          if (res.ok) {
-            const data = await res.json();
-            if (data.files && data.files.length !== fileList.length) {
-              setFileList(data.files);
-              // Auto-regenerate preview if __preview.html was added
-              const hasPreview = data.files.some((f: any) => f.path === '__preview.html');
-              if (hasPreview && !iframeUrl) {
-                handlePreviewWithFiles(data.files);
-              }
-            }
-          }
-        } catch (err) {
-          console.error('File poll error:', err);
-        }
-      }, 3000);
-      setRefreshInterval(interval);
-      return () => clearInterval(interval);
-    } else if (refreshInterval) {
-      clearInterval(refreshInterval);
-      setRefreshInterval(null);
+    const css = cssFiles.map(f => f.content || '').join('\n');
+    const js = jsFiles.map(f => f.content || '').join('\n');
+
+    if (htmlFiles.length > 0) {
+      return (htmlFiles.find(f => f.path === '__preview.html') || htmlFiles[0]).content || '';
     }
-  }, [project?.status, project?.id]);
 
-  const handlePreviewWithFiles = async (filesToUse: any[]) => {
+    return `<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+${css}
+body { margin: 0; padding: 20px; font-family: system-ui, sans-serif; background: #f5f5f5; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+<script>
+${js}
+</script>
+</body>
+</html>`;
+  }, []);
+
+  // Define handlePreviewWithFiles BEFORE useEffect calls it
+  const handlePreviewWithFiles = useCallback(async (filesToUse: any[]) => {
     setIsLoading(true);
     try {
       const hasNextJsFiles = filesToUse.some(f => 
@@ -102,52 +90,77 @@ export function LivePreview({ project, files, activeFile }: LivePreviewProps) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [previewType, buildPreviewHtml]);
 
-  const handlePreview = async () => {
+  // Define handlePreview BEFORE useEffect calls it
+  const handlePreview = useCallback(async () => {
     handlePreviewWithFiles(fileList);
-  };
+  }, [fileList, handlePreviewWithFiles]);
 
-  const buildPreviewHtml = (files: any[], type: 'web' | 'mobile') => {
-    const cssFiles = files.filter(f => f.path?.endsWith('.css') || f.path?.endsWith('.scss'));
-    const jsFiles = files.filter(f => f.path?.endsWith('.js') || f.path?.endsWith('.ts') || f.path?.endsWith('.jsx') || f.path?.endsWith('.tsx'));
-    const htmlFiles = files.filter(f => f.path?.endsWith('.html'));
-
-    const css = cssFiles.map(f => f.content || '').join('\n');
-    const js = jsFiles.map(f => f.content || '').join('\n');
-
-    if (htmlFiles.length > 0) {
-      return (htmlFiles.find(f => f.path === '__preview.html') || htmlFiles[0]).content || '';
-    }
-
-    return `<!DOCTYPE html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-${css}
-body { margin: 0; padding: 20px; font-family: system-ui, sans-serif; background: #f5f5f5; }
-</style>
-</head>
-<body>
-<div id="root"></div>
-<script>
-${js}
-</script>
-</body>
-</html>`;
-  };
-
-  const copyCode = () => {
+  // Define copyCode and clearLogs
+  const copyCode = useCallback(() => {
     if (activeFile?.content) {
       navigator.clipboard.writeText(activeFile.content);
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     }
-  };
+  }, [activeFile]);
 
-  const clearLogs = () => setConsoleLogs([]);
+  const clearLogs = useCallback(() => setConsoleLogs([]), []);
+
+  // Set preview type based on project type
+  useEffect(() => {
+    if (project?.type === 'mobile') {
+      setPreviewType('mobile');
+    }
+  }, [project]);
+
+  // Auto-generate preview when files are available
+  useEffect(() => {
+    if (files.length > 0 && !iframeUrl) {
+      handlePreview();
+    }
+  }, [files, iframeUrl, handlePreview]);
+
+  // Sync fileList with files prop
+  useEffect(() => {
+    setFileList(files);
+  }, [files]);
+
+  // Poll for new files when project is generating
+  useEffect(() => {
+    // Clear any existing interval
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current);
+      refreshIntervalRef.current = null;
+    }
+
+    if (project?.status === 'generating') {
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch(`/api/project/${project.id}/files`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.files && data.files.length !== fileList.length) {
+              setFileList(data.files);
+              // Auto-regenerate preview if __preview.html was added
+              const hasPreview = data.files.some((f: any) => f.path === '__preview.html');
+              if (hasPreview && !iframeUrl) {
+                handlePreviewWithFiles(data.files);
+              }
+            }
+          }
+        } catch (err) {
+          console.error('File poll error:', err);
+        }
+      }, 3000);
+      refreshIntervalRef.current = interval;
+      return () => {
+        clearInterval(interval);
+        refreshIntervalRef.current = null;
+      };
+    }
+  }, [project?.status, project?.id, fileList.length, iframeUrl, handlePreviewWithFiles]);
 
   return (
     <div className="h-full flex flex-col bg-white">
