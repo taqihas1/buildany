@@ -15,18 +15,18 @@ export async function POST(req: NextRequest) {
     } catch (authError: any) {
       userId = "guest-" + crypto.randomUUID();
     }
-
+    
     const { projectId, prompt, type = "web", provider = "deepseek", skipResearch = false } = await req.json();
 
     if (!prompt) return NextResponse.json({ error: "Missing prompt" }, { status: 400 });
 
-    let researchResult: any = null;
-
+    let project;
+    let researchResult = null;
+    
     if (!projectId) {
-      // === CREATE NEW PROJECT ===
       const newId = crypto.randomUUID();
       const shortName = generateShortName(prompt);
-
+      
       if (!skipResearch) {
         try {
           const researchPrompt = `Research this app idea and provide structured JSON:
@@ -60,34 +60,22 @@ Return ONLY valid JSON with:
           }
         } catch (e) { console.error("Research failed:", e); }
       }
-
+      
       await db.insert(projects).values({
-        id: newId,
-        userId,
-        name: shortName,
-        description: prompt,
+        id: newId, userId, name: shortName, description: prompt,
         type: type as "web" | "mobile" | "dashboard",
-        status: "generating",
-        createdAt: new Date(),
-        updatedAt: new Date(),
+        status: "generating", createdAt: new Date(), updatedAt: new Date(),
       });
-
-      const project = await db.select().from(projects).where(eq(projects.id, newId)).get();
-      if (!project) {
-        return NextResponse.json({ error: "Failed to create project" }, { status: 500 });
-      }
-
+      project = await db.select().from(projects).where(eq(projects.id, newId)).get();
+      
       if (researchResult) {
         await db.insert(conversations).values({
-          id: crypto.randomUUID(),
-          projectId: newId,
-          role: "system",
+          id: crypto.randomUUID(), projectId: newId, role: "system",
           content: `RESEARCH REPORT:\n${JSON.stringify(researchResult)}`,
-          model: `${provider}/research`,
-          createdAt: new Date(),
+          model: `${provider}/research`, createdAt: new Date(),
         });
       }
-
+      
       // Create default agents for this project
       const agentDefs = [
         { name: 'Hermes-001', type: 'hermes', capabilities: JSON.stringify(['orchestrate', 'plan']) },
@@ -100,67 +88,43 @@ Return ONLY valid JSON with:
       ];
       for (const def of agentDefs) {
         await db.insert(agents).values({
-          id: crypto.randomUUID(),
-          projectId: newId,
-          name: def.name,
-          type: def.type,
-          status: 'idle',
-          capabilities: def.capabilities,
-          createdAt: new Date(),
+          id: crypto.randomUUID(), projectId: newId, name: def.name, type: def.type,
+          status: 'idle', capabilities: def.capabilities, createdAt: new Date(),
         });
       }
-
-      // Start orchestrator
-      await startOrchestrator(newId, prompt, type);
-
-      return NextResponse.json({
-        success: true,
-        projectId: newId,
-        message: "🚀 AI Assistant started! Watch progress in the AI Chat...",
-        research: researchResult,
-      });
+    } else {
+      project = await db.select().from(projects).where(eq(projects.id, projectId)).get();
+      if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
-    // === EXISTING PROJECT ===
-    const project = await db.select().from(projects).where(eq(projects.id, projectId)).get();
     if (!project) {
       return NextResponse.json({ error: "Project not found" }, { status: 404 });
     }
 
     await db.insert(conversations).values({
-      id: crypto.randomUUID(),
-      projectId: project.id,
-      role: "user",
-      content: prompt,
-      model: "user",
-      createdAt: new Date(),
+      id: crypto.randomUUID(), projectId: project.id, role: "user",
+      content: prompt, model: "user", createdAt: new Date(),
     });
 
-    await startOrchestrator(project.id, prompt, type);
+    import("@/lib/orchestrator").then(({ HermesOrchestrator }) => {
+      const hermes = new HermesOrchestrator(
+        project.id, prompt, type as 'web' | 'mobile' | 'backend',
+        (status) => console.log("[Hermes]", status),
+        (phase) => console.log("[Hermes] phase:", phase),
+        (context) => console.log("[Hermes] awaiting user:", context),
+      );
+      hermes.start().catch((err: any) => console.error("Hermes start error:", err));
+    }).catch((err) => console.error("Failed to load orchestrator:", err));
 
     return NextResponse.json({
-      success: true,
-      projectId: project.id,
+      success: true, projectId: project.id,
       message: "🚀 AI Assistant started! Watch progress in the AI Chat...",
+      research: researchResult,
     });
-
   } catch (error: any) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }
     );
   }
-}
-
-async function startOrchestrator(projectId: string, prompt: string, type: string) {
-  const { HermesOrchestrator } = await import("@/lib/orchestrator");
-  const hermes = new HermesOrchestrator(
-    projectId,
-    prompt,
-    type as 'web' | 'mobile' | 'backend',
-    (status) => console.log("[Hermes]", status),
-    (phase) => console.log("[Hermes] phase:", phase),
-    (context) => console.log("[Hermes] awaiting user:", context),
-  );
-  hermes.start().catch((err: any) => console.error("Hermes start error:", err));
 }
