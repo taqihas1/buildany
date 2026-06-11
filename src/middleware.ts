@@ -1,12 +1,10 @@
 import { clerkMiddleware } from '@clerk/nextjs/server';
 import { NextResponse } from 'next/server';
 
-// Public API routes that don't require auth
 const PUBLIC_API_ROUTES = [
   '/api/generate',
   '/api/orchestrate',
   '/api/decompose',
-  '/api/deploy',
   '/api/project',
   '/api/test-auth',
 ];
@@ -14,7 +12,6 @@ const PUBLIC_API_ROUTES = [
 export default clerkMiddleware(
   async (auth, req) => {
     if (req.nextUrl.pathname.startsWith('/api/')) {
-      // Check if this is a public route
       const isPublic = PUBLIC_API_ROUTES.some(route => 
         req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith(route + '/')
       );
