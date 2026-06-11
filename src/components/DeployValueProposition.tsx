@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { X, Rocket, Zap, Globe, Smartphone, Check, ChevronRight, Clock, Shield, Server, DollarSign } from 'lucide-react';
 
 interface DeploymentRecommendation {
@@ -31,11 +31,8 @@ export function DeployValueProposition({ projectId, projectName, projectType, on
   const [loading, setLoading] = useState(true);
   const [showDetails, setShowDetails] = useState(false);
 
-  useEffect(() => {
-    fetchRecommendation();
-  }, [projectId]);
-
-  const fetchRecommendation = async () => {
+  // Define fetchRecommendation BEFORE useEffect calls it
+  const fetchRecommendation = useCallback(async () => {
     try {
       const res = await fetch(`/api/deploy/recommend?projectId=${projectId}`);
       const data = await res.json();
@@ -49,7 +46,11 @@ export function DeployValueProposition({ projectId, projectName, projectType, on
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchRecommendation();
+  }, [fetchRecommendation]);
 
   if (loading) {
     return (
