@@ -96,12 +96,16 @@ export function AIChatPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  // Track whether status messages have been added to avoid duplicate messages
+  const statusAddedRef = useRef<Set<string>>(new Set());
+
   // Watch for project status changes and add status messages
   useEffect(() => {
     const addMsg = addStatusRef.current;
     if (!addMsg) return;
     
-    if (tasks.length > 0 && !messages.some(m => m.statusType === "swarm")) {
+    if (tasks.length > 0 && !statusAddedRef.current.has('swarm')) {
+      statusAddedRef.current.add('swarm');
       addMsg(
         "swarm",
         `✅ Project has been decomposed into ${tasks.length} tasks and assigned to agents. Click on "Agents Swarm" in the workspace menu to view tasks and agents.`,
@@ -109,7 +113,8 @@ export function AIChatPanel({
       );
     }
     
-    if (files.length > 0 && !messages.some(m => m.statusType === "code")) {
+    if (files.length > 0 && !statusAddedRef.current.has('code')) {
+      statusAddedRef.current.add('code');
       addMsg(
         "code",
         "✅ Code has been generated! In order to see the code, please click on Code in the menu at the top of the workspace.",

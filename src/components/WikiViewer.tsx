@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { BookOpen, FileText, Code, Wrench, Lightbulb, ChevronDown, ChevronUp, Clock, Sparkles, Edit3, Save, X } from 'lucide-react';
@@ -36,11 +36,8 @@ export function WikiViewer({ projectId }: WikiViewerProps) {
   const [editContent, setEditContent] = useState('');
   const [editTitle, setEditTitle] = useState('');
 
-  useEffect(() => {
-    fetchWiki();
-  }, [projectId]);
-
-  const fetchWiki = async () => {
+  // Define fetchWiki BEFORE useEffect calls it
+  const fetchWiki = useCallback(async () => {
     try {
       setLoading(true);
       const res = await fetch(`/api/project/${projectId}/wiki`);
@@ -60,7 +57,11 @@ export function WikiViewer({ projectId }: WikiViewerProps) {
     } finally {
       setLoading(false);
     }
-  };
+  }, [projectId]);
+
+  useEffect(() => {
+    fetchWiki();
+  }, [fetchWiki]);
 
   const savePage = async (pageId: string) => {
     try {
