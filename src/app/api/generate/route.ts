@@ -5,27 +5,47 @@ import { projects, conversations, agents } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { generateShortName } from "@/lib/project-name-generator";
 import { llmRouter } from "@/lib/llm-router";
+import fs from "fs";
+
+const DEBUG_LOG = "/root/buildany/api-debug.log";
+function debug(label: string, data: any) {
+  const line = `[${new Date().toISOString()}] ${label}: ${JSON.stringify(data)}\n`;
+  fs.appendFileSync(DEBUG_LOG, line);
+}
 
 export async function POST(req: NextRequest) {
   try {
+    debug("REQUEST_START", { url: req.url, method: req.method, headers: Object.fromEntries(req.headers.entries()) });
+    
     let userId: string;
     try {
       const authData = await auth();
       userId = authData.userId || "guest-" + crypto.randomUUID();
+      debug("AUTH_OK", { userId });
     } catch (authError: any) {
       userId = "guest-" + crypto.randomUUID();
+      debug("AUTH_FALLBACK", { userId, error: authError.message });
     }
     
-    const { projectId, prompt, type = "web", provider = "deepseek", skipResearch = false } = await req.json();
+    const body = await req.json();
+    debug("BODY", body);
+    
+    const { projectId, prompt, type = "web", provider = "deepseek", skipResearch = false } = body;
 
-    if (!prompt) return NextResponse.json({ error: "Missing prompt" }, { status: 400 });
+    if (!prompt) {
+      debug("ERROR", "Missing prompt");
+      return NextResponse.json({ error: "Missing prompt" }, { status: 400 });
+    }
 
-    let project;
+    let projectIdSafe: string;
     let researchResult = null;
     
     if (!projectId) {
+      debug("CREATING_NEW_PROJECT", "No projectId provided");
+      // Create new project
       const newId = crypto.randomUUID();
       const shortName = generateShortName(prompt);
+      debug("GENERATED", { newId, shortName });
       
       if (!skipResearch) {
         try {
@@ -54,19 +74,39 @@ Return ONLY valid JSON with:
             try {
               let jsonStr = researchResponse.content.replace(/```json\s*/g, '').replace(/```\s*/g, '');
               researchResult = JSON.parse(jsonStr);
+              debug("RESEARCH_OK", { hasResult: true });
             } catch (parseErr) {
               researchResult = { raw: researchResponse.content };
+              debug("RESEARCH_PARSE_ERR", { error: (parseErr as Error).message });
             }
           }
-        } catch (e) { console.error("Research failed:", e); }
+        } catch (e) { 
+          console.error("Research failed:", e); 
+          debug("RESEARCH_FAILED", { error: (e as Error).message });
+        }
       }
       
-      await db.insert(projects).values({
-        id: newId, userId, name: shortName, description: prompt,
-        type: type as "web" | "mobile" | "dashboard",
-        status: "generating", createdAt: new Date(), updatedAt: new Date(),
-      });
-      project = await db.select().from(projects).where(eq(projects.id, newId)).get();
+      debug("DB_INSERT_START", { newId, userId, shortName, prompt });
+      try {
+        await db.insert(projects).values({
+          id: newId, userId, name: shortName, description: prompt,
+          type: type as "web" | "mobile" | "dashboard",
+          status: "generating", createdAt: new Date(), updatedAt: new Date(),
+        });
+        debug("DB_INSERT_OK", { newId });
+      } catch (dbErr) {
+        debug("DB_INSERT_ERROR", { error: (dbErr as Error).message, stack: (dbErr as Error).stack });
+        throw dbErr;
+      }
+      
+      const project = await db.select().from(projects).where(eq(projects.id, newId)).get();
+      debug("DB_VERIFY", { found: !!project, projectId: project?.id });
+      if (!project) {
+        debug("ERROR", "Project creation failed - not found after insert");
+        return NextResponse.json({ error: "Project creation failed" }, { status: 500 });
+      }
+      
+      projectIdSafe = project.id;
       
       if (researchResult) {
         await db.insert(conversations).values({
@@ -93,22 +133,20 @@ Return ONLY valid JSON with:
         });
       }
     } else {
-      project = await db.select().from(projects).where(eq(projects.id, projectId)).get();
+      // Use existing project
+      const project = await db.select().from(projects).where(eq(projects.id, projectId)).get();
       if (!project) return NextResponse.json({ error: "Project not found" }, { status: 404 });
-    }
-
-    if (!project) {
-      return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      projectIdSafe = project.id;
     }
 
     await db.insert(conversations).values({
-      id: crypto.randomUUID(), projectId: project.id, role: "user",
+      id: crypto.randomUUID(), projectId: projectIdSafe, role: "user",
       content: prompt, model: "user", createdAt: new Date(),
     });
 
     import("@/lib/orchestrator").then(({ HermesOrchestrator }) => {
       const hermes = new HermesOrchestrator(
-        project.id, prompt, type as 'web' | 'mobile' | 'backend',
+        projectIdSafe, prompt, type as 'web' | 'mobile' | 'backend',
         (status) => console.log("[Hermes]", status),
         (phase) => console.log("[Hermes] phase:", phase),
         (context) => console.log("[Hermes] awaiting user:", context),
@@ -116,12 +154,15 @@ Return ONLY valid JSON with:
       hermes.start().catch((err: any) => console.error("Hermes start error:", err));
     }).catch((err) => console.error("Failed to load orchestrator:", err));
 
+    debug("RESPONSE", { success: true, projectId: projectIdSafe, hasResearch: !!researchResult, serverTime: new Date().toISOString() });
     return NextResponse.json({
-      success: true, projectId: project.id,
+      success: true, projectId: projectIdSafe,
       message: "🚀 AI Assistant started! Watch progress in the AI Chat...",
       research: researchResult,
+      serverTime: new Date().toISOString(),
     });
   } catch (error: any) {
+    debug("ROUTE_ERROR", { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : "no stack" });
     return NextResponse.json(
       { error: error instanceof Error ? error.message : String(error) },
       { status: 500 }

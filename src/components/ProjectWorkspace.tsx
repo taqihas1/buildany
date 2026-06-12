@@ -200,8 +200,10 @@ export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: P
           <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
             <Code2 className="w-4 h-4 text-white" />
           </div>
-          <div>
-            <h1 className="text-sm font-medium text-gray-900">{project.name}</h1>
+          <div className="min-w-0">
+            <h1 className="text-sm font-medium text-gray-900 truncate max-w-[300px] md:max-w-[500px]" title={project.description || project.name}>
+              {project.name}
+            </h1>
             <div className="flex items-center gap-2 text-xs text-gray-400">
               {project.type === 'mobile' ? <Smartphone className="w-3 h-3" /> : <Globe className="w-3 h-3" />}
               <span className={project.status === 'ready' ? 'text-green-500' : 'text-yellow-500'}>
@@ -460,7 +462,7 @@ export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: P
             )}
 
             {workspaceTab === 'swarm' && (
-              <SwarmDashboard projectId={project.id} />
+              <SwarmDashboard projectId={project.id} projectDescription={project.description} projectType={project.type} />
             )}
 
             {workspaceTab === 'wiki' && (

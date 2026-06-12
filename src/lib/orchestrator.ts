@@ -198,20 +198,28 @@ export class HermesOrchestrator {
         return;
       }
 
-      // Create tasks with agent assignment
-      const taskList = [
-        { title: 'Generate project structure', type: 'code', priority: 5, agentType: 'code' },
-        { title: 'Generate main UI components', type: 'code', priority: 4, agentType: 'code' },
-        { title: 'Generate styling and CSS', type: 'code', priority: 4, agentType: 'code' },
-        { title: 'Generate business logic', type: 'code', priority: 3, agentType: 'code' },
-        { title: 'Run tests and validation', type: 'test', priority: 3, agentType: 'test' },
-        { title: 'Code review and quality check', type: 'review', priority: 2, agentType: 'review' },
-        { title: 'Build preview', type: 'preview', priority: 2, agentType: 'code' },
-      ];
+      // Use the decompose API for dynamic task generation
+      const decomposeResponse = await fetch('http://localhost:3000/api/decompose', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: this.state.projectId,
+          prompt: this.state.prompt,
+          type: this.state.platform,
+        }),
+      });
+      
+      const decomposeData = await decomposeResponse.json();
+      const taskList = decomposeData.tasks || [];
+
+      if (taskList.length === 0) {
+        console.error('[Hermes] Decompose returned no tasks');
+        return;
+      }
 
       for (const taskDef of taskList) {
-        // Find best matching agent
-        const matchingAgent = projectAgents.find(a => a.type === taskDef.agentType) || 
+        // Find best matching agent based on task type
+        const matchingAgent = projectAgents.find(a => a.type === taskDef.type) || 
                              projectAgents.find(a => a.type === 'code') ||
                              projectAgents[0];
         
@@ -220,12 +228,12 @@ export class HermesOrchestrator {
           id: taskId,
           projectId: this.state.projectId,
           agentId: matchingAgent?.id || null,
-          type: taskDef.type as any,
+          type: taskDef.type || 'code',
           status: 'pending',
-          priority: taskDef.priority,
+          priority: taskDef.priority || 5,
           title: taskDef.title,
-          description: `Task for ${this.state.prompt.slice(0, 100)}`,
-          input: JSON.stringify({ prompt: this.state.prompt, platform: this.state.platform }),
+          description: taskDef.description || `Task for ${this.state.prompt.slice(0, 100)}`,
+          input: JSON.stringify({ prompt: this.state.prompt, platform: this.state.platform, dependencies: taskDef.dependencies || [] }),
           attempts: 0,
           maxAttempts: 3,
           createdAt: new Date(),
