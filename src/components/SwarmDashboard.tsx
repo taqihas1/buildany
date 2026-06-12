@@ -7,9 +7,11 @@ import {
 
 interface SwarmDashboardProps {
   projectId?: string;
+  projectDescription?: string;
+  projectType?: string;
 }
 
-export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
+export function SwarmDashboard({ projectId, projectDescription, projectType }: SwarmDashboardProps) {
   const [agents, setAgents] = useState<any[]>([]);
   const [tasks, setTasks] = useState<any[]>([]);
   const [skills, setSkills] = useState<any[]>([]);
@@ -153,15 +155,23 @@ export function SwarmDashboard({ projectId }: SwarmDashboardProps) {
   const decomposeProject = async () => {
     if (!projectId) return;
     try {
+      setLoading(true);
       const res = await fetch('/api/decompose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ projectId, prompt: 'Decompose current project', type: 'web' }),
+        body: JSON.stringify({ 
+          projectId, 
+          prompt: projectDescription || 'Decompose current project', 
+          type: projectType || 'web' 
+        }),
       });
       const data = await res.json();
-      if (data.success) loadData();
+      // Refresh to show new tasks (even if 0 created, API may have updated existing)
+      loadData();
     } catch (err) {
       console.error('Decompose error:', err);
+    } finally {
+      setLoading(false);
     }
   };
 
