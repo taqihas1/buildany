@@ -43,9 +43,7 @@ export const projectFiles = sqliteTable("project_files", {
   isGenerated: integer("is_generated", { mode: "boolean" }).default(false),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-}, (table) => [
-  { unique: [table.projectId, table.path] }
-]);
+});
 
 export const conversations = sqliteTable("conversations", {
   id: text("id").primaryKey(),
@@ -79,9 +77,7 @@ export const deployments = sqliteTable("deployments", {
   status: text("status").default("pending"),
   buildLog: text("build_log"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-}, (table) => [
-  { unique: [table.projectId, table.provider] }
-]);
+});
 
 export const userMemory = sqliteTable("user_memory", {
   id: text("id").primaryKey(),
