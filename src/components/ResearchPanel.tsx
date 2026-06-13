@@ -72,7 +72,7 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
       {/* Competitors */}
       {research.competitors?.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 uppercase tracking-wide font-medium">
+          <div className="flex items-center gap-1.5 text-sm text-gray-500 uppercase tracking-wide font-medium">
             <Target className="w-3 h-3" />
             Competitors ({research.competitors.length})
           </div>
@@ -83,12 +83,12 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
                   onClick={() => setExpandedCompetitor(expandedCompetitor === i ? null : i)}
                   className="w-full flex items-center gap-2 px-3 py-2 text-left hover:bg-gray-100 transition-colors"
                 >
-                  <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center text-xs font-bold text-gray-600">
+                  <div className="w-6 h-6 bg-gray-200 rounded flex items-center justify-center text-sm font-bold text-gray-600">
                     {i + 1}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-sm text-gray-900 truncate font-medium">{comp.name}</div>
-                    <div className="flex items-center gap-2 text-xs text-gray-500">
+                    <div className="flex items-center gap-2 text-sm text-gray-500">
                       <span className="flex items-center gap-0.5">
                         <Star className="w-3 h-3 text-amber-400" />
                         {comp.rating || 'N/A'}
@@ -106,7 +106,7 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
                   <div className="px-3 pb-2 space-y-1">
                     <div className="flex flex-wrap gap-1">
                       {comp.keyFeatures?.map((f: string, j: number) => (
-                        <span key={j} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+                        <span key={j} className="text-sm bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
                           {f}
                         </span>
                       ))}
@@ -116,7 +116,7 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
                         href={comp.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-xs text-cyan-600 hover:text-cyan-700"
+                        className="inline-flex items-center gap-1 text-sm text-cyan-600 hover:text-cyan-700"
                       >
                         <ExternalLink className="w-3 h-3" />
                         Visit
@@ -133,13 +133,13 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
       {/* Key Features */}
       {research.keyFeatures?.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 uppercase tracking-wide font-medium">
+          <div className="flex items-center gap-1.5 text-sm text-gray-500 uppercase tracking-wide font-medium">
             <Layout className="w-3 h-3" />
             Must-Have Features
           </div>
           <div className="flex flex-wrap gap-1.5">
             {research.keyFeatures.map((feature: string, i: number) => (
-              <span key={i} className="text-xs bg-cyan-50 text-cyan-700 border border-cyan-200 px-2 py-1 rounded">
+              <span key={i} className="text-sm bg-cyan-50 text-cyan-700 border border-cyan-200 px-2 py-1 rounded">
                 {feature}
               </span>
             ))}
@@ -150,13 +150,13 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
       {/* UX Patterns */}
       {research.uxPatterns?.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 uppercase tracking-wide font-medium">
+          <div className="flex items-center gap-1.5 text-sm text-gray-500 uppercase tracking-wide font-medium">
             <Layout className="w-3 h-3" />
             UX Patterns
           </div>
           <div className="space-y-1">
             {research.uxPatterns.map((pattern: string, i: number) => (
-              <div key={i} className="text-xs text-gray-700 flex items-center gap-2">
+              <div key={i} className="text-sm text-gray-700 flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-cyan-500 rounded-full" />
                 {pattern}
               </div>
@@ -168,13 +168,13 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
       {/* Market Gaps */}
       {research.gaps?.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 uppercase tracking-wide font-medium">
+          <div className="flex items-center gap-1.5 text-sm text-gray-500 uppercase tracking-wide font-medium">
             <Zap className="w-3 h-3 text-amber-500" />
             Market Gaps (Opportunities)
           </div>
           <div className="space-y-1">
             {research.gaps.map((gap: string, i: number) => (
-              <div key={i} className="text-xs text-amber-700 flex items-center gap-2">
+              <div key={i} className="text-sm text-amber-700 flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-amber-500 rounded-full" />
                 {gap}
               </div>
@@ -186,13 +186,13 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
       {/* Pain Points to Avoid */}
       {research.userComplaints?.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 uppercase tracking-wide font-medium">
+          <div className="flex items-center gap-1.5 text-sm text-gray-500 uppercase tracking-wide font-medium">
             <AlertTriangle className="w-3 h-3 text-red-500" />
             Avoid These Pain Points
           </div>
           <div className="space-y-1">
             {research.userComplaints.map((complaint: string, i: number) => (
-              <div key={i} className="text-xs text-red-700 flex items-center gap-2">
+              <div key={i} className="text-sm text-red-700 flex items-center gap-2">
                 <div className="w-1.5 h-1.5 bg-red-500 rounded-full" />
                 {complaint}
               </div>
@@ -204,7 +204,7 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
       {/* Raw Research Content (if structured data not available) */}
       {research.content && (
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 uppercase tracking-wide font-medium">
+          <div className="flex items-center gap-1.5 text-sm text-gray-500 uppercase tracking-wide font-medium">
             <Search className="w-3 h-3" />
             Research Analysis
           </div>
@@ -219,11 +219,11 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
       {/* Target Audience */}
       {research.targetAudience && (
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 uppercase tracking-wide font-medium">
+          <div className="flex items-center gap-1.5 text-sm text-gray-500 uppercase tracking-wide font-medium">
             <Users className="w-3 h-3" />
             Target Audience
           </div>
-          <p className="text-xs text-gray-700">{research.targetAudience}</p>
+          <p className="text-sm text-gray-700">{research.targetAudience}</p>
         </div>
       )}
 
@@ -231,20 +231,20 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
       <div className="grid grid-cols-2 gap-2">
         {research.techStack && (
           <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
+            <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-1">
               <Code className="w-3 h-3" />
               Common Stack
             </div>
-            <p className="text-xs text-gray-700">{research.techStack}</p>
+            <p className="text-sm text-gray-700">{research.techStack}</p>
           </div>
         )}
         {research.monetization && (
           <div className="bg-gray-50 rounded-lg p-2 border border-gray-200">
-            <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-1">
+            <div className="flex items-center gap-1.5 text-sm text-gray-500 mb-1">
               <Zap className="w-3 h-3 text-green-500" />
               Monetization
             </div>
-            <p className="text-xs text-gray-700">{research.monetization}</p>
+            <p className="text-sm text-gray-700">{research.monetization}</p>
           </div>
         )}
       </div>
@@ -252,13 +252,13 @@ export function ResearchPanel({ projectId }: ResearchPanelProps) {
       {/* Design Trends */}
       {research.designTrends?.length > 0 && (
         <div className="space-y-2">
-          <div className="flex items-center gap-1.5 text-xs text-gray-500 uppercase tracking-wide font-medium">
+          <div className="flex items-center gap-1.5 text-sm text-gray-500 uppercase tracking-wide font-medium">
             <Layout className="w-3 h-3" />
             Design Trends
           </div>
           <div className="flex flex-wrap gap-1">
             {research.designTrends.map((trend: string, i: number) => (
-              <span key={i} className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
+              <span key={i} className="text-sm bg-gray-100 text-gray-600 px-2 py-0.5 rounded">
                 {trend}
               </span>
             ))}
