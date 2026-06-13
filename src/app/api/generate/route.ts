@@ -147,9 +147,42 @@ Return ONLY valid JSON with:
     import("@/lib/orchestrator").then(({ HermesOrchestrator }) => {
       const hermes = new HermesOrchestrator(
         projectIdSafe, prompt, type as 'web' | 'mobile' | 'backend',
-        (status) => console.log("[Hermes]", status),
-        (phase) => console.log("[Hermes] phase:", phase),
-        (context) => console.log("[Hermes] awaiting user:", context),
+        (status) => {
+          console.log("[Hermes]", status);
+          // Send status to AI chat panel
+          db.insert(conversations).values({
+            id: crypto.randomUUID(),
+            projectId: projectIdSafe,
+            role: 'assistant',
+            content: status,
+            model: 'hermes-status',
+            createdAt: new Date(),
+          }).catch((err: any) => console.error("[Hermes] Failed to log status:", err));
+        },
+        (phase) => {
+          console.log("[Hermes] phase:", phase);
+          db.insert(conversations).values({
+            id: crypto.randomUUID(),
+            projectId: projectIdSafe,
+            role: 'assistant',
+            content: `Phase: ${phase}`,
+            model: 'hermes-phase',
+            createdAt: new Date(),
+          }).catch((err: any) => console.error("[Hermes] Failed to log phase:", err));
+        },
+        (context) => {
+          console.log("[Hermes] awaiting user:", context);
+          db.insert(conversations).values({
+            id: crypto.randomUUID(),
+            projectId: projectIdSafe,
+            role: 'assistant',
+            content: `Awaiting user input: ${JSON.stringify(context)}`,
+            model: 'hermes-awaiting',
+            createdAt: new Date(),
+          }).catch((err: any) => console.error("[Hermes] Failed to log awaiting:", err));
+        },
+        {}, // config (default)
+        researchResult, // research data
       );
       hermes.start().catch((err: any) => console.error("Hermes start error:", err));
     }).catch((err) => console.error("Failed to load orchestrator:", err));

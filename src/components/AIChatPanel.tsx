@@ -108,7 +108,7 @@ export function AIChatPanel({
       statusAddedRef.current.add('swarm');
       addMsg(
         "swarm",
-        `✅ Project has been decomposed into ${tasks.length} tasks and assigned to agents. Click on "Agents Swarm" in the workspace menu to view tasks and agents.`,
+        `✅ Project has been decomposed into ${tasks.length} tasks. View them in the workspace menu under "Future Release".`,
         "success"
       );
     }
@@ -190,7 +190,7 @@ export function AIChatPanel({
           addStatusMessage("code", `✅ Code has been generated! ${data.filesGenerated} files created. Click on "Code" in the workspace menu to view the files.`, "success");
         }
         if (data.tasksCreated > 0) {
-          addStatusMessage("swarm", `✅ Project decomposed into ${data.tasksCreated} tasks and assigned to agents. Click on "Agents Swarm" to view tasks and execution order.`, "success");
+          addStatusMessage("swarm", `✅ Project decomposed into ${data.tasksCreated} tasks. View them in the workspace menu under "Future Release".`, "success");
         }
       } else {
         const errorMessage: Message = {
