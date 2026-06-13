@@ -1,15 +1,14 @@
 #!/bin/bash
-# BuildAny VPS Sync Script
-# Pulls latest changes from GitHub and rebuilds
+# VPS Sync Script - One-command deploy for BuildAny
+# Usage: cd /root/buildany && bash vps-sync.sh
 
-echo "🚀 BuildAny VPS Sync Script"
-echo "=========================="
+set -e
 
-# Go to project directory
-cd /root/buildany || { echo "❌ Failed to cd to /root/buildany"; exit 1; }
+echo "🔄 BuildAny VPS Sync"
+echo "====================="
 
-# Pull latest changes from GitHub (main branch)
-echo "📥 Pulling latest changes from GitHub..."
+# Pull latest code
+echo "📥 Pulling latest code..."
 git fetch origin main
 git reset --hard origin/main
 if [ $? -ne 0 ]; then
@@ -25,8 +24,8 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-# Build the project
-echo "🔨 Building project..."
+# Build
+echo "🔨 Building..."
 npm run build
 if [ $? -ne 0 ]; then
     echo "❌ Build failed"
@@ -35,15 +34,14 @@ fi
 
 # Restart PM2 process
 echo "🔄 Restarting PM2 process..."
-pm2 restart buildany-3001 --update-env
+pm2 restart 0 --update-env
 if [ $? -ne 0 ]; then
     echo "❌ PM2 restart failed"
     exit 1
 fi
 
-# Check status
-echo "✅ Sync complete! Checking status..."
-pm2 status buildany
+# Save PM2 config
+pm2 save
 
-echo ""
-echo "🌐 BuildAny should be live at: https://base66.cloud"
+echo "✅ Done! BuildAny updated and restarted."
+echo "🌐 https://base66.cloud"

@@ -404,6 +404,8 @@ export class HermesOrchestrator {
       
       // Generate code using LLM
       const systemPrompt = getSystemPromptForType(this.state.platform);
+      console.log('[Hermes] Starting code generation with provider:', 'deepseek', 'platform:', this.state.platform);
+      
       const result = await llmRouter.generate({
         prompt: this.state.prompt,
         systemPrompt,
@@ -411,6 +413,8 @@ export class HermesOrchestrator {
         temperature: 0.7,
         maxTokens: 4000,
       });
+      
+      console.log('[Hermes] LLM result:', { success: result.success, hasContent: !!result.content, error: result.error });
 
       if (!result.success || !result.content) {
         await this.updateTaskStatus('Architecture', 'failed');
@@ -426,6 +430,13 @@ export class HermesOrchestrator {
 
       // Parse generated code into files
       const parsedFiles = parseGeneratedCode(result.content);
+      
+      console.log('[Hermes] Code generation result:', { 
+        hasContent: !!result.content, 
+        contentLength: result.content?.length || 0,
+        parsedFiles: parsedFiles.length,
+        firstFile: parsedFiles[0]?.path
+      });
       
       if (parsedFiles.length === 0) {
         await this.updateTaskStatus('Architecture', 'failed');
