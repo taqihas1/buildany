@@ -187,9 +187,9 @@ export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: P
     { id: 'preview' as WorkspaceTab, label: 'Preview', icon: Eye },
     { id: 'code' as WorkspaceTab, label: 'Code', icon: Code2 },
     { id: 'research' as WorkspaceTab, label: 'Research', icon: Search },
-    { id: 'swarm' as WorkspaceTab, label: 'Agents Swarm', icon: Bot },
     { id: 'wiki' as WorkspaceTab, label: 'Wiki Pages', icon: BookOpen },
     { id: 'review' as WorkspaceTab, label: 'Code Review', icon: Shield },
+    { id: 'swarm' as WorkspaceTab, label: 'Future Release', icon: Bot },
   ];
 
   return (

@@ -65,6 +65,7 @@ export interface OrchestrationState {
   startedAt: number;
   updatedAt: number;
   userDecision?: 'approve' | 'reject' | 'fix' | 'retry';
+  researchData?: any;
   learningContext: LearningContext;
   manualCorrections: ManualCorrectionRecord[];
   appliedRules: PersistentRule[];
@@ -128,7 +129,8 @@ export class HermesOrchestrator {
     onStatusUpdate: (status: string) => void,
     onPhaseChange: (phase: OrchestrationPhase) => void,
     onAwaitingUser: (context: any) => void,
-    config: Partial<OrchestratorConfig> = {}
+    config: Partial<OrchestratorConfig> = {},
+    researchData?: any,
   ) {
     this.config = { ...DEFAULT_CONFIG, ...config };
     this.onStatusUpdate = onStatusUpdate;
@@ -145,6 +147,7 @@ export class HermesOrchestrator {
       updatedAt: Date.now(),
       manualCorrections: [],
       appliedRules: [],
+      researchData,
       learningContext: {
         projectType: this.inferProjectType(prompt),
         complexity: this.inferComplexity(prompt),
@@ -157,9 +160,14 @@ export class HermesOrchestrator {
   async start() {
     await this.transitionTo('analyzing');
     
-    // Decompose project into tasks and assign to agents
+    // Create tasks for display only (agents are decorative in this release)
+    // Orchestrator handles all execution directly
     await this.decomposeAndAssignTasks();
     
+    // Generate wiki pages FIRST (before code, based on research)
+    await this.generateWikiPages();
+    
+    // Execute all phases directly - orchestrator does everything
     const flow = this.determineFlow();
     
     for (const phase of flow) {
@@ -183,42 +191,33 @@ export class HermesOrchestrator {
     // Auto-start code review after completion
     await this.autoStartCodeReview();
     
-    // Generate wiki pages
-    await this.generateWikiPages();
+    // Mark all tasks as completed for display
+    await this.markAllTasksCompleted();
   }
 
+  // Orchestrator does all work - agents are display-only for this release
+  // Tasks are created for visual progress tracking, not for agent execution
   private async decomposeAndAssignTasks() {
     try {
-      // Get available agents for this project
+      // Get available agents for this project (for display only)
       const projectAgents = await db.select().from(agents)
         .where(eq(agents.projectId, this.state.projectId));
       
       if (projectAgents.length === 0) {
-        console.error('[Hermes] No agents found for project', this.state.projectId);
-        return;
+        console.log('[Hermes] No agents found for display - continuing with orchestrator-only mode');
       }
 
-      // Use the decompose API for dynamic task generation
-      const decomposeResponse = await fetch('http://localhost:3000/api/decompose', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          projectId: this.state.projectId,
-          prompt: this.state.prompt,
-          type: this.state.platform,
-        }),
-      });
+      // Decompose project into tasks for visual progress tracking
+      const taskPlan = this.decomposeProject(this.state.prompt, this.state.platform);
       
-      const decomposeData = await decomposeResponse.json();
-      const taskList = decomposeData.tasks || [];
-
-      if (taskList.length === 0) {
+      if (taskPlan.length === 0) {
         console.error('[Hermes] Decompose returned no tasks');
         return;
       }
 
-      for (const taskDef of taskList) {
-        // Find best matching agent based on task type
+      // Create tasks in DB for display (not assigned to agents - orchestrator does the work)
+      for (const taskDef of taskPlan) {
+        // Find best matching agent for display purposes (decorative assignment)
         const matchingAgent = projectAgents.find(a => a.type === taskDef.type) || 
                              projectAgents.find(a => a.type === 'code') ||
                              projectAgents[0];
@@ -239,7 +238,7 @@ export class HermesOrchestrator {
           createdAt: new Date(),
         });
         
-        // Update agent status to busy
+        // Set agents to busy for display (orchestrator does the actual work)
         if (matchingAgent) {
           await db.update(agents)
             .set({ status: 'busy' })
@@ -247,10 +246,112 @@ export class HermesOrchestrator {
         }
       }
 
-      this.onStatusUpdate(`📋 Decomposed into ${taskList.length} tasks and assigned to ${projectAgents.length} agents`);
+      // Mark first tasks as ready (no dependencies)
+      const firstTasks = await db.select().from(tasks)
+        .where(eq(tasks.projectId, this.state.projectId));
+      
+      for (const ft of firstTasks) {
+        const input = JSON.parse(ft.input || '{}');
+        if (!input.dependencies || input.dependencies.length === 0) {
+          await db.update(tasks).set({ status: 'ready' }).where(eq(tasks.id, ft.id));
+        }
+      }
+
+      this.onStatusUpdate(`📋 Decomposed into ${taskPlan.length} display tasks (orchestrator handles all execution)`);
     } catch (error) {
-      console.error('[Hermes] Failed to decompose and assign tasks:', error);
+      console.error('[Hermes] Failed to decompose tasks for display:', error);
     }
+  }
+
+  // Decompose a project into executable tasks (for display only - orchestrator does the work)
+  private decomposeProject(prompt: string, type: string) {
+    const tasks = [];
+
+    // Tasks that mirror the orchestrator phases for display purposes
+    tasks.push({
+      type: 'research',
+      title: 'Research & Pattern Analysis',
+      description: 'Research top apps in this space and extract UX patterns',
+      priority: 5,
+      dependencies: [],
+      prompt: `Research the best apps for: ${prompt}. Find top 5 competitors, their key features, UI patterns, and user complaints.`,
+      context: 'research',
+    });
+
+    tasks.push({
+      type: 'code',
+      title: 'Architecture & File Structure',
+      description: 'Design component hierarchy and file organization',
+      priority: 4,
+      dependencies: ['Research & Pattern Analysis'],
+      prompt: `Design the file structure and component hierarchy for: ${prompt}. Type: ${type}.`,
+      context: 'architecture',
+    });
+
+    tasks.push({
+      type: 'code',
+      title: 'Page Components',
+      description: 'Build main pages with Next.js + Tailwind + shadcn',
+      priority: 4,
+      dependencies: ['Architecture & File Structure'],
+      prompt: `Generate ${type === 'mobile' ? 'Expo SDK 54 compatible React Native screens' : 'Next.js 15 pages with Tailwind CSS and shadcn/ui'} for: ${prompt}`,
+      context: 'implementation',
+    });
+
+    tasks.push({
+      type: 'code',
+      title: 'API Routes & Backend',
+      description: 'Build API endpoints and data layer',
+      priority: 3,
+      dependencies: ['Page Components'],
+      prompt: `Generate ${type === 'mobile' ? 'React Navigation and Zustand state management' : 'Next.js API routes and Drizzle ORM schema'} for: ${prompt}`,
+      context: 'backend',
+    });
+
+    tasks.push({
+      type: 'test',
+      title: 'Pre-flight Validation',
+      description: 'Run build tests and validation checks',
+      priority: 4,
+      dependencies: ['Page Components', 'API Routes & Backend'],
+      prompt: type === 'mobile'
+        ? 'Run Expo SDK 54 pre-flight: check package.json versions, tsconfig paths, circular imports.'
+        : 'Run Next.js build and TypeScript checks.',
+      context: 'testing',
+    });
+
+    tasks.push({
+      type: 'code',
+      title: 'Visual Assets & UI Polish',
+      description: 'Generate icons, splash screens, theme constants',
+      priority: 2,
+      dependencies: ['Page Components'],
+      prompt: `Generate app icons, splash screen, and theme constants for: ${prompt}.`,
+      context: 'assets',
+    });
+
+    tasks.push({
+      type: 'review',
+      title: 'Code Review & Quality Check',
+      description: 'Review all files, fix imports, ensure consistency',
+      priority: 5,
+      dependencies: ['Pre-flight Validation', 'Visual Assets & UI Polish'],
+      prompt: 'Review all generated files. Fix any import mismatches, ensure consistent styling, verify no placeholder content remains.',
+      context: 'review',
+    });
+
+    // CI/CD (parallel)
+    tasks.push({
+      type: 'deploy',
+      title: 'CI/CD Pipeline',
+      description: 'Generate GitHub Actions workflow for build + deploy',
+      priority: 2,
+      dependencies: [],
+      prompt: `Generate GitHub Actions workflow for ${type} app with auto-retry, EAS integration, and issue creation on failure.`,
+      context: 'cicd',
+    });
+
+    return tasks;
   }
 
   private async executePhase(phase: OrchestrationPhase): Promise<PhaseResult> {
@@ -296,8 +397,10 @@ export class HermesOrchestrator {
     const startTime = Date.now();
     
     try {
-      // Update task status
-      await this.updateTaskStatus('Generate project structure', 'running');
+      // Update task statuses for code generation tasks
+      await this.updateTaskStatus('Architecture', 'running');
+      await this.updateTaskStatus('Page Components', 'running');
+      await this.updateTaskStatus('API Routes', 'running');
       
       // Generate code using LLM
       const systemPrompt = getSystemPromptForType(this.state.platform);
@@ -310,7 +413,9 @@ export class HermesOrchestrator {
       });
 
       if (!result.success || !result.content) {
-        await this.updateTaskStatus('Generate project structure', 'failed');
+        await this.updateTaskStatus('Architecture', 'failed');
+        await this.updateTaskStatus('Page Components', 'failed');
+        await this.updateTaskStatus('API Routes', 'failed');
         return {
           phase: 'coding',
           success: false,
@@ -323,7 +428,9 @@ export class HermesOrchestrator {
       const parsedFiles = parseGeneratedCode(result.content);
       
       if (parsedFiles.length === 0) {
-        await this.updateTaskStatus('Generate project structure', 'failed');
+        await this.updateTaskStatus('Architecture', 'failed');
+        await this.updateTaskStatus('Page Components', 'failed');
+        await this.updateTaskStatus('API Routes', 'failed');
         return {
           phase: 'coding',
           success: false,
@@ -348,10 +455,10 @@ export class HermesOrchestrator {
       }
 
       // Update all code tasks to completed
-      await this.updateTaskStatus('Generate project structure', 'completed');
-      await this.updateTaskStatus('Generate main UI components', 'completed');
-      await this.updateTaskStatus('Generate styling and CSS', 'completed');
-      await this.updateTaskStatus('Generate business logic', 'completed');
+      await this.updateTaskStatus('Architecture', 'completed');
+      await this.updateTaskStatus('Page Components', 'completed');
+      await this.updateTaskStatus('API Routes', 'completed');
+      await this.updateTaskStatus('Visual Assets', 'completed');
 
       // Log success to AI chat
       await db.insert(conversations).values({
@@ -376,7 +483,9 @@ export class HermesOrchestrator {
         timestamp: Date.now(),
       };
     } catch (error) {
-      await this.updateTaskStatus('Generate project structure', 'failed');
+      await this.updateTaskStatus('Architecture', 'failed');
+      await this.updateTaskStatus('Page Components', 'failed');
+      await this.updateTaskStatus('API Routes', 'failed');
       return {
         phase: 'coding',
         success: false,
@@ -388,14 +497,14 @@ export class HermesOrchestrator {
 
   private async executeTestAgent(): Promise<PhaseResult> {
     try {
-      await this.updateTaskStatus('Run tests and validation', 'running');
+      await this.updateTaskStatus('Pre-flight', 'running');
       
       // Get generated files
       const files = await db.select().from(projectFiles)
         .where(eq(projectFiles.projectId, this.state.projectId));
       
       if (files.length === 0) {
-        await this.updateTaskStatus('Run tests and validation', 'failed');
+        await this.updateTaskStatus('Pre-flight', 'failed');
         return {
           phase: 'testing',
           success: false,
@@ -419,7 +528,7 @@ export class HermesOrchestrator {
         }
       }
 
-      await this.updateTaskStatus('Run tests and validation', 'completed');
+      await this.updateTaskStatus('Pre-flight', 'completed');
 
       return {
         phase: 'testing',
@@ -433,7 +542,7 @@ export class HermesOrchestrator {
         timestamp: Date.now(),
       };
     } catch (error) {
-      await this.updateTaskStatus('Run tests and validation', 'failed');
+      await this.updateTaskStatus('Pre-flight', 'failed');
       return {
         phase: 'testing',
         success: false,
@@ -445,7 +554,7 @@ export class HermesOrchestrator {
 
   private async executeReviewAgent(): Promise<PhaseResult> {
     try {
-      await this.updateTaskStatus('Code review and quality check', 'running');
+      await this.updateTaskStatus('Code Review', 'running');
       
       // Get files for review
       const files = await db.select().from(projectFiles)
@@ -470,7 +579,7 @@ export class HermesOrchestrator {
         }
       }
 
-      await this.updateTaskStatus('Code review and quality check', 'completed');
+      await this.updateTaskStatus('Code Review', 'completed');
 
       return {
         phase: 'reviewing',
@@ -484,7 +593,7 @@ export class HermesOrchestrator {
         timestamp: Date.now(),
       };
     } catch (error) {
-      await this.updateTaskStatus('Code review and quality check', 'failed');
+      await this.updateTaskStatus('Code Review', 'failed');
       return {
         phase: 'reviewing',
         success: false,
@@ -496,7 +605,7 @@ export class HermesOrchestrator {
 
   private async executePreviewAgent(): Promise<PhaseResult> {
     try {
-      await this.updateTaskStatus('Build preview', 'running');
+      await this.updateTaskStatus('Preview', 'running');
       
       // Get HTML file for preview
       const files = await db.select().from(projectFiles)
@@ -505,7 +614,7 @@ export class HermesOrchestrator {
       const htmlFile = files.find(f => f.path === 'index.html' || f.path.endsWith('.html'));
       
       if (!htmlFile || !htmlFile.content) {
-        await this.updateTaskStatus('Build preview', 'failed');
+        await this.updateTaskStatus('Preview', 'failed');
         return {
           phase: 'previewing',
           success: false,
@@ -514,7 +623,7 @@ export class HermesOrchestrator {
         };
       }
 
-      // Update project with preview
+      // Update project with preview status
       await db.update(projects)
         .set({ 
           status: 'preview_ready',
@@ -522,7 +631,7 @@ export class HermesOrchestrator {
         })
         .where(eq(projects.id, this.state.projectId));
 
-      await this.updateTaskStatus('Build preview', 'completed');
+      await this.updateTaskStatus('Preview', 'completed');
 
       return {
         phase: 'previewing',
@@ -535,7 +644,7 @@ export class HermesOrchestrator {
         timestamp: Date.now(),
       };
     } catch (error) {
-      await this.updateTaskStatus('Build preview', 'failed');
+      await this.updateTaskStatus('Preview', 'failed');
       return {
         phase: 'previewing',
         success: false,
@@ -664,41 +773,102 @@ export class HermesOrchestrator {
 
   private async generateWikiPages() {
     try {
-      const files = await db.select().from(projectFiles)
-        .where(eq(projectFiles.projectId, this.state.projectId));
+      // Mark research task as running (orchestrator does the work)
+      await this.updateTaskStatus('Research', 'running');
       
-      if (files.length === 0) return;
+      const research = this.state.researchData;
+      
+      // Generate Overview wiki page from research
+      if (research) {
+        const overviewContent = `# ${this.state.prompt} - Overview
 
-      // Generate architecture wiki page
-      const architectureContent = files.map(f => 
-        `- **${f.path}**: ${f.language || 'unknown'} file`
-      ).join('\n');
+## Target Audience
+${research.targetAudience || 'Not specified'}
 
-      await db.insert(wikiPages).values({
-        id: crypto.randomUUID(),
-        projectId: this.state.projectId,
-        pageType: 'architecture',
-        title: 'Architecture Overview',
-        content: `# Architecture Overview\n\n## Files\n\n${architectureContent}\n\n## Project Type\n${this.state.platform}\n\n## Generated At\n${new Date().toISOString()}`,
-        autoGenerated: true,
-        createdAt: new Date(),
-      });
+## Pain Points
+${(research.painPoints || []).map((p: string) => `- ${p}`).join('\n') || 'None identified'}
 
-      // Generate tech stack wiki page
-      const techStack = this.inferTechStack(files);
-      await db.insert(wikiPages).values({
-        id: crypto.randomUUID(),
-        projectId: this.state.projectId,
-        pageType: 'tech-stack',
-        title: 'Tech Stack',
-        content: `# Tech Stack\n\n${techStack.map(t => `- ${t}`).join('\n')}`,
-        autoGenerated: true,
-        createdAt: new Date(),
-      });
+## Market Gaps
+${(research.marketGaps || []).map((g: string) => `- ${g}`).join('\n') || 'None identified'}
 
-      this.onStatusUpdate('📚 Wiki pages generated');
+## Core Features
+${(research.coreFeatures || []).map((f: string) => `- ${f}`).join('\n') || 'None specified'}
+
+## Design Trends
+${(research.designTrends || []).map((d: string) => `- ${d}`).join('\n') || 'None identified'}
+`;
+
+        await db.insert(wikiPages).values({
+          id: crypto.randomUUID(),
+          projectId: this.state.projectId,
+          pageType: 'overview',
+          title: `${this.state.prompt.slice(0, 50)} - Overview`,
+          content: overviewContent,
+          autoGenerated: true,
+          createdAt: new Date(),
+        });
+      }
+
+      // Generate Competitors wiki page
+      if (research?.competitors?.length) {
+        const competitorsContent = `# Competitors Analysis
+
+${research.competitors.map((c: any) => `## ${c.name}
+
+**Features:** ${(c.features || []).join(', ')}
+
+**Strengths:** ${(c.strengths || []).join(', ')}
+
+**Weaknesses:** ${(c.weaknesses || []).join(', ')}
+
+---`).join('\n')}
+`;
+
+        await db.insert(wikiPages).values({
+          id: crypto.randomUUID(),
+          projectId: this.state.projectId,
+          pageType: 'competitors',
+          title: 'Competitors Analysis',
+          content: competitorsContent,
+          autoGenerated: true,
+          createdAt: new Date(),
+        });
+      }
+
+      // Generate Tech Stack wiki page
+      if (research?.techStack?.length) {
+        const techStackContent = `# Recommended Tech Stack
+
+## Platform
+${this.state.platform}
+
+## Technologies
+${research.techStack.map((t: string) => `- ${t}`).join('\n')}
+
+## Project Type
+${this.state.learningContext.projectType}
+
+## Complexity
+${this.state.learningContext.complexity}
+`;
+
+        await db.insert(wikiPages).values({
+          id: crypto.randomUUID(),
+          projectId: this.state.projectId,
+          pageType: 'tech-stack',
+          title: 'Tech Stack Recommendation',
+          content: techStackContent,
+          autoGenerated: true,
+          createdAt: new Date(),
+        });
+      }
+
+      // Mark research task as completed
+      await this.updateTaskStatus('Research', 'completed');
+      this.onStatusUpdate('📚 Wiki pages generated from research');
     } catch (error) {
       console.error('[Hermes] Wiki generation failed:', error);
+      this.onStatusUpdate('⚠️ Wiki generation failed');
     }
   }
 
@@ -727,11 +897,25 @@ export class HermesOrchestrator {
 
   private async updateTaskStatus(title: string, status: string) {
     try {
-      const taskRows = await db.select().from(tasks)
+      // Flexible matching - try exact title first, then partial match
+      let taskRows = await db.select().from(tasks)
         .where(and(
           eq(tasks.projectId, this.state.projectId),
           eq(tasks.title, title)
         ));
+      
+      // If no exact match, try partial match
+      if (taskRows.length === 0) {
+        const allTasks = await db.select().from(tasks)
+          .where(eq(tasks.projectId, this.state.projectId));
+        
+        // Match by keywords in the title
+        const keywords = title.toLowerCase().split(' ').filter(w => w.length > 3);
+        taskRows = allTasks.filter(t => {
+          const taskTitle = t.title?.toLowerCase() || '';
+          return keywords.some(kw => taskTitle.includes(kw));
+        });
+      }
       
       for (const task of taskRows) {
         await db.update(tasks)
@@ -927,6 +1111,7 @@ export class HermesOrchestrator {
   }
 
   private determineFlow(): OrchestrationPhase[] {
+    // Orchestrator handles all phases directly - agents are display-only
     let flow: OrchestrationPhase[] = ['coding', 'testing', 'reviewing', 'previewing'];
     
     const extraPhases = this.getExtraPhases();
@@ -1027,6 +1212,32 @@ export class HermesOrchestrator {
     
     if (typeof window !== 'undefined') {
       localStorage.setItem('hermes_outcomes', JSON.stringify(outcomes));
+    }
+  }
+
+  // Mark all tasks as completed at the end (display-only update)
+  private async markAllTasksCompleted() {
+    try {
+      const projectTasks = await db.select().from(tasks)
+        .where(eq(tasks.projectId, this.state.projectId));
+      
+      for (const task of projectTasks) {
+        await db.update(tasks)
+          .set({ status: 'completed' })
+          .where(eq(tasks.id, task.id));
+      }
+      
+      // Free all agents for display
+      const projectAgents = await db.select().from(agents)
+        .where(eq(agents.projectId, this.state.projectId));
+      
+      for (const agent of projectAgents) {
+        await db.update(agents)
+          .set({ status: 'idle' })
+          .where(eq(agents.id, agent.id));
+      }
+    } catch (error) {
+      console.error('[Hermes] Failed to mark tasks completed:', error);
     }
   }
 

@@ -1,0 +1,10 @@
+[2026-06-13T03:52:48.320Z] REQUEST_START: {"url":"http://localhost:3001/api/generate","method":"POST","headers":{"accept":"*/*","content-length":"42","content-type":"application/json","host":"127.0.0.1:3001","user-agent":"curl/8.5.0","x-clerk-auth-message":"","x-clerk-auth-reason":"dev-browser-missing","x-clerk-auth-signature":"","x-clerk-auth-status":"signed-out","x-clerk-auth-token":"","x-clerk-clerk-url":"http://127.0.0.1:3001/api/generate","x-clerk-debug":"true","x-clerk-request-data":"U2FsdGVkX191qsrG+7/0UVyfnHYnpoEWT/z+AOxAgBk=","x-forwarded-for":"::ffff:127.0.0.1","x-forwarded-host":"127.0.0.1:3001","x-forwarded-port":"3001","x-forwarded-proto":"http"}}
+[2026-06-13T03:52:48.345Z] AUTH_OK: {"userId":"guest-f998afef-f419-4f13-8eac-ef6c6e0d9898"}
+[2026-06-13T03:52:48.348Z] BODY: {"prompt":"Build a todo app","type":"web"}
+[2026-06-13T03:52:48.349Z] CREATING_NEW_PROJECT: "No projectId provided"
+[2026-06-13T03:52:48.350Z] GENERATED: {"newId":"0853e0d7-1d8e-49a7-adb7-dd8db6681bdb","shortName":"Todo"}
+[2026-06-13T03:52:58.433Z] RESEARCH_OK: {"hasResult":true}
+[2026-06-13T03:52:58.433Z] DB_INSERT_START: {"newId":"0853e0d7-1d8e-49a7-adb7-dd8db6681bdb","userId":"guest-f998afef-f419-4f13-8eac-ef6c6e0d9898","shortName":"Todo","prompt":"Build a todo app"}
+[2026-06-13T03:52:58.442Z] DB_INSERT_OK: {"newId":"0853e0d7-1d8e-49a7-adb7-dd8db6681bdb"}
+[2026-06-13T03:52:58.444Z] DB_VERIFY: {"found":true,"projectId":"0853e0d7-1d8e-49a7-adb7-dd8db6681bdb"}
+[2026-06-13T03:52:58.488Z] RESPONSE: {"success":true,"projectId":"0853e0d7-1d8e-49a7-adb7-dd8db6681bdb","hasResearch":true,"serverTime":"2026-06-13T03:52:58.488Z"}
