@@ -35,7 +35,7 @@ fi
 
 # Restart PM2 process
 echo "🔄 Restarting PM2 process..."
-pm2 restart buildany --update-env
+pm2 restart buildany-3001 --update-env
 if [ $? -ne 0 ]; then
     echo "❌ PM2 restart failed"
     exit 1
