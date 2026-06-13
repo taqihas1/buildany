@@ -24,27 +24,54 @@ export async function generateMobileProject(options: MobileProjectOptions) {
   });
 
   for (const file of files) {
-    await db.insert(projectFiles).values({
-      id: crypto.randomUUID(),
-      projectId,
-      path: file.path,
-      content: file.content,
-      language: file.type || 'typescript',
-      isGenerated: true,
-    }).onConflictDoUpdate({
-      target: [projectFiles.projectId, projectFiles.path],
-      set: { content: file.content, updatedAt: new Date() },
-    });
+    // Check if file already exists
+    const existingFile = await db.select()
+      .from(projectFiles)
+      .where(eq(projectFiles.projectId, projectId))
+      .get();
+    
+    if (existingFile && existingFile.path === file.path) {
+      // Update existing file
+      await db.update(projectFiles)
+        .set({ content: file.content, updatedAt: new Date() })
+        .where(eq(projectFiles.id, existingFile.id));
+    } else {
+      // Insert new file
+      await db.insert(projectFiles).values({
+        id: crypto.randomUUID(),
+        projectId,
+        path: file.path,
+        content: file.content,
+        language: file.type || 'typescript',
+        isGenerated: true,
+      });
+    }
   }
 
-  await db.insert(deployments).values({
-    id: crypto.randomUUID(),
-    projectId,
-    provider: platform === 'both' ? 'ios+android' : platform,
-    status: 'ready',
-    url: `/api/project/${projectId}/download/mobile`,
-    createdAt: new Date(),
-  }).onConflictDoNothing();
+  // Check if deployment already exists
+  const existingDeployment = await db.select()
+    .from(deployments)
+    .where(eq(deployments.projectId, projectId))
+    .get();
+  
+  const provider = platform === 'both' ? 'ios+android' : platform;
+  
+  if (existingDeployment) {
+    // Update existing deployment
+    await db.update(deployments)
+      .set({ status: 'ready', url: `/api/project/${projectId}/download/mobile` })
+      .where(eq(deployments.id, existingDeployment.id));
+  } else {
+    // Insert new deployment
+    await db.insert(deployments).values({
+      id: crypto.randomUUID(),
+      projectId,
+      provider: provider,
+      status: 'ready',
+      url: `/api/project/${projectId}/download/mobile`,
+      createdAt: new Date(),
+    });
+  }
 
   return { buildId, files };
 }

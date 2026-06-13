@@ -24,17 +24,27 @@ export async function POST(
     });
 
     // Save workflow file to project files
-    await db.insert(projectFiles).values({
-      id: crypto.randomUUID(),
-      projectId: id,
-      path: '.github/workflows/eas-build.yml',
-      content: workflowContent,
-      language: 'yaml',
-      isGenerated: true,
-    }).onConflictDoUpdate({
-      target: [projectFiles.projectId, projectFiles.path],
-      set: { content: workflowContent, updatedAt: new Date() },
-    });
+    const existingWorkflow = await db.select()
+      .from(projectFiles)
+      .where(eq(projectFiles.projectId, id))
+      .get();
+    
+    if (existingWorkflow && existingWorkflow.path === '.github/workflows/eas-build.yml') {
+      // Update existing workflow
+      await db.update(projectFiles)
+        .set({ content: workflowContent, updatedAt: new Date() })
+        .where(eq(projectFiles.id, existingWorkflow.id));
+    } else {
+      // Insert new workflow
+      await db.insert(projectFiles).values({
+        id: crypto.randomUUID(),
+        projectId: id,
+        path: '.github/workflows/eas-build.yml',
+        content: workflowContent,
+        language: 'yaml',
+        isGenerated: true,
+      });
+    }
 
     return NextResponse.json({
       success: true,
