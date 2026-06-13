@@ -607,18 +607,27 @@ export class HermesOrchestrator {
     try {
       await this.updateTaskStatus('Preview', 'running');
       
-      // Get HTML file for preview
       const files = await db.select().from(projectFiles)
         .where(eq(projectFiles.projectId, this.state.projectId));
       
-      const htmlFile = files.find(f => f.path === 'index.html' || f.path.endsWith('.html'));
+      // For web: look for HTML files
+      // For mobile: look for entry point (app/index.tsx or index.tsx)
+      let previewFile = null;
+      let previewType = 'web';
       
-      if (!htmlFile || !htmlFile.content) {
+      if (this.state.platform === 'mobile') {
+        previewFile = files.find(f => f.path === 'app/index.tsx' || f.path === 'index.tsx' || f.path.endsWith('.tsx'));
+        previewType = 'mobile';
+      } else {
+        previewFile = files.find(f => f.path === 'index.html' || f.path.endsWith('.html'));
+      }
+      
+      if (!previewFile || !previewFile.content) {
         await this.updateTaskStatus('Preview', 'failed');
         return {
           phase: 'previewing',
           success: false,
-          message: 'No HTML file found for preview',
+          message: `No preview file found for ${this.state.platform} app`,
           timestamp: Date.now(),
         };
       }
@@ -639,7 +648,8 @@ export class HermesOrchestrator {
         message: 'Preview built successfully',
         details: { 
           previewUrl: `/api/project/${this.state.projectId}/files`,
-          htmlFile: htmlFile.path,
+          previewFile: previewFile.path,
+          previewType,
         },
         timestamp: Date.now(),
       };
