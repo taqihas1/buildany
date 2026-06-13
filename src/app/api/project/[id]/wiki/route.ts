@@ -44,10 +44,8 @@ export async function GET(
       projectId,
       pages: pages.map((page) => ({
         ...page,
-        content: page.content.length > 1000 
-          ? page.content.slice(0, 1000) + "..." 
-          : page.content,
-        isTruncated: page.content.length > 1000,
+        content: page.content,
+        isTruncated: false,
       })),
       count: pages.length,
     });
