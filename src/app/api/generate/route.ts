@@ -193,6 +193,12 @@ Return ONLY valid JSON with:
       message: "🚀 AI Assistant started! Watch progress in the AI Chat...",
       research: researchResult,
       serverTime: new Date().toISOString(),
+    }, {
+      headers: {
+        'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+        'Pragma': 'no-cache',
+        'Expires': '0',
+      }
     });
   } catch (error: any) {
     debug("ROUTE_ERROR", { error: error instanceof Error ? error.message : String(error), stack: error instanceof Error ? error.stack : "no stack" });
