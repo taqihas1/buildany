@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Send, Bot, User, Loader2, Sparkles, CheckCircle, AlertCircle, MessageSquare, ArrowRight } from "lucide-react";
+import { Send, Bot, User, Loader2, Sparkles, CheckCircle, AlertCircle, MessageSquare, ArrowRight, Zap } from "lucide-react";
+import { useHermesChat } from "@/hooks/useHermesChat";
 
 interface Message {
   id: string;
@@ -49,6 +50,7 @@ export function AIChatPanel({
   files = [],
   tasks = [],
 }: AIChatPanelProps) {
+  const [useHermes, setUseHermes] = useState(false);
   const [messages, setMessages] = useState<Message[]>(() => {
     const filtered = initialMessages
       .filter((m) => {
@@ -65,7 +67,9 @@ export function AIChatPanel({
       {
         id: "welcome",
         role: "assistant",
-        content: "Hi! I'm your AI developer. Describe what you want to build, and I'll generate the code for you. I'll keep you updated on every step of the process!",
+        content: useHermes 
+          ? "Hi! I'm Hermes, your AI developer agent. I can help you build, debug, and ship code with structured skills. What do you want to build?"
+          : "Hi! I'm your AI developer. Describe what you want to build, and I'll generate the code for you. I'll keep you updated on every step of the process!",
       },
       ...filtered,
     ];
@@ -75,6 +79,8 @@ export function AIChatPanel({
   const [isLoading, setIsLoading] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const addStatusRef = useRef<((statusType: string, content: string, variant?: "success" | "info" | "warning") => void) | null>(null);
+
+  const { messages: hermesMessages, isLoading: hermesLoading, sendMessage: sendHermesMessage } = useHermesChat();
 
   const addStatusMessage = useCallback((statusType: string, content: string, variant: "success" | "info" | "warning" = "info") => {
     setMessages(prev => [...prev, {
@@ -132,9 +138,26 @@ export function AIChatPanel({
     };
   }, [addStatusMessage]);
 
+  // Sync Hermes messages with local state
+  useEffect(() => {
+    if (useHermes && hermesMessages.length > 0) {
+      // Convert Hermes messages to our format
+      const converted = hermesMessages.map(hm => ({
+        id: hm.id,
+        role: hm.role as "user" | "assistant",
+        content: hm.content,
+        isLoading: hm.isLoading,
+      }));
+      setMessages(prev => {
+        const userMsgs = prev.filter(m => m.role === "user" || m.role === "system");
+        return [...userMsgs, ...converted];
+      });
+    }
+  }, [hermesMessages, useHermes]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading) return;
+    if (!input.trim() || isLoading || hermesLoading) return;
 
     const userMessage: Message = {
       id: getMessageId(),
@@ -144,9 +167,16 @@ export function AIChatPanel({
 
     setMessages((prev) => [...prev, userMessage]);
     setInput("");
+
+    if (useHermes) {
+      // Use Hermes chat
+      await sendHermesMessage(userMessage.content);
+      return;
+    }
+
+    // Use original /api/generate
     setIsLoading(true);
 
-    // Add loading message
     const loadingMessage: Message = {
       id: "loading",
       role: "assistant",
@@ -168,7 +198,6 @@ export function AIChatPanel({
 
       const data = await response.json();
 
-      // Remove loading message
       setMessages((prev) => prev.filter((m) => m.id !== "loading"));
 
       if (data.success || data.projectId) {
@@ -182,7 +211,6 @@ export function AIChatPanel({
         };
         setMessages((prev) => [...prev, aiMessage]);
 
-        // Add status messages for each completed phase
         if (data.research) {
           addStatusMessage("research", "📊 Research complete! Market analysis and competitor research has been saved. Click on Research to view.", "success");
         }
@@ -227,7 +255,6 @@ export function AIChatPanel({
     };
     const tabName = msg.statusType ? tabMap[msg.statusType] : null;
 
-    // Strip markdown bold for cleaner display
     const cleanContent = msg.content?.replace(/\*\*/g, '') || '';
 
     return (
@@ -258,16 +285,13 @@ export function AIChatPanel({
     );
   };
 
-  // Filter out assistant messages that contain raw code (should be in Code tab, not chat)
   const isCodeContent = (content: string): boolean => {
     if (!content) return false;
-    // Check for code block indicators
     if (content.includes('```')) return true;
     if (content.includes('<!DOCTYPE')) return true;
     if (content.includes('<html')) return true;
     if (content.includes('function(') || content.includes('function ')) return true;
     if (content.includes('const ') || content.includes('let ')) return true;
-    // Check if it's very long (likely code)
     if (content.length > 500) return true;
     return false;
   };
@@ -278,9 +302,23 @@ export function AIChatPanel({
       <div className="h-12 border-b border-gray-200 flex items-center px-4 bg-white">
         <div className="flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-cyan-600" />
-          <h3 className="text-sm font-medium text-gray-900">AI Assistant</h3>
+          <h3 className="text-sm font-medium text-gray-900">
+            {useHermes ? "Hermes Agent" : "AI Assistant"}
+          </h3>
         </div>
-        <div className="ml-auto flex items-center gap-1.5">
+        <div className="ml-auto flex items-center gap-2">
+          <button
+            onClick={() => setUseHermes(!useHermes)}
+            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
+              useHermes 
+                ? "bg-purple-100 text-purple-700 hover:bg-purple-200" 
+                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+            title={useHermes ? "Switch to AI Assistant" : "Switch to Hermes Agent"}
+          >
+            <Zap className="w-3 h-3" />
+            {useHermes ? "Hermes" : "AI"}
+          </button>
           <span className={`w-2 h-2 rounded-full ${
             projectStatus === "ready" ? "bg-emerald-400" : 
             projectStatus === "generating" ? "bg-amber-400 animate-pulse" : 
@@ -293,12 +331,10 @@ export function AIChatPanel({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {messages.map((message) => {
-          // Skip system messages and code-containing assistant messages
           if (message.role === "system") {
             return <div key={message.id}>{renderStatusMessage(message)}</div>;
           }
           
-          // Skip assistant messages that contain raw code (should be in Code tab)
           if (message.role === "assistant" && isCodeContent(message.content)) {
             return null;
           }
@@ -309,7 +345,11 @@ export function AIChatPanel({
               className={`flex gap-2 ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
               {message.role === "assistant" && (
-                <div className="w-6 h-6 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-full flex items-center justify-center shrink-0 mt-1">
+                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-1 ${
+                  useHermes 
+                    ? "bg-gradient-to-br from-purple-500 to-pink-500" 
+                    : "bg-gradient-to-br from-cyan-500 to-blue-500"
+                }`}>
                   <Bot className="w-3.5 h-3.5 text-white" />
                 </div>
               )}
@@ -317,13 +357,15 @@ export function AIChatPanel({
                 className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
                   message.role === "user"
                     ? "bg-cyan-50 text-gray-900 border border-cyan-200 ml-4"
+                    : useHermes
+                    ? "bg-purple-50 text-gray-800 mr-4 border border-purple-200"
                     : "bg-gray-100 text-gray-800 mr-4 border border-gray-200"
                 }`}
               >
                 {message.isLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    Generating code...
+                    {useHermes ? "Hermes is thinking..." : "Generating code..."}
                   </div>
                 ) : (
                   <div className="whitespace-pre-wrap">{message.content}</div>
@@ -350,14 +392,18 @@ export function AIChatPanel({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask the AI to modify your app..."
+            placeholder={useHermes ? "Ask Hermes anything..." : "Ask the AI to modify your app..."}
             className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-500"
-            disabled={isLoading}
+            disabled={isLoading || hermesLoading}
           />
           <button
             type="submit"
-            disabled={isLoading || !input.trim()}
-            className="px-3 py-2 bg-gradient-to-r from-cyan-500 to-blue-500 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50"
+            disabled={isLoading || hermesLoading || !input.trim()}
+            className={`px-3 py-2 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 ${
+              useHermes 
+                ? "bg-gradient-to-r from-purple-500 to-pink-500" 
+                : "bg-gradient-to-r from-cyan-500 to-blue-500"
+            }`}
           >
             <Send className="w-4 h-4" />
           </button>

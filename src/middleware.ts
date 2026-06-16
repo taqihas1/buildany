@@ -7,6 +7,7 @@ const PUBLIC_API_ROUTES = [
   '/api/decompose',
   '/api/project',
   '/api/test-auth',
+  '/api/hermes-chat',
   '/api/diag',
   '/api/test',
 ];
