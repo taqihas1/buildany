@@ -10,7 +10,6 @@ const TOOL_URL = 'http://localhost:3000/api/hermes-tool';
 async function testHermesWithTool() {
   console.log('🧪 Testing Hermes tool calling...\n');
 
-  // Step 1: Send message that should trigger createProject tool
   const payload = {
     messages: [
       { role: 'user', content: 'Build me a simple recipe app called RecipeBuddy' }
@@ -35,7 +34,6 @@ async function testHermesWithTool() {
   };
 
   console.log('📤 POST', HERMES_URL);
-  console.log('Payload:', JSON.stringify(payload, null, 2));
   
   const res = await fetch(HERMES_URL, {
     method: 'POST',
@@ -43,8 +41,19 @@ async function testHermesWithTool() {
     body: JSON.stringify(payload)
   });
   
-  const data = await res.json();
-  console.log('\n📥 Response:', JSON.stringify(data, null, 2));
+  const rawText = await res.text();
+  console.log('📥 Raw response (first 500 chars):');
+  console.log(rawText.substring(0, 500));
+  
+  let data;
+  try {
+    data = JSON.parse(rawText);
+    console.log('\n✅ Valid JSON response');
+  } catch (e) {
+    console.log('\n⚠️ Not JSON — printing raw text:');
+    console.log(rawText);
+    return;
+  }
   
   // Check if Hermes returned a tool call
   if (data.tool_calls && data.tool_calls.length > 0) {
@@ -52,7 +61,6 @@ async function testHermesWithTool() {
     console.log('Tool:', data.tool_calls[0].function.name);
     console.log('Args:', data.tool_calls[0].function.arguments);
     
-    // Step 2: Execute the tool via BuildAny
     const toolCall = data.tool_calls[0];
     const args = JSON.parse(toolCall.function.arguments);
     
@@ -81,7 +89,7 @@ async function testHermesWithTool() {
   } else if (data.error) {
     console.log('\n❌ Error:', data.error);
   } else {
-    console.log('\n⚠️ Unexpected response format');
+    console.log('\n⚠️ Unexpected response format:', Object.keys(data));
   }
 }
 
