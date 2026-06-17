@@ -1,5 +1,5 @@
 /**
- * Hermes Orchestrator - Master Orchestration Engine for BuildAny
+ * Kelly Orchestrator - Master Orchestration Engine for BuildAny
  * 
  * Manages the full development lifecycle:
  * Code Generation → Testing → Code Review → Preview → User Approval
@@ -115,7 +115,7 @@ export const PHASE_STATUS_MESSAGES: Record<OrchestrationPhase, string> = {
   awaiting_user: '⏳ Waiting for your decision...',
 };
 
-export class HermesOrchestrator {
+export class KellyOrchestrator {
   private state: OrchestrationState;
   private config: OrchestratorConfig;
   private onStatusUpdate: (status: string) => void;
@@ -204,14 +204,14 @@ export class HermesOrchestrator {
         .where(eq(agents.projectId, this.state.projectId));
       
       if (projectAgents.length === 0) {
-        console.log('[Hermes] No agents found for display - continuing with orchestrator-only mode');
+        console.log('[Kelly] No agents found for display - continuing with orchestrator-only mode');
       }
 
       // Decompose project into tasks for visual progress tracking
       const taskPlan = this.decomposeProject(this.state.prompt, this.state.platform);
       
       if (taskPlan.length === 0) {
-        console.error('[Hermes] Decompose returned no tasks');
+        console.error('[Kelly] Decompose returned no tasks');
         return;
       }
 
@@ -259,7 +259,7 @@ export class HermesOrchestrator {
 
       this.onStatusUpdate(`📋 Decomposed into ${taskPlan.length} display tasks (orchestrator handles all execution)`);
     } catch (error) {
-      console.error('[Hermes] Failed to decompose tasks for display:', error);
+      console.error('[Kelly] Failed to decompose tasks for display:', error);
     }
   }
 
@@ -404,7 +404,7 @@ export class HermesOrchestrator {
       
       // Generate code using LLM
       const systemPrompt = getSystemPromptForType(this.state.platform);
-      console.log('[Hermes] Starting code generation with provider:', 'deepseek', 'platform:', this.state.platform);
+      console.log('[Kelly] Starting code generation with provider:', 'deepseek', 'platform:', this.state.platform);
       
       const result = await llmRouter.generate({
         prompt: this.state.prompt,
@@ -414,7 +414,7 @@ export class HermesOrchestrator {
         maxTokens: 4000,
       });
       
-      console.log('[Hermes] LLM result:', { success: result.success, hasContent: !!result.content, error: result.error });
+      console.log('[Kelly] LLM result:', { success: result.success, hasContent: !!result.content, error: result.error });
 
       if (!result.success || !result.content) {
         await this.updateTaskStatus('Architecture', 'failed');
@@ -431,7 +431,7 @@ export class HermesOrchestrator {
       // Parse generated code into files
       const parsedFiles = parseGeneratedCode(result.content);
       
-      console.log('[Hermes] Code generation result:', { 
+      console.log('[Kelly] Code generation result:', { 
         hasContent: !!result.content, 
         contentLength: result.content?.length || 0,
         parsedFiles: parsedFiles.length,
@@ -709,7 +709,7 @@ export class HermesOrchestrator {
       
       this.onStatusUpdate('🔍 Auto-started code review...');
     } catch (error) {
-      console.error('[Hermes] Auto code review failed:', error);
+      console.error('[Kelly] Auto code review failed:', error);
     }
   }
 
@@ -888,7 +888,7 @@ ${this.state.learningContext.complexity}
       await this.updateTaskStatus('Research', 'completed');
       this.onStatusUpdate('📚 Wiki pages generated from research');
     } catch (error) {
-      console.error('[Hermes] Wiki generation failed:', error);
+      console.error('[Kelly] Wiki generation failed:', error);
       this.onStatusUpdate('⚠️ Wiki generation failed');
     }
   }
@@ -944,7 +944,7 @@ ${this.state.learningContext.complexity}
           .where(eq(tasks.id, task.id));
       }
     } catch (error) {
-      console.error('[Hermes] Failed to update task:', error);
+      console.error('[Kelly] Failed to update task:', error);
     }
   }
 
@@ -1078,7 +1078,7 @@ ${this.state.learningContext.complexity}
     if (typeof window !== 'undefined') {
       localStorage.setItem('hermes_manual_corrections', JSON.stringify(corrections));
     }
-    console.log('[Hermes] Manual correction logged:', correction);
+    console.log('[Kelly] Manual correction logged:', correction);
   }
 
   private loadManualCorrections(): ManualCorrectionRecord[] {
@@ -1111,7 +1111,7 @@ ${this.state.learningContext.complexity}
       c.type === 'post_hoc_correction' && c.phase === phase
     );
     const skipRate = samePhaseCorrections.filter(c => c.correctedTo === 'skip').length / samePhaseCorrections.length;
-    console.log(`[Hermes Learning] Phase "${phase}" skip rate from corrections: ${skipRate.toFixed(2)}`);
+    console.log(`[Kelly Learning] Phase "${phase}" skip rate from corrections: ${skipRate.toFixed(2)}`);
   }
 
   private async continueFromPhase(phase: OrchestrationPhase) {
@@ -1258,7 +1258,7 @@ ${this.state.learningContext.complexity}
           .where(eq(agents.id, agent.id));
       }
     } catch (error) {
-      console.error('[Hermes] Failed to mark tasks completed:', error);
+      console.error('[Kelly] Failed to mark tasks completed:', error);
     }
   }
 
@@ -1274,4 +1274,4 @@ ${this.state.learningContext.complexity}
   }
 }
 
-export default HermesOrchestrator;
+export default KellyOrchestrator;
