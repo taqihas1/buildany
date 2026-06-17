@@ -836,7 +836,7 @@ ${(research.designTrends || []).map((d: string) => `- ${d}`).join('\n') || 'None
 
 ${research.competitors.map((c: any) => `## ${c.name}
 
-**Features:** ${(c.features || []).join(', ')}
+**Features:** ${(Array.isArray(c.features) ? c.features : []).join(', ')}
 
 **Strengths:** ${(c.strengths || []).join(', ')}
 
