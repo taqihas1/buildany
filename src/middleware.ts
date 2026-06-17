@@ -10,15 +10,16 @@ const PUBLIC_API_ROUTES = [
   '/api/hermes-chat',
   '/api/diag',
   '/api/test',
+  '/api/memory',
 ];
 
 export default clerkMiddleware(
   async (auth, req) => {
     if (req.nextUrl.pathname.startsWith('/api/')) {
-      const isPublic = PUBLIC_API_ROUTES.some(route => 
+      const isPublic = PUBLIC_API_ROUTES.some(route =>
         req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith(route + '/')
       );
-      
+
       if (!isPublic) {
         const authData = await auth();
         if (!authData.userId) {
@@ -32,5 +33,5 @@ export default clerkMiddleware(
 );
 
 export const config = {
-  matcher: ['/((?!.+\.[\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
+  matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
 };
