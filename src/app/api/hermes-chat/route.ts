@@ -24,14 +24,14 @@ export async function POST(req: NextRequest) {
     const escapedPrompt = prompt.replace(/\\/g, "\\\\").replace(/"/g, '\\"').replace(/\$/g, "\\$");
     const command = `docker exec -e HERMES_HOME=${HERMES_HOME} ${HERMES_CONTAINER} hermes chat -q "${escapedPrompt}" ${skillsFlag} -Q`;
 
-    console.log("[Hermes Bridge] Executing:", command);
+    console.log("[Kelly Bridge] Executing:", command);
     const { stdout } = await execAsync(command, { timeout: 120000, maxBuffer: 1024 * 1024 });
 
     const response = extractResponse(stdout);
     return NextResponse.json({ success: true, response, raw: stdout });
   } catch (error: any) {
-    console.error("[Hermes Bridge] Error:", error);
-    return NextResponse.json({ error: "Hermes chat failed", message: error.message }, { status: 500 });
+    console.error("[Kelly Bridge] Error:", error);
+    return NextResponse.json({ error: "Kelly chat failed", message: error.message }, { status: 500 });
   }
 }
 

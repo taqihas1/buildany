@@ -303,7 +303,7 @@ export function AIChatPanel({
         <div className="flex items-center gap-2">
           <MessageSquare className="w-4 h-4 text-cyan-600" />
           <h3 className="text-sm font-medium text-gray-900">
-            {useHermes ? "Hermes Agent" : "AI Assistant"}
+            {useHermes ? "Kelly" : "AI Assistant"}
           </h3>
         </div>
         <div className="ml-auto flex items-center gap-2">
@@ -365,7 +365,7 @@ export function AIChatPanel({
                 {message.isLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    {useHermes ? "Hermes is thinking..." : "Generating code..."}
+                    {useHermes ? "Kelly is thinking..." : "Generating code..."}
                   </div>
                 ) : (
                   <div className="whitespace-pre-wrap">{message.content}</div>
@@ -392,7 +392,7 @@ export function AIChatPanel({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={useHermes ? "Ask Hermes anything..." : "Ask the AI to modify your app..."}
+            placeholder={useHermes ? "Ask Kelly anything..." : "Ask the AI to modify your app..."}
             className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-500"
             disabled={isLoading || hermesLoading}
           />
