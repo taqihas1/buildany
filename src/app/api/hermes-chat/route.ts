@@ -204,7 +204,7 @@ export async function POST(req: NextRequest) {
       messages,
       tools: BUILDANY_TOOLS,
       tool_choice: "auto",
-      stream: true
+      stream: false
     })
   });
 
