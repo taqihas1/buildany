@@ -148,8 +148,8 @@ Return ONLY valid JSON with:
       content: prompt, model: "user", createdAt: new Date(),
     });
 
-    import("@/lib/orchestrator").then(({ HermesOrchestrator }) => {
-      const hermes = new HermesOrchestrator(
+    import("@/lib/orchestrator").then(({ KellyOrchestrator }) => {
+      const hermes = new KellyOrchestrator(
         projectIdSafe, prompt, type as 'web' | 'mobile' | 'backend',
         (status) => {
           console.log("[Kelly]", status);
@@ -159,7 +159,7 @@ Return ONLY valid JSON with:
             projectId: projectIdSafe,
             role: 'assistant',
             content: status,
-            model: 'hermes-status',
+            model: 'kelly-status',
             createdAt: new Date(),
           }).catch((err: any) => console.error("[Kelly] Failed to log status:", err));
         },
@@ -170,7 +170,7 @@ Return ONLY valid JSON with:
             projectId: projectIdSafe,
             role: 'assistant',
             content: `Phase: ${phase}`,
-            model: 'hermes-phase',
+            model: 'kelly-phase',
             createdAt: new Date(),
           }).catch((err: any) => console.error("[Kelly] Failed to log phase:", err));
         },
@@ -181,7 +181,7 @@ Return ONLY valid JSON with:
             projectId: projectIdSafe,
             role: 'assistant',
             content: `Awaiting user input: ${JSON.stringify(context)}`,
-            model: 'hermes-awaiting',
+            model: 'kelly-awaiting',
             createdAt: new Date(),
           }).catch((err: any) => console.error("[Kelly] Failed to log awaiting:", err));
         },

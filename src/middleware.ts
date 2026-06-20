@@ -7,15 +7,19 @@ const PUBLIC_API_ROUTES = [
   '/api/decompose',
   '/api/project',
   '/api/test-auth',
+  '/api/hermes-chat',
   '/api/diag',
   '/api/test-db',
   '/api/test',
+<<<<<<< HEAD
   '/api/no-db-test',
   '/api/hermes-chat',
   '/api/hermes-orchestrate',
   '/api/publish-preview',
   '/api/screenshot',
   '/api/auto-test',
+=======
+>>>>>>> f7a346fe990de12b26a76a700995fa7435226860
   '/api/memory',
 ];
 
@@ -23,11 +27,15 @@ export default clerkMiddleware(
   async (auth, req) => {
     console.log('Middleware pathname:', req.nextUrl.pathname);
     if (req.nextUrl.pathname.startsWith('/api/')) {
-      const isPublic = PUBLIC_API_ROUTES.some(route => 
+      const isPublic = PUBLIC_API_ROUTES.some(route =>
         req.nextUrl.pathname === route || req.nextUrl.pathname.startsWith(route + '/')
       );
+<<<<<<< HEAD
       console.log('Middleware isPublic:', isPublic, 'for', req.nextUrl.pathname);
       
+=======
+
+>>>>>>> f7a346fe990de12b26a76a700995fa7435226860
       if (!isPublic) {
         const authData = await auth();
         if (!authData.userId) {
@@ -53,5 +61,9 @@ export default clerkMiddleware(
 );
 
 export const config = {
+<<<<<<< HEAD
   matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+=======
+  matcher: ['/((?!.+\\.[\\w]+$|_next).*)', '/', '/(api|trpc)(.*)'],
+>>>>>>> f7a346fe990de12b26a76a700995fa7435226860
 };
