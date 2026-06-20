@@ -21,7 +21,7 @@ export function SwarmDashboard({ projectId, projectDescription, projectType }: S
   // Define loadData BEFORE useEffect calls it
   const loadData = useCallback(async () => {
     try {
-      // Fetch agents from DB first, then Hermes as fallback
+      // Fetch agents from DB first, then Kelly as fallback
       let agentsList: any[] = [];
       
       if (projectId) {
@@ -33,7 +33,7 @@ export function SwarmDashboard({ projectId, projectDescription, projectType }: S
         }
       }
       
-      // Fallback to Hermes API
+      // Fallback to Kelly API
       if (agentsList.length === 0) {
         const agentsRes = await fetch('/api/hermes');
         const agentsData = await agentsRes.json();
@@ -250,7 +250,7 @@ export function SwarmDashboard({ projectId, projectDescription, projectType }: S
           className="px-3 py-1.5 bg-blue-600 text-white rounded-md text-sm font-medium hover:bg-blue-700 transition-colors flex items-center gap-1.5"
         >
           <Plus className="w-4 h-4" />
-          Hermes
+          Kelly
         </button>
         <button
           onClick={() => spawnAgent('tester')}

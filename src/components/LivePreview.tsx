@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Eye, Smartphone, Globe, RefreshCw, X, ChevronDown, ChevronUp, Copy, Check, AlertTriangle } from 'lucide-react';
+import { Eye, Smartphone, Globe, RefreshCw, X, ChevronDown, ChevronUp, Copy, Check, AlertTriangle, QrCode, Link, ExternalLink, Loader2 } from 'lucide-react';
 
 interface LivePreviewProps {
   project: any;
@@ -18,6 +18,12 @@ export function LivePreview({ project, files, activeFile }: LivePreviewProps) {
   const [consoleLogs, setConsoleLogs] = useState<string[]>([]);
   const [isNextJs, setIsNextJs] = useState(false);
   const [fileList, setFileList] = useState(files);
+  
+  // RN Preview state
+  const [rnPreviewUrl, setRnPreviewUrl] = useState('');
+  const [rnPreviewId, setRnPreviewId] = useState('');
+  const [isPublishing, setIsPublishing] = useState(false);
+  const [publishError, setPublishError] = useState('');
   
   // Use ref for interval to avoid setState in cleanup
   const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -96,6 +102,38 @@ ${js}
   const handlePreview = useCallback(async () => {
     handlePreviewWithFiles(fileList);
   }, [fileList, handlePreviewWithFiles]);
+
+  // Publish to RN Preview
+  const publishToRnPreview = useCallback(async () => {
+    if (!project?.id || fileList.length === 0) return;
+    
+    setIsPublishing(true);
+    setPublishError('');
+    
+    try {
+      const response = await fetch('/api/publish-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: project.id,
+          files: fileList.map(f => ({ path: f.path, content: f.content })),
+        }),
+      });
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setRnPreviewUrl(data.url);
+        setRnPreviewId(data.id);
+      } else {
+        setPublishError(data.error || 'Failed to publish preview');
+      }
+    } catch (err: any) {
+      setPublishError(err.message || 'Network error');
+    } finally {
+      setIsPublishing(false);
+    }
+  }, [project, fileList]);
 
   // Define copyCode and clearLogs
   const copyCode = useCallback(() => {
@@ -191,6 +229,28 @@ ${js}
               Mobile
             </button>
           </div>
+          
+          {/* RN Preview Publish Button (Mobile only) */}
+          {previewType === 'mobile' && (
+            <button
+              onClick={publishToRnPreview}
+              disabled={isPublishing || fileList.length === 0}
+              className={`flex items-center gap-1 px-2 py-1 text-sm rounded border transition-colors ml-2 ${
+                rnPreviewUrl 
+                  ? 'bg-purple-50 text-purple-600 border-purple-200' 
+                  : 'bg-white text-purple-600 border-purple-200 hover:bg-purple-50'
+              } disabled:opacity-50`}
+            >
+              {isPublishing ? (
+                <Loader2 className="w-3 h-3 animate-spin" />
+              ) : rnPreviewUrl ? (
+                <QrCode className="w-3 h-3" />
+              ) : (
+                <ExternalLink className="w-3 h-3" />
+              )}
+              {isPublishing ? 'Publishing...' : rnPreviewUrl ? 'Preview Published' : 'Publish Preview'}
+            </button>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -212,6 +272,86 @@ ${js}
           </button>
         </div>
       </div>
+
+      {/* RN Preview QR Code Panel */}
+      {rnPreviewUrl && previewType === 'mobile' && (
+        <div className="bg-purple-50 border-b border-purple-200 p-3">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <QrCode className="w-4 h-4 text-purple-600" />
+              <span className="text-sm font-medium text-purple-900">Live Mobile Preview</span>
+            </div>
+            <button
+              onClick={() => {
+                setRnPreviewUrl('');
+                setRnPreviewId('');
+              }}
+              className="text-xs text-purple-600 hover:text-purple-800"
+            >
+              Dismiss
+            </button>
+          </div>
+          <div className="flex items-center gap-4 mt-2">
+            {/* QR Code Image */}
+            <div className="bg-white p-2 rounded border border-purple-200">
+              <img 
+                src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(rnPreviewUrl)}`}
+                alt="Preview QR Code"
+                className="w-24 h-24"
+              />
+            </div>
+            
+            <div className="flex-1">
+              <p className="text-sm text-purple-800 mb-1">Scan this QR code with your phone to open the app preview.</p>
+              <div className="flex items-center gap-2">
+                <input 
+                  type="text" 
+                  value={rnPreviewUrl} 
+                  readOnly 
+                  className="flex-1 text-xs bg-white border border-purple-200 rounded px-2 py-1 text-purple-900"
+                />
+                <button
+                  onClick={() => {
+                    navigator.clipboard.writeText(rnPreviewUrl);
+                    setCopied(true);
+                    setTimeout(() => setCopied(false), 2000);
+                  }}
+                  className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-100 text-purple-700 rounded hover:bg-purple-200 transition-colors"
+                >
+                  {copied ? <Check className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                  {copied ? 'Copied!' : 'Copy'}
+                </button>
+                <a
+                  href={rnPreviewUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-1 px-2 py-1 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 transition-colors"
+                >
+                  <ExternalLink className="w-3 h-3" />
+                  Open
+                </a>
+              </div>
+              {rnPreviewId && <p className="text-xs text-purple-500 mt-1">Preview ID: {rnPreviewId}</p>}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Publish Error */}
+      {publishError && previewType === 'mobile' && (
+        <div className="bg-red-50 border-b border-red-200 p-2">
+          <div className="flex items-center gap-2">
+            <AlertTriangle className="w-4 h-4 text-red-500" />
+            <span className="text-sm text-red-700">{publishError}</span>
+            <button
+              onClick={() => setPublishError('')}
+              className="ml-auto text-xs text-red-600 hover:text-red-800"
+            >
+              Dismiss
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Preview Area */}
       <div className="flex-1 overflow-hidden relative">

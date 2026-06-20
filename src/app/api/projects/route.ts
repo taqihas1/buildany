@@ -9,7 +9,13 @@ import { generateShortName } from "@/lib/project-name-generator";
 export async function GET(req: NextRequest) {
   try {
     const authData = await auth();
-    const userId = authData.userId;
+    let userId = authData.userId;
+    
+    // Dev bypass for testing
+    if (!userId && process.env.DEV_BYPASS_AUTH === 'true') {
+      userId = 'dev-test-user';
+    }
+    
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
@@ -45,7 +51,14 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const authData = await auth();
-    const userId = authData.userId;
+    let userId = authData.userId;
+    
+    // Dev bypass for testing (only when DEV_BYPASS_AUTH is set)
+    if (!userId && process.env.DEV_BYPASS_AUTH === 'true') {
+      userId = 'dev-test-user-' + Date.now();
+      console.log('[DEV] Auth bypassed for testing, userId:', userId);
+    }
+    
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }

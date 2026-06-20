@@ -8,17 +8,21 @@ import {
   Code2, GitBranch, Play, Send, FileCode, Folder, Loader2,
   Smartphone, Globe, Bot, Search, Eye, Shield, BookOpen, Layers,
   ArrowRight, AlertTriangle, CheckCircle, Trash2, Home,
-  ChevronLeft, ChevronRight, MessageSquare
+  ChevronLeft, ChevronRight, MessageSquare, Brain
 } from 'lucide-react';
-import { AIChatPanel } from "./AIChatPanel";
+import { MemoryPanel } from "./memory-panel";
+
 import { SwarmDashboard } from "./SwarmDashboard";
 import { ResearchPanel } from "./ResearchPanel";
 import { LivePreview } from "./LivePreview";
 import { MobilePreview } from "./MobilePreview";
 import { WikiViewer } from "./WikiViewer";
-import CodeReviewPanel from "./CodeReviewPanel";
+import { AutomatedTestingPanel } from "./automated-testing-panel";
+import dynamic from "next/dynamic";
 
-type WorkspaceTab = 'preview' | 'code' | 'research' | 'swarm' | 'wiki' | 'review';
+const AIChatPanel = dynamic(() => import("./AIChatPanel").then((mod) => mod.AIChatPanel), { ssr: false });
+
+type WorkspaceTab = 'preview' | 'code' | 'research' | 'swarm' | 'wiki' | 'review' | 'testing' | 'memory';
 
 interface ProjectWorkspaceProps {
   project: any;
@@ -78,6 +82,7 @@ export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: P
     if (tab === 'swarm') setWorkspaceTab('swarm');
     if (tab === 'wiki') setWorkspaceTab('wiki');
     if (tab === 'review') setWorkspaceTab('review');
+    if (tab === 'testing') setWorkspaceTab('testing');
   }, []);
 
   const handleDeleteProject = async () => {
@@ -189,6 +194,8 @@ export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: P
     { id: 'research' as WorkspaceTab, label: 'Research', icon: Search },
     { id: 'wiki' as WorkspaceTab, label: 'Wiki Pages', icon: BookOpen },
     { id: 'review' as WorkspaceTab, label: 'Code Review', icon: Shield },
+    { id: 'testing' as WorkspaceTab, label: 'Auto Tests', icon: Play },
+    { id: 'memory' as WorkspaceTab, label: 'Memory', icon: Brain },
     { id: 'swarm' as WorkspaceTab, label: 'Future Release', icon: Bot },
   ];
 
@@ -471,6 +478,13 @@ export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: P
 
             {workspaceTab === 'review' && (
               <CodeReviewPanel projectId={project.id} />
+            )}
+
+            {workspaceTab === 'testing' && (
+              <AutomatedTestingPanel 
+                projectId={project.id} 
+                appUrl={project.deployedUrl || project.previewUrl} 
+              />
             )}
           </div>
         </div>

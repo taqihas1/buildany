@@ -9,6 +9,7 @@ export function PromptBox({ selectedModel }: { selectedModel?: string }) {
   const [appType, setAppType] = useState<"web" | "mobile" | "dashboard">("web");
   const [skipResearch, setSkipResearch] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [useKelly, setUseKelly] = useState(true); // Default to Kelly (Hermes + Skills)
   const [loadingStage, setLoadingStage] = useState<"" | "research" | "generating" | "decomposing">("");
   const [researchPreview, setResearchPreview] = useState<any>(null);
   const router = useRouter();
@@ -39,14 +40,15 @@ export function PromptBox({ selectedModel }: { selectedModel?: string }) {
     setResearchPreview(null);
 
     try {
-      const res = await fetch("/api/generate", {
+      const res = await fetch(useKelly ? "/api/hermes-orchestrate" : "/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
           prompt, 
           type: appType, 
           provider: getProvider(),
-          skipResearch 
+          skipResearch,
+          userId: "guest", // Will be replaced with actual auth
         }),
       });
       
@@ -140,15 +142,26 @@ export function PromptBox({ selectedModel }: { selectedModel?: string }) {
 
       {/* Options */}
       <div className="flex items-center justify-between mt-3 px-1">
-        <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={skipResearch}
-            onChange={(e) => setSkipResearch(e.target.checked)}
-            className="rounded border-gray-300 bg-white text-cyan-500"
-          />
-          Skip research (faster, less competitive)
-        </label>
+        <div className="flex items-center gap-4">
+          <label className="flex items-center gap-2 text-sm text-gray-500 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={skipResearch}
+              onChange={(e) => setSkipResearch(e.target.checked)}
+              className="rounded border-gray-300 bg-white text-cyan-500"
+            />
+            Skip research
+          </label>
+          <label className="flex items-center gap-2 text-sm text-purple-600 cursor-pointer font-medium">
+            <input
+              type="checkbox"
+              checked={useKelly}
+              onChange={(e) => setUseKelly(e.target.checked)}
+              className="rounded border-gray-300 bg-white text-purple-500"
+            />
+            🤖 Use Kelly (Skills + Orchestration)
+          </label>
+        </div>
         <span className="text-sm text-gray-500">
           {appType === "mobile" ? "Expo SDK 54 + React Native" : "Next.js 15 + Tailwind + shadcn/ui"}
         </span>

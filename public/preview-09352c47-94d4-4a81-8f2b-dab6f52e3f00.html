@@ -1,0 +1,379 @@
+I'll build a complete weather dashboard with city search and 5-day forecast cards, using Tailwind CSS for styling and a dark mode toggle. Since we need to work without a build step, I'll use CDN versions of Tailwind and implement shadcn-style components manually.
+
+Let me create this incrementally using the TDD approach.
+
+First, let me plan the vertical slices:
+1. HTML structure + basic layout with dark mode
+2. City search functionality with OpenWeatherMap API
+3. Current weather display
+4. 5-day forecast cards
+5. Polish and animations
+
+Let me build this step by step:
+
+```html:index.html
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    colors: {
+                        border: 'hsl(var(--border))',
+                        input: 'hsl(var(--input))',
+                        ring: 'hsl(var(--ring))',
+                        background: 'hsl(var(--background))',
+                        foreground: 'hsl(var(--foreground))',
+                        primary: {
+                            DEFAULT: 'hsl(var(--primary))',
+                            foreground: 'hsl(var(--primary-foreground))',
+                        },
+                        secondary: {
+                            DEFAULT: 'hsl(var(--secondary))',
+                            foreground: 'hsl(var(--secondary-foreground))',
+                        },
+                        destructive: {
+                            DEFAULT: 'hsl(var(--destructive))',
+                            foreground: 'hsl(var(--destructive-foreground))',
+                        },
+                        muted: {
+                            DEFAULT: 'hsl(var(--muted))',
+                            foreground: 'hsl(var(--muted-foreground))',
+                        },
+                        accent: {
+                            DEFAULT: 'hsl(var(--accent))',
+                            foreground: 'hsl(var(--accent-foreground))',
+                        },
+                        card: {
+                            DEFAULT: 'hsl(var(--card))',
+                            foreground: 'hsl(var(--card-foreground))',
+                        },
+                    },
+                    borderRadius: {
+                        lg: 'var(--radius)',
+                        md: 'calc(var(--radius) - 2px)',
+                        sm: 'calc(var(--radius) - 4px)',
+                    },
+                },
+            },
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        :root {
+            --background: 0 0% 100%;
+            --foreground: 222.2 84% 4.9%;
+            --card: 0 0% 100%;
+            --card-foreground: 222.2 84% 4.9%;
+            --primary: 222.2 47.4% 11.2%;
+            --primary-foreground: 210 40% 98%;
+            --secondary: 210 40% 96.1%;
+            --secondary-foreground: 222.2 47.4% 11.2%;
+            --muted: 210 40% 96.1%;
+            --muted-foreground: 215.4 16.3% 46.9%;
+            --accent: 210 40% 96.1%;
+            --accent-foreground: 222.2 47.4% 11.2%;
+            --destructive: 0 84.2% 60.2%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 214.3 31.8% 91.4%;
+            --input: 214.3 31.8% 91.4%;
+            --ring: 222.2 84% 4.9%;
+            --radius: 0.5rem;
+        }
+
+        .dark {
+            --background: 222.2 84% 4.9%;
+            --foreground: 210 40% 98%;
+            --card: 222.2 84% 4.9%;
+            --card-foreground: 210 40% 98%;
+            --primary: 210 40% 98%;
+            --primary-foreground: 222.2 47.4% 11.2%;
+            --secondary: 217.2 32.6% 17.5%;
+            --secondary-foreground: 210 40% 98%;
+            --muted: 217.2 32.6% 17.5%;
+            --muted-foreground: 215 20.2% 65.1%;
+            --accent: 217.2 32.6% 17.5%;
+            --accent-foreground: 210 40% 98%;
+            --destructive: 0 62.8% 30.6%;
+            --destructive-foreground: 210 40% 98%;
+            --border: 217.2 32.6% 17.5%;
+            --input: 217.2 32.6% 17.5%;
+            --ring: 212.7 26.8% 83.9%;
+        }
+
+        * {
+            border-color: hsl(var(--border));
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: hsl(var(--background));
+            color: hsl(var(--foreground));
+            transition: background-color 0.3s ease, color 0.3s ease;
+        }
+
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: hsl(var(--secondary));
+        }
+        ::-webkit-scrollbar-thumb {
+            background: hsl(var(--muted-foreground));
+            border-radius: 3px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: hsl(var(--foreground));
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes slideDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+        .animate-slide-down {
+            animation: slideDown 0.3s ease-out;
+        }
+        .animate-pulse-slow {
+            animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+        }
+        .animate-spin-slow {
+            animation: spin 2s linear infinite;
+        }
+
+        /* Card hover effect */
+        .forecast-card {
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+        }
+        .forecast-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px -8px rgba(0, 0, 0, 0.15);
+        }
+
+        /* Search input focus */
+        .search-input:focus {
+            box-shadow: 0 0 0 2px hsl(var(--ring));
+        }
+
+        /* Skeleton loading */
+        .skeleton {
+            background: linear-gradient(90deg, hsl(var(--muted)) 25%, hsl(var(--secondary)) 50%, hsl(var(--muted)) 75%);
+            background-size: 200% 100%;
+            animation: shimmer 1.5s ease-in-out infinite;
+        }
+        @keyframes shimmer {
+            0% { background-position: 200% 0; }
+            100% { background-position: -200% 0; }
+        }
+
+        /* Error shake */
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            75% { transform: translateX(5px); }
+        }
+        .animate-shake {
+            animation: shake 0.3s ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen">
+    <!-- Header -->
+    <header class="border-b sticky top-0 z-50 bg-background/80 backdrop-blur-sm">
+        <div class="container mx-auto px-4 py-3 flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <i data-lucide="cloud-sun" class="w-6 h-6 text-primary"></i>
+                <h1 class="text-xl font-semibold">Weather Dashboard</h1>
+            </div>
+            <div class="flex items-center gap-4">
+                <!-- Theme Toggle -->
+                <button id="theme-toggle" class="relative inline-flex h-9 w-9 items-center justify-center rounded-md border border-input bg-background hover:bg-accent hover:text-accent-foreground transition-colors" aria-label="Toggle theme">
+                    <i data-lucide="moon" class="h-4 w-4 rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0"></i>
+                    <i data-lucide="sun" class="absolute h-4 w-4 rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 py-8">
+        <!-- Search Section -->
+        <section class="max-w-2xl mx-auto mb-8">
+            <div class="relative">
+                <div class="relative flex items-center">
+                    <i data-lucide="search" class="absolute left-3 h-4 w-4 text-muted-foreground pointer-events-none"></i>
+                    <input 
+                        id="city-search"
+                        type="text" 
+                        placeholder="Search for a city..." 
+                        class="search-input flex h-12 w-full rounded-lg border border-input bg-background px-10 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 transition-all"
+                        autocomplete="off"
+                    />
+                    <button 
+                        id="search-btn"
+                        class="absolute right-1.5 inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:bg-primary/90 transition-colors"
+                    >
+                        Search
+                    </button>
+                </div>
+                <!-- Error message -->
+                <div id="error-message" class="hidden mt-2 flex items-center gap-2 text-sm text-destructive">
+                    <i data-lucide="alert-circle" class="h-4 w-4"></i>
+                    <span id="error-text"></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="hidden">
+            <div class="max-w-2xl mx-auto mb-8">
+                <div class="skeleton h-8 w-48 rounded-lg mb-4"></div>
+                <div class="skeleton h-6 w-32 rounded-lg mb-6"></div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <div class="skeleton h-48 rounded-xl"></div>
+                    <div class="skeleton h-48 rounded-xl"></div>
+                    <div class="skeleton h-48 rounded-xl"></div>
+                    <div class="skeleton h-48 rounded-xl"></div>
+                    <div class="skeleton h-48 rounded-xl"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Weather Content -->
+        <div id="weather-content" class="hidden">
+            <!-- Current Weather -->
+            <section class="max-w-2xl mx-auto mb-8 animate-fade-in">
+                <div class="rounded-xl border bg-card text-card-foreground shadow-sm p-6">
+                    <div class="flex items-start justify-between">
+                        <div>
+                            <h2 id="city-name" class="text-3xl font-bold tracking-tight"></h2>
+                            <p id="weather-description" class="text-muted-foreground capitalize mt-1"></p>
+                        </div>
+                        <div class="text-right">
+                            <div class="text-5xl font-bold tracking-tighter">
+                                <span id="current-temp"></span>°C
+                            </div>
+                            <p class="text-muted-foreground text-sm mt-1">
+                                Feels like <span id="feels-like"></span>°C
+                            </p>
+                        </div>
+                    </div>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mt-6 pt-6 border-t">
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="droplets" class="h-4 w-4 text-blue-500"></i>
+                            <div>
+                                <p class="text-xs text-muted-foreground">Humidity</p>
+                                <p id="humidity" class="text-sm font-medium"></p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="wind" class="h-4 w-4 text-cyan-500"></i>
+                            <div>
+                                <p class="text-xs text-muted-foreground">Wind Speed</p>
+                                <p id="wind-speed" class="text-sm font-medium"></p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="eye" class="h-4 w-4 text-purple-500"></i>
+                            <div>
+                                <p class="text-xs text-muted-foreground">Visibility</p>
+                                <p id="visibility" class="text-sm font-medium"></p>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <i data-lucide="gauge" class="h-4 w-4 text-orange-500"></i>
+                            <div>
+                                <p class="text-xs text-muted-foreground">Pressure</p>
+                                <p id="pressure" class="text-sm font-medium"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 5-Day Forecast -->
+            <section class="animate-fade-in" style="animation-delay: 0.1s;">
+                <h3 class="text-lg font-semibold mb-4 flex items-center gap-2">
+                    <i data-lucide="calendar-days" class="h-5 w-5 text-muted-foreground"></i>
+                    5-Day Forecast
+                </h3>
+                <div id="forecast-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+                    <!-- Forecast cards will be inserted here -->
+                </div>
+            </section>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="text-center py-20 animate-fade-in">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                <i data-lucide="cloud-sun" class="h-8 w-8 text-muted-foreground"></i>
+            </div>
+            <h3 class="text-lg font-semibold mb-2">Welcome to Weather Dashboard</h3>
+            <p class="text-muted-foreground max-w-md mx-auto">
+                Search for a city to get started. You'll see current weather conditions and a 5-day forecast.
+            </p>
+        </div>
+
+        <!-- No Results State -->
+        <div id="no-results" class="hidden text-center py-20 animate-fade-in">
+            <div class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-muted mb-4">
+                <i data-lucide="map-pin-x" class="h-8 w-8 text-muted-foreground"></i>
+            </div>
+            <h3 class="text-lg font-semibold mb-2">City Not Found</h3>
+            <p class="text-muted-foreground max-w-md mx-auto">
+                We couldn't find that city. Please check the spelling and try again.
+            </p>
+        </div>
+    </main>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Theme Toggle
+        const themeToggle = document.getElementById('theme-toggle');
+        const html = document.documentElement;
+
+        // Load saved theme
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            html.classList.toggle('dark', savedTheme === 'dark');
+        }
+
+        themeToggle.addEventListener('click', () => {
+            html.classList.toggle('dark');
+            const isDark = html.classList.contains('dark');
+            localStorage.setItem('theme', isDark ? 'dark' : 'light');
+            lucide.createIcons();
+        });
+
+        // DOM Elements
+        const searchInput = document.getElementById('city-search');
+        const searchBtn = document.getElementById('search-btn');
+        const errorMessage = document.getElementById('error-message');
+        const errorText = document.getElementById('error-text');
+        const loadingState = document.getElementById('loading-state');
+        const weatherContent =
