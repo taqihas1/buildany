@@ -10,7 +10,8 @@ import {
   ArrowRight, AlertTriangle, CheckCircle, Trash2, Home,
   ChevronLeft, ChevronRight, MessageSquare
 } from 'lucide-react';
-import { AIChatPanel } from "./AIChatPanel";
+import dynamic from "next/dynamic";
+const AIChatPanel = dynamic(() => import("./AIChatPanel").then((mod) => mod.AIChatPanel), { ssr: false });
 import { SwarmDashboard } from "./SwarmDashboard";
 import { ResearchPanel } from "./ResearchPanel";
 import { LivePreview } from "./LivePreview";
