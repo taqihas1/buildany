@@ -57,7 +57,11 @@
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {
+<<<<<<< HEAD
     "@jest/globals": "^30.4.1",
+=======
+    "@playwright/test": "^1.61.0",
+>>>>>>> f7a346fe990de12b26a76a700995fa7435226860
     "@tailwindcss/postcss": "^4",
     "@types/bcryptjs": "^2.4.6",
     "@types/better-sqlite3": "^7.6.13",
