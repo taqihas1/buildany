@@ -199,6 +199,10 @@ export class LLMRouter {
     const provider = this.selectProvider(options.prompt, options.provider);
     const config = this.configs.get(provider)!;
 
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
+
     try {
       const response = await fetch(`${config.baseUrl}/chat/completions`, {
         method: "POST",
@@ -219,7 +223,10 @@ export class LLMRouter {
           max_tokens: options.maxTokens ?? 4000,
           stream: options.stream ?? false,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const error = await response.text();
@@ -243,6 +250,15 @@ export class LLMRouter {
         model: config.model,
       };
     } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        return {
+          success: false,
+          error: 'LLM request timed out after 120 seconds. The API may be slow or unavailable.',
+          provider,
+          model: config.model,
+        };
+      }
       return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
@@ -257,6 +273,10 @@ export class LLMRouter {
 
     const provider = this.selectProvider(options.prompt, options.provider);
     const config = this.configs.get(provider)!;
+
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
 
     try {
       const response = await fetch(`${config.baseUrl}/chat/completions`, {
@@ -278,7 +298,10 @@ export class LLMRouter {
           max_tokens: options.maxTokens ?? 4000,
           stream: true,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         const error = await response.text();
@@ -324,6 +347,11 @@ export class LLMRouter {
 
       yield { content: "", done: true };
     } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        yield { content: "", done: true, error: 'LLM stream timed out after 120 seconds. The API may be slow or unavailable.' };
+        return;
+      }
       yield {
         content: "",
         done: true,

@@ -36,7 +36,7 @@ export async function POST(req: Request) {
     // Create default agents for this project if none exist at all
     if (availableAgents.length === 0) {
       const defaultAgentTypes = type === "mobile" 
-        ? [{ name: "AI Assistant", type: "hermes" }, { name: "Code Agent", type: "code" }]
+        ? [{ name: "Kelly", type: "hermes" }, { name: "Code Agent", type: "code" }]
         : [{ name: "Html Agent", type: "html" }, { name: "Css Agent", type: "css" }, { name: "Js Agent", type: "javascript" }];
       
       for (const def of defaultAgentTypes) {
@@ -256,7 +256,7 @@ function decomposeProject(prompt: string, type: string, fileList: string) {
 function matchAgentToTask(taskDef: any, availableAgents: any[]) {
   if (availableAgents.length === 0) return null;
 
-  // Hermes is best for code tasks
+  // Kelly is best for code tasks
   if (taskDef.type === "code" || taskDef.type === "test") {
     return availableAgents.find(a => a.type === "hermes") || availableAgents[0];
   }

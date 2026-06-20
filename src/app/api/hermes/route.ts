@@ -5,7 +5,7 @@ import { tasks, agents, skills, projectFiles } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { randomUUID } from "crypto";
 
-// Hermes Integration Protocol — Task execution with learning loop
+// Kelly Integration Protocol — Task execution with learning loop
 export async function POST(req: Request) {
   try {
     const authData = await auth();
@@ -42,7 +42,7 @@ export async function POST(req: Request) {
         return NextResponse.json({ error: "Unknown action" }, { status: 400 });
     }
   } catch (err) {
-    console.error("Hermes protocol error:", err);
+    console.error("Kelly protocol error:", err);
     return NextResponse.json({ error: "Protocol failure" }, { status: 500 });
   }
 }
@@ -149,7 +149,7 @@ async function executeTask(taskId: string, agentId: string) {
       stack: task.type === "mobile" ? "expo-54" : "nextjs-15",
     },
     protocol: {
-      // Hermes execution rules
+      // Kelly execution rules
       rules: [
         "Always validate code before returning (lint, type-check)",
         "If error occurs, retry with modified approach (max 3 attempts)",
@@ -431,7 +431,7 @@ export async function sendNotification(body: any) {
 }
 
 async function sendDiscordNotification(to: string, message: string, projectId: string, projectUrl: string, type: string) {
-  console.log("🎮 Hermes sending Discord:", { to, projectId, type });
+  console.log("🎮 Kelly sending Discord:", { to, projectId, type });
   
   const taskId = randomUUID();
   await db.insert(tasks).values({
@@ -455,7 +455,7 @@ async function sendDiscordNotification(to: string, message: string, projectId: s
 }
 
 async function sendTelegramNotification(to: string, message: string, projectId: string, projectUrl: string, type: string) {
-  console.log("📱 Hermes sending Telegram:", { to, projectId, type });
+  console.log("📱 Kelly sending Telegram:", { to, projectId, type });
   
   const taskId = randomUUID();
   await db.insert(tasks).values({
@@ -479,7 +479,7 @@ async function sendTelegramNotification(to: string, message: string, projectId: 
 }
 
 async function sendEmailNotification(to: string, message: string, projectId: string, projectUrl: string, type: string) {
-  console.log("📧 Hermes sending email:", { to, projectId, type });
+  console.log("📧 Kelly sending email:", { to, projectId, type });
   
   const taskId = randomUUID();
   await db.insert(tasks).values({
@@ -503,7 +503,7 @@ async function sendEmailNotification(to: string, message: string, projectId: str
 }
 
 async function sendWhatsAppNotification(to: string, message: string, projectId: string, projectUrl: string, type: string) {
-  console.log("📱 Hermes sending WhatsApp:", { to, projectId, type });
+  console.log("📱 Kelly sending WhatsApp:", { to, projectId, type });
   
   const taskId = randomUUID();
   await db.insert(tasks).values({
@@ -529,7 +529,7 @@ async function sendWhatsAppNotification(to: string, message: string, projectId: 
 export async function handleEmailWebhook(body: any) {
   const { from, to, subject, text, html, projectId } = body;
 
-  console.log("📧 Hermes processing email:", { from, subject, projectId });
+  console.log("📧 Kelly processing email:", { from, subject, projectId });
 
   const taskId = randomUUID();
   await db.insert(tasks).values({
@@ -549,7 +549,7 @@ export async function handleEmailWebhook(body: any) {
       received: true,
       taskId,
       action: "project_creation_queued",
-      message: "Email received. AI Assistant will create a project and notify you.",
+      message: "Email received. Kelly will create a project and notify you.",
     });
   }
 
@@ -564,7 +564,7 @@ export async function handleEmailWebhook(body: any) {
 export async function handleDiscordWebhook(body: any) {
   const { userId, username, message, guildId, channelId, projectId } = body;
 
-  console.log("🎮 Hermes processing Discord:", { username, message: message?.slice(0, 100) });
+  console.log("🎮 Kelly processing Discord:", { username, message: message?.slice(0, 100) });
 
   const taskId = randomUUID();
   await db.insert(tasks).values({
@@ -584,7 +584,7 @@ export async function handleDiscordWebhook(body: any) {
       received: true,
       taskId,
       action: "project_creation_queued",
-      message: "Discord message received. AI Assistant will create a project and reply.",
+      message: "Discord message received. Kelly will create a project and reply.",
     });
   }
 
@@ -604,7 +604,7 @@ export async function handleTelegramWebhook(body: any) {
   const text = message?.text || body.callback_query?.data || "";
   const projectId = body.projectId;
 
-  console.log("📱 Hermes processing Telegram:", { username, text: text?.slice(0, 100) });
+  console.log("📱 Kelly processing Telegram:", { username, text: text?.slice(0, 100) });
 
   const taskId = randomUUID();
   await db.insert(tasks).values({
@@ -624,7 +624,7 @@ export async function handleTelegramWebhook(body: any) {
       received: true,
       taskId,
       action: "project_creation_queued",
-      message: "Telegram message received. AI Assistant will create a project and reply.",
+      message: "Telegram message received. Kelly will create a project and reply.",
     });
   }
 

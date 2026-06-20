@@ -1,0 +1,122 @@
+{
+  "schema_version": "1.0",
+  "name": "BuildAny VPS Infrastructure",
+  "description": "Hostinger VPS running BuildAny platform, Hermes AI gateway, and supporting services",
+  "domain": "base66.cloud",
+  "contact": "admin@base66.cloud",
+  "tools": [
+    {
+      "name": "buildany_app",
+      "type": "web_application",
+      "endpoint": "http://localhost:3000",
+      "description": "BuildAny - AI app builder platform (Next.js + React + Traefik)",
+      "status": "active",
+      "managed_by": "pm2"
+    },
+    {
+      "name": "buildany_code_generator",
+      "type": "api",
+      "endpoint": "http://localhost:3000/api/generate",
+      "description": "Generate React Native / Next.js app code from prompts",
+      "status": "active"
+    },
+    {
+      "name": "buildany_hermes_chat",
+      "type": "api",
+      "endpoint": "http://localhost:3000/api/hermes-chat",
+      "description": "Kelly AI assistant chat endpoint (orchestrates all BuildAny features)",
+      "status": "active"
+    },
+    {
+      "name": "buildany_project_manager",
+      "type": "api",
+      "endpoint": "http://localhost:3000/api/project",
+      "description": "Create, read, update, delete app projects",
+      "status": "active"
+    },
+    {
+      "name": "buildany_deploy",
+      "type": "api",
+      "endpoint": "http://localhost:3000/api/deploy",
+      "description": "Deploy generated apps to production via PM2 + Docker",
+      "status": "active"
+    },
+    {
+      "name": "hermes_ai_gateway",
+      "type": "ai_agent",
+      "endpoint": "http://localhost:8642/v1/chat/completions",
+      "description": "Hermes AI agent gateway (Kelly - primary AI orchestrator for BuildAny). Uses DeepSeek API via Hermes. Container: hermes-gateway (nousresearch/hermes-agent:latest)",
+      "status": "active",
+      "managed_by": "docker",
+      "container_name": "hermes-gateway",
+      "docker_image": "nousresearch/hermes-agent:latest",
+      "port_mapping": "8642:8642"
+    },
+    {
+      "name": "hostinger_hermes_agent",
+      "type": "ai_agent",
+      "endpoint": "http://localhost:32777",
+      "description": "Hostinger's managed Hermes agent (HVPS template). For server management. NOT Kelly.",
+      "status": "active",
+      "managed_by": "docker",
+      "container_name": "hermes-agent-cvaj-hermes-agent-1",
+      "docker_image": "ghcr.io/hostinger/hvps-hermes-agent:latest",
+      "port_mapping": "32777:4860"
+    },
+    {
+      "name": "traefik_reverse_proxy",
+      "type": "infrastructure",
+      "endpoint": "http://localhost:8080",
+      "description": "Traefik reverse proxy with SSL (Let's Encrypt) for base66.cloud",
+      "status": "active",
+      "managed_by": "docker"
+    },
+    {
+      "name": "openclaw_agent",
+      "type": "ai_agent",
+      "endpoint": "http://localhost:???",
+      "description": "OpenClaw agent connector running on VPS. Currently not actively used for BuildAny.",
+      "status": "idle",
+      "managed_by": "docker",
+      "container_name": "openclaw"
+    },
+    {
+      "name": "pm2_process_manager",
+      "type": "infrastructure",
+      "description": "PM2 process manager. Manages: buildany (Next.js app on port 3000)",
+      "status": "active",
+      "managed_by": "pm2"
+    },
+    {
+      "name": "sqlite_database",
+      "type": "database",
+      "description": "SQLite database for BuildAny projects, users, and generated files",
+      "status": "active",
+      "location": "/root/buildany/db.sqlite"
+    },
+    {
+      "name": "docker_engine",
+      "type": "infrastructure",
+      "description": "Docker container runtime. Manages: Hermes gateway, Traefik, OpenClaw",
+      "status": "active"
+    }
+  ],
+  "agents": [
+    {
+      "name": "Kelly",
+      "type": "orchestrator",
+      "description": "Primary AI agent for BuildAny. Handles: research, wiki generation, code generation, code review, preview generation, deployment. All user flows go through Kelly.",
+      "gateway": "http://localhost:8642/v1/chat/completions",
+      "model": "deepseek-chat",
+      "system_prompt": "You are Kelly, the AI architect for BuildAny."
+    }
+  ],
+  "infrastructure": {
+    "host": "srv1730121.hstgr.cloud",
+    "ip": "2.25.170.135",
+    "provider": "Hostinger",
+    "ssl": "Let's Encrypt (expires 2026-09-03)",
+    "domain": "base66.cloud",
+    "domains": ["base66.cloud", "www.base66.cloud"]
+  }
+}

@@ -7,10 +7,14 @@
  * Learns from project outcomes (success/failure) to improve routing decisions.
  */
 
+import { memoryClient } from "@/lib/mcp-memory-client";
 import { db } from "@/lib/db";
 import { llmRouter, getSystemPromptForType, parseGeneratedCode } from "@/lib/llm-router";
+import { buildEnhancedSystemPrompt, getAvailableSkillsDebug } from "@/lib/skill-loader";
 import { projects, projectFiles, tasks, agents, conversations, wikiPages, codeReviews } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+
+console.log('[Kelly] Skill system loaded:', getAvailableSkillsDebug());
 
 export type OrchestrationPhase = 
   | 'idle'
@@ -160,8 +164,13 @@ export class HermesOrchestrator {
   async start() {
     await this.transitionTo('analyzing');
     
+    // ─── Load relevant memories for context ───
+    const { memories: hotMemories, tokenCount } = memoryClient.readHot(180, this.state.projectId);
+    if (hotMemories.length > 0) {
+      this.onStatusUpdate(`🧠 Loaded ${hotMemories.length} memories (${tokenCount} tokens) for context`);
+    }
+    
     // Create tasks for display only (agents are decorative in this release)
-    // Orchestrator handles all execution directly
     await this.decomposeAndAssignTasks();
     
     // Generate wiki pages FIRST (before code, based on research)
@@ -183,6 +192,9 @@ export class HermesOrchestrator {
     
     await this.transitionTo('completed');
     
+    // ─── AUTO: Generate Preview → Run Tests → Notify User ───
+    await this.generateAndServePreview();
+    
     // Update project status
     await db.update(projects)
       .set({ status: 'completed', updatedAt: new Date() })
@@ -193,6 +205,221 @@ export class HermesOrchestrator {
     
     // Mark all tasks as completed for display
     await this.markAllTasksCompleted();
+  }
+
+  /**
+   * Auto-generate a preview of the app, serve it, run automated tests,
+   * and notify the user in the AI Chat panel.
+   */
+  private async generateAndServePreview() {
+    try {
+      this.onStatusUpdate('🚀 Building app preview...');
+      
+      // Get generated files
+      const files = await db.select().from(projectFiles)
+        .where(eq(projectFiles.projectId, this.state.projectId));
+      
+      if (files.length === 0) {
+        this.onStatusUpdate('⚠️ No files to preview');
+        return;
+      }
+
+      // Create a preview HTML file from the generated code
+      const previewHtml = this.buildPreviewHtml(files);
+      const previewPath = `/preview-${this.state.projectId}.html`;
+      const fs = await import('fs');
+      const path = await import('path');
+      const os = await import('os');
+      
+      // Save to public folder for serving
+      const publicDir = path.join(process.cwd(), 'public');
+      const previewFile = path.join(publicDir, previewPath);
+      fs.writeFileSync(previewFile, previewHtml, 'utf-8');
+      
+      const previewUrl = `${process.env.NEXT_PUBLIC_APP_URL || ''}${previewPath}`;
+      
+      // Store preview info in project
+      await db.update(projects)
+        .set({ 
+          status: 'preview_ready',
+          updatedAt: new Date(),
+        })
+        .where(eq(projects.id, this.state.projectId));
+      
+      // Notify user in chat about preview
+      await db.insert(conversations).values({
+        id: crypto.randomUUID(),
+        projectId: this.state.projectId,
+        role: 'assistant',
+        content: `🎉 **App preview generated!**\n\nClick on the **Preview** tab in the workspace to see your app live.\n\n[PREVIEW_TAB_TRIGGER]`,
+        model: 'kelly-orchestrator',
+        createdAt: new Date(),
+      });
+      
+      this.onStatusUpdate(`🎉 App preview ready! Click the Preview tab to view.`);
+      
+      // Save memory about preview success
+      try {
+        memoryClient.write({
+          content: `Preview generated successfully for "${this.state.prompt}". Preview URL: ${previewUrl}`,
+          category: 'project',
+          importance: 50,
+          projectId: this.state.projectId,
+          tags: 'preview,success',
+        });
+      } catch (memErr) {
+        console.error('[Kelly] Failed to save preview memory:', memErr);
+      }
+      
+      // ─── AUTO: Run Automated Tests ───
+      await this.runAutomatedTests(previewUrl);
+      
+    } catch (error) {
+      console.error('[Kelly] Preview generation failed:', error);
+      this.onStatusUpdate('⚠️ Preview generation failed, but code is ready.');
+    }
+  }
+
+  /**
+   * Build a self-contained HTML preview from generated files
+   */
+  private buildPreviewHtml(files: any[]): string {
+    // Find the main HTML file or build one from components
+    const htmlFile = files.find(f => f.path === 'index.html' || f.path.endsWith('.html'));
+    
+    if (htmlFile?.content) {
+      return htmlFile.content;
+    }
+    
+    // Build a preview from React/Next.js components
+    const cssFiles = files.filter(f => f.path.endsWith('.css'));
+    const jsFiles = files.filter(f => f.path.endsWith('.js') || f.path.endsWith('.tsx') || f.path.endsWith('.ts'));
+    
+    const styles = cssFiles.map(f => `<style>${f.content}</style>`).join('\n');
+    
+    // Extract component content (simplified preview)
+    const componentPreview = jsFiles
+      .filter(f => f.path.includes('page') || f.path.includes('Page'))
+      .map(f => {
+        // Extract JSX-like content for preview
+        const content = f.content || '';
+        return `<div class="component-preview">\n<h3>${f.path}</h3>\n<pre>${this.escapeHtml(content.substring(0, 2000))}</pre>\n</div>`;
+      })
+      .join('\n');
+    
+    return `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>BuildAny Preview</title>
+  <style>
+    body { font-family: system-ui, sans-serif; padding: 20px; background: #f5f5f5; }
+    .component-preview { background: white; padding: 20px; margin: 10px 0; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    pre { background: #f0f0f0; padding: 10px; overflow-x: auto; font-size: 12px; }
+    h3 { margin-top: 0; color: #333; }
+  </style>
+  ${styles}
+</head>
+<body>
+  <h1>🚀 BuildAny App Preview</h1>
+  <p>This is a preview of your generated app. The full app will be built with Next.js.</p>
+  ${componentPreview}
+</body>
+</html>`;
+  }
+
+  private escapeHtml(text: string): string {
+    return text
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#039;');
+  }
+
+  /**
+   * Run automated Playwright tests on the preview URL
+   */
+  private async runAutomatedTests(previewUrl: string) {
+    try {
+      this.onStatusUpdate('🧪 Running automated tests...');
+      
+      // Call the auto-test API
+      const response = await fetch(`http://localhost:3000/api/auto-test`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          projectId: this.state.projectId,
+          url: previewUrl,
+        }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Auto-test API returned ${response.status}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.success) {
+        const testSummary = result.summary || 'Tests completed';
+        const passed = result.checks?.filter((c: any) => c.passed).length || 0;
+        const total = result.checks?.length || 0;
+        
+        // Store test result reference in project memory
+        await db.insert(conversations).values({
+          id: crypto.randomUUID(),
+          projectId: this.state.projectId,
+          role: 'assistant',
+          content: `✅ **Automated tests completed!**\n\n${testSummary}\n\n**Results:** ${passed}/${total} checks passed\n\nClick on the **Auto Tests** tab in the workspace to see detailed results and screenshots.\n\n[AUTO_TEST_TAB_TRIGGER]`,
+          model: 'kelly-orchestrator',
+          createdAt: new Date(),
+        });
+        
+        this.onStatusUpdate(`✅ Automated tests complete! ${passed}/${total} passed. Click Auto Tests tab.`);
+        
+        // Save memory about test results
+        try {
+          memoryClient.write({
+            content: `Automated tests for "${this.state.prompt}": ${passed}/${total} checks passed.`,
+            category: 'project',
+            importance: passed === total ? 60 : 80,
+            projectId: this.state.projectId,
+            tags: 'testing,automated',
+          });
+        } catch (memErr) {
+          console.error('[Kelly] Failed to save test memory:', memErr);
+        }
+      } else {
+        await db.insert(conversations).values({
+          id: crypto.randomUUID(),
+          projectId: this.state.projectId,
+          role: 'assistant',
+          content: `⚠️ **Automated tests completed with issues.**\n\nClick on the **Auto Tests** tab to review the results.\n\n[AUTO_TEST_TAB_TRIGGER]`,
+          model: 'kelly-orchestrator',
+          createdAt: new Date(),
+        });
+        
+        this.onStatusUpdate('⚠️ Tests found issues. Check Auto Tests tab.');
+        
+        // Save memory about test failures
+        try {
+          memoryClient.write({
+            content: `Automated tests for "${this.state.prompt}" found issues. Review required.`,
+            category: 'project',
+            importance: 75,
+            projectId: this.state.projectId,
+            tags: 'testing,failure',
+          });
+        } catch (memErr) {
+          console.error('[Kelly] Failed to save test failure memory:', memErr);
+        }
+      }
+      
+    } catch (error) {
+      console.error('[Kelly] Automated testing failed:', error);
+      this.onStatusUpdate('⚠️ Automated tests could not run. Check Auto Tests tab to run manually.');
+    }
   }
 
   // Orchestrator does all work - agents are display-only for this release
@@ -402,13 +629,47 @@ export class HermesOrchestrator {
       await this.updateTaskStatus('Page Components', 'running');
       await this.updateTaskStatus('API Routes', 'running');
       
-      // Generate code using LLM
-      const systemPrompt = getSystemPromptForType(this.state.platform);
-      console.log('[Hermes] Starting code generation with provider:', 'deepseek', 'platform:', this.state.platform);
+      // Generate code using LLM with skill-enhanced prompts + hot memories
+      const baseSystemPrompt = getSystemPromptForType(this.state.platform);
+      
+      // Load hot memories for context injection
+      const { memories: hotMemories, tokenCount } = memoryClient.readHot(150, this.state.projectId);
+      
+      // ALSO search for relevant memories based on prompt keywords
+      const promptKeywords = this.state.prompt.toLowerCase().split(/\s+/).filter(w => w.length > 4);
+      const searchMemories: any[] = [];
+      for (const keyword of promptKeywords.slice(0, 3)) {
+        try {
+          const results = memoryClient.search({ query: keyword, projectId: this.state.projectId, limit: 3 });
+          searchMemories.push(...results);
+        } catch { /* ignore search errors */ }
+      }
+      // De-duplicate
+      const allMemoryIds = new Set();
+      const allMemories = [...hotMemories];
+      for (const m of searchMemories) {
+        if (!allMemoryIds.has(m.id)) {
+          allMemoryIds.add(m.id);
+          allMemories.push(m);
+        }
+      }
+      
+      let memoryContext = '';
+      if (allMemories.length > 0) {
+        memoryContext = `\n\n## Relevant Context from Past Projects\n${allMemories.slice(0, 8).map(m => `- ${m.content}`).join('\n')}\n`;
+        console.log(`[Kelly] Injected ${allMemories.length} memories (${tokenCount} tokens) into prompt`);
+      }
+      
+      const enhancedSystemPrompt = buildEnhancedSystemPrompt(
+        baseSystemPrompt + memoryContext,
+        'coding',
+        `Project: ${this.state.prompt}\nPlatform: ${this.state.platform}`
+      );
+      console.log('[Kelly] Starting code generation with skill-enhanced prompts, provider:', 'deepseek', 'platform:', this.state.platform);
       
       const result = await llmRouter.generate({
         prompt: this.state.prompt,
-        systemPrompt,
+        systemPrompt: enhancedSystemPrompt,
         provider: 'deepseek',
         temperature: 0.7,
         maxTokens: 4000,
@@ -481,6 +742,56 @@ export class HermesOrchestrator {
         createdAt: new Date(),
       });
 
+      // ─── Save memory about this project for future context ───
+      try {
+        const techStack = this.inferTechStack(parsedFiles);
+        
+        // Save project summary
+        memoryClient.write({
+          content: `Project "${this.state.prompt}" generated ${parsedFiles.length} files. Tech stack: ${techStack.join(', ')}. Platform: ${this.state.platform}.`,
+          category: 'project',
+          importance: 70,
+          projectId: this.state.projectId,
+          tags: `${this.state.platform},${techStack.join(',')}`,
+        });
+        
+        // Save pattern memory (what files were created)
+        const filePatterns = parsedFiles.map(f => f.path.split('/').pop()).filter(Boolean);
+        if (filePatterns.length > 0) {
+          memoryClient.write({
+            content: `Pattern: "${this.state.prompt}" typically needs files like: ${filePatterns.join(', ')}`,
+            category: 'tech',
+            importance: 60,
+            projectId: this.state.projectId,
+            tags: 'patterns,file-structure',
+          });
+        }
+        
+        // Save tech preference if React/Next.js detected
+        if (techStack.some(t => t.includes('React') || t.includes('Next'))) {
+          memoryClient.write({
+            content: `User frequently builds React/Next.js projects. Default to these when platform is 'web'.`,
+            category: 'tech',
+            importance: 75,
+            projectId: this.state.projectId,
+            tags: 'react,nextjs,preferences',
+          });
+        }
+        
+        // Save UI preference if Tailwind detected
+        if (techStack.includes('Tailwind CSS')) {
+          memoryClient.write({
+            content: `User prefers Tailwind CSS for styling web projects.`,
+            category: 'design',
+            importance: 65,
+            projectId: this.state.projectId,
+            tags: 'tailwind,css,preferences',
+          });
+        }
+      } catch (memErr) {
+        console.error('[Kelly] Failed to save memory:', memErr);
+      }
+
       return {
         phase: 'coding',
         success: true,
@@ -524,6 +835,33 @@ export class HermesOrchestrator {
         };
       }
 
+      // Build test prompt with skill-enhanced system prompt
+      const baseSystemPrompt = `You are a QA engineer. Review the generated code and identify issues. Report bugs, security issues, and quality concerns.`;
+      const enhancedSystemPrompt = buildEnhancedSystemPrompt(
+        baseSystemPrompt,
+        'testing',
+        `Project: ${this.state.prompt}\nPlatform: ${this.state.platform}\nFiles: ${files.map(f => f.path).join(', ')}`
+      );
+      
+      const testPrompt = `Review these generated files for a ${this.state.platform} app:
+
+${files.slice(0, 10).map(f => `--- ${f.path} ---\n${f.content?.substring(0, 2000) || 'empty'}\n`).join('\n')}
+
+Provide a test report covering:
+1. Bugs or issues found
+2. Security concerns
+3. Performance issues
+4. Accessibility problems
+5. Overall quality score (1-10)`;
+
+      const result = await llmRouter.generate({
+        prompt: testPrompt,
+        systemPrompt: enhancedSystemPrompt,
+        provider: 'deepseek',
+        temperature: 0.5,
+        maxTokens: 2000,
+      });
+
       // Basic validation tests
       const testsPassed = files.filter(f => f.content && f.content.length > 0).length;
       const testsFailed = files.length - testsPassed;
@@ -532,11 +870,23 @@ export class HermesOrchestrator {
       let syntaxErrors = 0;
       for (const file of files) {
         if (file.language === 'html' && file.content) {
-          // Basic HTML check - ensure it has html and body tags
           if (!file.content.includes('<html') || !file.content.includes('<body')) {
             syntaxErrors++;
           }
         }
+      }
+
+      // Save test report to wiki
+      if (result.success && result.content) {
+        await db.insert(wikiPages).values({
+          id: crypto.randomUUID(),
+          projectId: this.state.projectId,
+          pageType: 'test',
+          title: 'Test Report - Auto Generated',
+          content: `# Test Report\n\n${result.content}`,
+          autoGenerated: true,
+          createdAt: new Date(),
+        });
       }
 
       await this.updateTaskStatus('Pre-flight', 'completed');
@@ -549,6 +899,7 @@ export class HermesOrchestrator {
           testsPassed: testsPassed - syntaxErrors, 
           testsFailed: testsFailed + syntaxErrors,
           totalFiles: files.length,
+          llmTestReport: result.success ? 'generated' : 'failed',
         },
         timestamp: Date.now(),
       };
@@ -838,7 +1189,7 @@ ${research.competitors.map((c: any) => `## ${c.name}
 
 **Features:** ${(c.features || []).join(', ')}
 
-**Strengths:** ${(c.strengths || []).join(', ')}
+**Strengths:** ${Array.isArray(c.strengths) ? c.strengths.join(', ') : ''}
 
 **Weaknesses:** ${(c.weaknesses || []).join(', ')}
 
@@ -1079,6 +1430,19 @@ ${this.state.learningContext.complexity}
       localStorage.setItem('hermes_manual_corrections', JSON.stringify(corrections));
     }
     console.log('[Hermes] Manual correction logged:', correction);
+    
+    // Save to memory for cross-project learning
+    try {
+      memoryClient.write({
+        content: `Correction: User manually fixed ${correction.phase} phase — ${correction.correction}. Original: "${correction.originalOutput?.substring(0, 100)}..."`,
+        category: 'decision',
+        importance: 85,
+        projectId: this.state.projectId,
+        tags: `correction,${correction.phase},learning`,
+      });
+    } catch (memErr) {
+      console.error('[Kelly] Failed to save correction memory:', memErr);
+    }
   }
 
   private loadManualCorrections(): ManualCorrectionRecord[] {

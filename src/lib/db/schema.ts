@@ -34,26 +34,26 @@ export const projects = sqliteTable("projects", {
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
 });
 
-export const projectFiles = sqliteTable("project_files", {
-  id: text("id").primaryKey(),
-  projectId: text("project_id").notNull(),
-  path: text("path").notNull(),
-  content: text("content"),
-  language: text("language"),
-  isGenerated: integer("is_generated", { mode: "boolean" }).default(false),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-  updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-});
+export const projectFiles = sqliteTable("project_files", (t) => ({
+  id: t.text("id").primaryKey(),
+  projectId: t.text("project_id").notNull(),
+  path: t.text("path").notNull(),
+  content: t.text("content"),
+  language: t.text("language"),
+  isGenerated: t.integer("is_generated", { mode: "boolean" }).default(false),
+  createdAt: t.integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+  updatedAt: t.integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+}));
 
-export const conversations = sqliteTable("conversations", {
-  id: text("id").primaryKey(),
-  projectId: text("project_id").notNull(),
-  role: text("role").notNull(),
-  content: text("content").notNull(),
-  model: text("model"),
-  tokensUsed: integer("tokens_used"),
-  createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-});
+export const conversations = sqliteTable("conversations", (t) => ({
+  id: t.text("id").primaryKey(),
+  projectId: t.text("project_id").notNull(),
+  role: t.text("role").notNull(),
+  content: t.text("content").notNull(),
+  model: t.text("model"),
+  tokensUsed: t.integer("tokens_used"),
+  createdAt: t.integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
+}));
 
 export const templates = sqliteTable("templates", {
   id: text("id").primaryKey(),

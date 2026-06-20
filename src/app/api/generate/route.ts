@@ -8,12 +8,16 @@ import { llmRouter } from "@/lib/llm-router";
 import fs from "fs";
 
 const DEBUG_LOG = "/root/buildany/api-debug.log";
+fs.appendFileSync(DEBUG_LOG, `[${new Date().toISOString()}] MODULE_LOADED: /api/generate/route.ts loaded\n`);
 function debug(label: string, data: any) {
   const line = `[${new Date().toISOString()}] ${label}: ${JSON.stringify(data)}\n`;
   fs.appendFileSync(DEBUG_LOG, line);
 }
 
 export async function POST(req: NextRequest) {
+  // IMMEDIATE FILE LOG - bypass any stdout buffering
+  fs.appendFileSync("/root/buildany/post-handler-entry.log", `[${new Date().toISOString()}] POST ENTRY: url=${req.url}, host=${req.headers.get("host")}, method=${req.method}\n`);
+  console.log("[EXTERNAL_TEST] POST /api/generate called", req.url, req.headers.get("host"));
   try {
     debug("REQUEST_START", { url: req.url, method: req.method, headers: Object.fromEntries(req.headers.entries()) });
     
@@ -118,7 +122,7 @@ Return ONLY valid JSON with:
       
       // Create default agents for this project
       const agentDefs = [
-        { name: 'Hermes-001', type: 'hermes', capabilities: JSON.stringify(['orchestrate', 'plan']) },
+        { name: 'Kelly-001', type: 'kelly', capabilities: JSON.stringify(['orchestrate', 'plan']) },
         { name: 'Code-Gen-001', type: 'code', capabilities: JSON.stringify(['react', 'nextjs', 'typescript']) },
         { name: 'Code-Gen-002', type: 'code', capabilities: JSON.stringify(['components', 'styling', 'animation']) },
         { name: 'Code-Gen-003', type: 'code', capabilities: JSON.stringify(['api', 'backend', 'database']) },
@@ -148,7 +152,7 @@ Return ONLY valid JSON with:
       const hermes = new HermesOrchestrator(
         projectIdSafe, prompt, type as 'web' | 'mobile' | 'backend',
         (status) => {
-          console.log("[Hermes]", status);
+          console.log("[Kelly]", status);
           // Send status to AI chat panel
           db.insert(conversations).values({
             id: crypto.randomUUID(),
@@ -157,10 +161,10 @@ Return ONLY valid JSON with:
             content: status,
             model: 'hermes-status',
             createdAt: new Date(),
-          }).catch((err: any) => console.error("[Hermes] Failed to log status:", err));
+          }).catch((err: any) => console.error("[Kelly] Failed to log status:", err));
         },
         (phase) => {
-          console.log("[Hermes] phase:", phase);
+          console.log("[Kelly] phase:", phase);
           db.insert(conversations).values({
             id: crypto.randomUUID(),
             projectId: projectIdSafe,
@@ -168,10 +172,10 @@ Return ONLY valid JSON with:
             content: `Phase: ${phase}`,
             model: 'hermes-phase',
             createdAt: new Date(),
-          }).catch((err: any) => console.error("[Hermes] Failed to log phase:", err));
+          }).catch((err: any) => console.error("[Kelly] Failed to log phase:", err));
         },
         (context) => {
-          console.log("[Hermes] awaiting user:", context);
+          console.log("[Kelly] awaiting user:", context);
           db.insert(conversations).values({
             id: crypto.randomUUID(),
             projectId: projectIdSafe,
@@ -179,18 +183,18 @@ Return ONLY valid JSON with:
             content: `Awaiting user input: ${JSON.stringify(context)}`,
             model: 'hermes-awaiting',
             createdAt: new Date(),
-          }).catch((err: any) => console.error("[Hermes] Failed to log awaiting:", err));
+          }).catch((err: any) => console.error("[Kelly] Failed to log awaiting:", err));
         },
         {}, // config (default)
         researchResult, // research data
       );
-      hermes.start().catch((err: any) => console.error("Hermes start error:", err));
+      hermes.start().catch((err: any) => console.error("Kelly start error:", err));
     }).catch((err) => console.error("Failed to load orchestrator:", err));
 
     debug("RESPONSE", { success: true, projectId: projectIdSafe, hasResearch: !!researchResult, serverTime: new Date().toISOString() });
     return NextResponse.json({
       success: true, projectId: projectIdSafe,
-      message: "🚀 AI Assistant started! Watch progress in the AI Chat...",
+      message: "🚀 Kelly started! Watch progress in the AI Chat...",
       research: researchResult,
       serverTime: new Date().toISOString(),
     }, {
@@ -207,4 +211,9 @@ Return ONLY valid JSON with:
       { status: 500 }
     );
   }
+}
+
+export async function GET(req: NextRequest) {
+  debug("GET_REQUEST", { url: req.url, method: req.method, headers: Object.fromEntries(req.headers.entries()) });
+  return NextResponse.json({ message: "GET works - app is running" }, { status: 200 });
 }
