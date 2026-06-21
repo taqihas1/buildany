@@ -8,6 +8,7 @@
  */
 
 import { memoryClient } from "@/lib/mcp-memory-client";
+import { discoverServices, getCatalog, reviewFile, isServiceAvailable, getKellyConfig } from "@/lib/ard-client";
 import { db } from "@/lib/db";
 import { llmRouter, getSystemPromptForType, parseGeneratedCode } from "@/lib/llm-router";
 import { buildEnhancedSystemPrompt, getAvailableSkillsDebug } from "@/lib/skill-loader";
@@ -422,6 +423,70 @@ export class KellyOrchestrator {
     }
   }
 
+  /**
+   * ARD: Discover available services on the VPS
+   * Called internally via localhost (bypasses Hostinger edge proxy)
+   */
+  async discoverInfrastructure(): Promise<string> {
+    try {
+      this.onStatusUpdate('🔍 Discovering VPS infrastructure...');
+      const catalog = await getCatalog();
+      if (!catalog) {
+        return 'Infrastructure catalog not available';
+      }
+      
+      const tools = catalog.tools || [];
+      const agents = catalog.agents || [];
+      const summary = [
+        `**VPS Infrastructure (${catalog.domain})**`,
+        ``,
+        `**Services (${tools.length}):**`,
+        ...tools.map(t => `- ${t.name}: ${t.status} (${t.type})`),
+        ``,
+        `**Agents (${agents.length}):**`,
+        ...agents.map(a => `- ${a.name}: ${a.description}`),
+      ].join('\n');
+      
+      return summary;
+    } catch (err) {
+      console.error('[Kelly] ARD discover failed:', err);
+      return 'Infrastructure discovery failed';
+    }
+  }
+
+  /**
+   * ARD: Review a source file for issues
+   * Called internally via localhost
+   */
+  async reviewSourceFile(filePath: string): Promise<string> {
+    try {
+      this.onStatusUpdate(`🔍 Reviewing ${filePath}...`);
+      const result = await reviewFile(filePath);
+      if (!result?.success) {
+        return `Could not review ${filePath}`;
+      }
+      
+      const issues = result.issues || [];
+      const critical = issues.filter(i => i.severity?.includes('CRITICAL')).length;
+      const warnings = issues.filter(i => i.severity?.includes('WARNING')).length;
+      
+      const summary = [
+        `**Code Review: ${filePath}**`,
+        ``,
+        result.review?.substring(0, 500) || 'No detailed review available',
+        ``,
+        `**Issues found: ${issues.length}** (Critical: ${critical}, Warnings: ${warnings})`,
+        ...issues.slice(0, 5).map(i => `- **[${i.severity}]** ${i.issue}`),
+        issues.length > 5 ? `... and ${issues.length - 5} more issues` : '',
+      ].join('\n');
+      
+      return summary;
+    } catch (err) {
+      console.error('[Kelly] ARD review failed:', err);
+      return `Review failed for ${filePath}`;
+    }
+  }
+
   // Orchestrator does all work - agents are display-only for this release
   // Tasks are created for visual progress tracking, not for agent execution
   private async decomposeAndAssignTasks() {
@@ -629,7 +694,6 @@ export class KellyOrchestrator {
       await this.updateTaskStatus('Page Components', 'running');
       await this.updateTaskStatus('API Routes', 'running');
       
-<<<<<<< HEAD
       // Generate code using LLM with skill-enhanced prompts + hot memories
       const baseSystemPrompt = getSystemPromptForType(this.state.platform);
       
@@ -667,11 +731,6 @@ export class KellyOrchestrator {
         `Project: ${this.state.prompt}\nPlatform: ${this.state.platform}`
       );
       console.log('[Kelly] Starting code generation with skill-enhanced prompts, provider:', 'deepseek', 'platform:', this.state.platform);
-=======
-      // Generate code using LLM
-      const systemPrompt = getSystemPromptForType(this.state.platform);
-      console.log('[Kelly] Starting code generation with provider:', 'deepseek', 'platform:', this.state.platform);
->>>>>>> f7a346fe990de12b26a76a700995fa7435226860
       
       const result = await llmRouter.generate({
         prompt: this.state.prompt,
@@ -1353,7 +1412,16 @@ ${this.state.learningContext.complexity}
         await this.continueFromFailure();
         break;
       case 'reject':
-        await this.executePhase('coding');
+        // HIGH FIX: Re-execute the last failed phase, not always 'coding'
+        {
+          const lastFailedPhase = this.state.phases.slice().reverse().find(p => !p.success);
+          if (lastFailedPhase) {
+            await this.executePhase(lastFailedPhase.phase);
+          } else {
+            // Fallback: if no failed phase found, restart from coding
+            await this.executePhase('coding');
+          }
+        }
         break;
     }
   }
@@ -1435,7 +1503,6 @@ ${this.state.learningContext.complexity}
     if (typeof window !== 'undefined') {
       localStorage.setItem('hermes_manual_corrections', JSON.stringify(corrections));
     }
-<<<<<<< HEAD
     console.log('[Hermes] Manual correction logged:', correction);
     
     // Save to memory for cross-project learning
@@ -1450,9 +1517,6 @@ ${this.state.learningContext.complexity}
     } catch (memErr) {
       console.error('[Kelly] Failed to save correction memory:', memErr);
     }
-=======
-    console.log('[Kelly] Manual correction logged:', correction);
->>>>>>> f7a346fe990de12b26a76a700995fa7435226860
   }
 
   private loadManualCorrections(): ManualCorrectionRecord[] {

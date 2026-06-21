@@ -1,13 +1,8 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
-<<<<<<< HEAD
 import { useHermesChat } from "@/hooks/useHermesChat";
 import { Send, Bot, User, Loader2, Sparkles, CheckCircle, AlertCircle, MessageSquare, ArrowRight, Eye, Shield } from "lucide-react";
-=======
-import { Send, Bot, User, Loader2, Sparkles, CheckCircle, AlertCircle, MessageSquare, ArrowRight, Zap } from "lucide-react";
-import { useHermesChat } from "@/hooks/useHermesChat";
->>>>>>> f7a346fe990de12b26a76a700995fa7435226860
 
 interface Message {
   id: string;
@@ -45,7 +40,6 @@ export function AIChatPanel({
   files = [],
   tasks = [],
 }: AIChatPanelProps) {
-<<<<<<< HEAD
   // Use refs for counters to avoid hydration mismatches
   const messageIdRef = useRef(0);
   const statusIdRef = useRef(0);
@@ -58,9 +52,6 @@ export function AIChatPanel({
     return `status-${type}-${statusIdRef.current}`;
   }, []);
 
-=======
-  const [useHermes, setUseHermes] = useState(false);
->>>>>>> f7a346fe990de12b26a76a700995fa7435226860
   const [messages, setMessages] = useState<Message[]>(() => {
     const filtered = initialMessages
       .filter((m) => {
@@ -77,13 +68,7 @@ export function AIChatPanel({
       {
         id: "welcome",
         role: "assistant",
-<<<<<<< HEAD
-        content: "Hi! I'm Kelly, your AI assistant. I can help you build apps, plan projects, generate code, and more. What would you like to create today?",
-=======
-        content: useHermes 
-          ? "Hi! I'm Hermes, your AI developer agent. I can help you build, debug, and ship code with structured skills. What do you want to build?"
-          : "Hi! I'm your AI developer. Describe what you want to build, and I'll generate the code for you. I'll keep you updated on every step of the process!",
->>>>>>> f7a346fe990de12b26a76a700995fa7435226860
+        content: "Hi! I'm Kelly — your AI architect. I can help you build apps, plan projects, generate code, run security audits, and more. What would you like to create today?",
       },
       ...filtered,
     ];
@@ -91,14 +76,26 @@ export function AIChatPanel({
 
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [useHermes] = useState(true); // Always use Kelly
   const { sendMessage } = useHermesChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const addStatusRef = useRef<((statusType: string, content: string, variant?: "success" | "info" | "warning") => void) | null>(null);
-  const isSubmittingRef = useRef(false);
-  const statusAddedRef = useRef<Set<string>>(new Set());
+  
+  // CRITICAL FIX: Use a submission lock that's independent of render cycles
+  const submitLockRef = useRef(false);
+  // Track submission count to detect and discard stale responses
+  const submitCountRef = useRef(0);
+  const swarmAddedRef = useRef(false);
+  const codeAddedRef = useRef(false);
+  // Use ref for input to avoid recreating handleSubmit on every keystroke
+  const inputRef = useRef(input);
+  inputRef.current = input;
 
-  const { messages: hermesMessages, isLoading: hermesLoading, sendMessage: sendHermesMessage } = useHermesChat();
+  // Reset submit lock on unmount to prevent stale locks after StrictMode remount
+  useEffect(() => {
+    return () => {
+      submitLockRef.current = false;
+    };
+  }, []);
 
   const addStatusMessage = useCallback((statusType: string, content: string, variant: "success" | "info" | "warning" = "info") => {
     setMessages(prev => [...prev, {
@@ -122,27 +119,26 @@ export function AIChatPanel({
 
   // Watch for project status changes and add status messages
   useEffect(() => {
-    const addMsg = addStatusRef.current;
-    if (!addMsg) return;
-
-    if (tasks.length > 0 && !statusAddedRef.current.has('swarm')) {
-      statusAddedRef.current.add('swarm');
-      addMsg(
+    if (tasks.length > 0 && !swarmAddedRef.current) {
+      swarmAddedRef.current = true;
+      addStatusMessage(
         "swarm",
         `✅ Project has been decomposed into ${tasks.length} tasks. View them in the workspace menu under "Future Release".`,
         "success"
       );
     }
+  }, [tasks.length, addStatusMessage]);
 
-    if (files.length > 0 && !statusAddedRef.current.has('code')) {
-      statusAddedRef.current.add('code');
-      addMsg(
+  useEffect(() => {
+    if (files.length > 0 && !codeAddedRef.current) {
+      codeAddedRef.current = true;
+      addStatusMessage(
         "code",
         "✅ Code has been generated! In order to see the code, please click on Code in the menu at the top of the workspace.",
         "success"
       );
     }
-  }, [files.length, tasks.length]);
+  }, [files.length, addStatusMessage]);
 
   // Expose addStatusMessage to parent via window
   useEffect(() => {
@@ -153,35 +149,32 @@ export function AIChatPanel({
     };
   }, [addStatusMessage]);
 
-<<<<<<< HEAD
+  // CRITICAL FIX: Robust submission handler with atomic lock
+  // Using refs for input/isLoading to avoid recreating callback on every keystroke
+  const isLoadingRef = useRef(isLoading);
+  isLoadingRef.current = isLoading;
+
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!input.trim() || isLoading || isSubmittingRef.current) return;
-
-    isSubmittingRef.current = true;
-    const currentInput = input.trim();
-=======
-  // Sync Hermes messages with local state
-  useEffect(() => {
-    if (useHermes && hermesMessages.length > 0) {
-      // Convert Hermes messages to our format
-      const converted = hermesMessages.map(hm => ({
-        id: hm.id,
-        role: hm.role as "user" | "assistant",
-        content: hm.content,
-        isLoading: hm.isLoading,
-      }));
-      setMessages(prev => {
-        const userMsgs = prev.filter(m => m.role === "user" || m.role === "system");
-        return [...userMsgs, ...converted];
-      });
+    
+    // Atomic lock check - prevent any race conditions (StrictMode double-fire, etc.)
+    if (submitLockRef.current) {
+      console.warn("[Kelly Chat] Submit blocked by lock - duplicate prevented");
+      return;
     }
-  }, [hermesMessages, useHermes]);
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading || hermesLoading) return;
->>>>>>> f7a346fe990de12b26a76a700995fa7435226860
+    
+    // Read latest values from refs to avoid stale closures
+    const currentInputValue = inputRef.current;
+    if (!currentInputValue.trim()) return;
+    if (isLoadingRef.current) return;
+    
+    // Lock immediately - this MUST be synchronous to prevent race conditions
+    submitLockRef.current = true;
+    const currentInput = currentInputValue.trim();
+    
+    // Increment submission counter to track this specific submission
+    submitCountRef.current += 1;
+    const mySubmissionId = submitCountRef.current;
 
     const userMessage: Message = {
       id: getMessageId(),
@@ -189,22 +182,7 @@ export function AIChatPanel({
       content: currentInput,
     };
 
-<<<<<<< HEAD
     const loadingId = getMessageId();
-=======
-    setMessages((prev) => [...prev, userMessage]);
-    setInput("");
-
-    if (useHermes) {
-      // Use Hermes chat
-      await sendHermesMessage(userMessage.content);
-      return;
-    }
-
-    // Use original /api/generate
-    setIsLoading(true);
-
->>>>>>> f7a346fe990de12b26a76a700995fa7435226860
     const loadingMessage: Message = {
       id: loadingId,
       role: "assistant",
@@ -212,32 +190,26 @@ export function AIChatPanel({
       isLoading: true,
     };
 
-    // Add both messages in one update
+    // Add both messages in one atomic update
     setMessages((prev) => [...prev, userMessage, loadingMessage]);
     setInput("");
     setIsLoading(true);
 
     try {
-      let data;
+      // Build conversation history from current state
+      // Use a ref to get latest messages without closure staleness
+      const currentMessages = messagesRef.current;
+      const history = currentMessages
+        .filter((m) => (m.role === "user" || m.role === "assistant") && !m.isLoading && m.id !== "welcome")
+        .map((m) => ({ role: m.role, content: m.content }));
 
-      if (useHermes) {
-        // Build conversation history from current state
-        const history = messages
-          .filter((m) => (m.role === "user" || m.role === "assistant") && !m.isLoading && m.id !== "welcome")
-          .map((m) => ({ role: m.role, content: m.content }));
+      const data = await sendMessage(currentInput, history);
 
-        data = await sendMessage(currentInput, history);
-      } else {
-        const res = await fetch("/api/generate", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            projectId,
-            prompt: currentInput,
-            type,
-          }),
-        });
-        data = await res.json();
+      // CRITICAL: Discard response if a newer submission has occurred
+      // This prevents stale responses from overwriting newer ones
+      if (mySubmissionId !== submitCountRef.current) {
+        console.warn("[Kelly Chat] Discarding stale response from submission", mySubmissionId);
+        return;
       }
 
       // Remove loading message and add response
@@ -247,63 +219,45 @@ export function AIChatPanel({
           const aiMessage: Message = {
             id: getMessageId(),
             role: "assistant",
-            content: useHermes
-              ? (data.response || data.reply || "Kelly is ready to help!")
-              : (data.message || "I've started working on your request. You can track progress in the workspace tabs."),
+            content: data.response || data.reply || "Kelly is ready to help!",
           };
           return [...withoutLoading, aiMessage];
         } else {
           const errorMessage: Message = {
             id: getMessageId(),
             role: "assistant",
-            content: `❌ Error: ${data.error || (useHermes ? "Kelly connection failed." : "Generation failed.")}`,
+            content: `❌ Error: ${data.error || "Kelly connection failed."}`,
           };
           return [...withoutLoading, errorMessage];
         }
       });
 
-<<<<<<< HEAD
-      // Add status messages for regular AI mode
-      if (!useHermes) {
-=======
-      const data = await response.json();
-
-      setMessages((prev) => prev.filter((m) => m.id !== "loading"));
-
-      if (data.success || data.projectId) {
-        const aiMessage: Message = {
-          id: getMessageId(),
-          role: "assistant",
-          content: data.message || 
-            (data.filesGenerated 
-              ? `✅ Generated ${data.filesGenerated} files! The project is ready. Check the Code tab or Preview tab to see your app.`
-              : "I've started working on your request. You can track progress in the workspace tabs."),
-        };
-        setMessages((prev) => [...prev, aiMessage]);
-
->>>>>>> f7a346fe990de12b26a76a700995fa7435226860
-        if (data.research) {
-          addStatusMessage("research", "📊 Research complete! Market analysis saved. Click on Research to view.", "success");
-        }
-        if (data.filesGenerated > 0) {
-          addStatusMessage("code", `✅ Code generated! ${data.filesGenerated} files created. Click on "Code" to view.`, "success");
-        }
-      }
     } catch (error) {
-      setMessages((prev) => {
-        const withoutLoading = prev.filter((m) => m.id !== loadingId);
-        const errorMessage: Message = {
-          id: getMessageId(),
-          role: "assistant",
-          content: `❌ Error: ${error instanceof Error ? error.message : String(error)}`,
-        };
-        return [...withoutLoading, errorMessage];
-      });
+      // Only show error if this submission is still the latest
+      if (mySubmissionId === submitCountRef.current) {
+        setMessages((prev) => {
+          const withoutLoading = prev.filter((m) => m.id !== loadingId);
+          const errorMessage: Message = {
+            id: getMessageId(),
+            role: "assistant",
+            content: `❌ Error: ${error instanceof Error ? error.message : String(error)}`,
+          };
+          return [...withoutLoading, errorMessage];
+        });
+      }
     } finally {
       setIsLoading(false);
-      isSubmittingRef.current = false;
+      // Release lock after a small delay to prevent immediate re-submission
+      setTimeout(() => {
+        submitLockRef.current = false;
+      }, 100);
     }
-  }, [input, isLoading, messages, useHermes, projectId, type, sendMessage, addStatusMessage, getMessageId]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, type, sendMessage, addStatusMessage, getMessageId]);
+
+  // Track latest messages for history without closure staleness
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   const renderStatusMessage = (msg: Message) => {
     const isSuccess = msg.variant === "success";
@@ -317,10 +271,6 @@ export function AIChatPanel({
       deploy: "deploy",
     };
     const tabName = msg.statusType ? tabMap[msg.statusType] : null;
-<<<<<<< HEAD
-=======
-
->>>>>>> f7a346fe990de12b26a76a700995fa7435226860
     const cleanContent = msg.content?.replace(/\*\*/g, '') || '';
 
     return (
@@ -367,33 +317,12 @@ export function AIChatPanel({
       {/* Header */}
       <div className="h-12 border-b border-gray-200 flex items-center px-4 bg-white">
         <div className="flex items-center gap-2">
-<<<<<<< HEAD
           <MessageSquare className="w-4 h-4 text-purple-600" />
           <h3 className="text-sm font-medium text-gray-900">Kelly</h3>
           <span className="px-1.5 py-0.5 text-[10px] rounded bg-purple-50 text-purple-600 border border-purple-200">AI Agent</span>
         </div>
 
         <div className="ml-auto flex items-center gap-1.5">
-=======
-          <MessageSquare className="w-4 h-4 text-cyan-600" />
-          <h3 className="text-sm font-medium text-gray-900">
-            {useHermes ? "Kelly" : "AI Assistant"}
-          </h3>
-        </div>
-        <div className="ml-auto flex items-center gap-2">
-          <button
-            onClick={() => setUseHermes(!useHermes)}
-            className={`flex items-center gap-1 px-2 py-1 rounded text-xs font-medium transition-colors ${
-              useHermes 
-                ? "bg-purple-100 text-purple-700 hover:bg-purple-200" 
-                : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-            }`}
-            title={useHermes ? "Switch to AI Assistant" : "Switch to Hermes Agent"}
-          >
-            <Zap className="w-3 h-3" />
-            {useHermes ? "Hermes" : "AI"}
-          </button>
->>>>>>> f7a346fe990de12b26a76a700995fa7435226860
           <span className={`w-2 h-2 rounded-full ${
             projectStatus === "ready" ? "bg-emerald-400" :
             projectStatus === "generating" ? "bg-amber-400 animate-pulse" :
@@ -409,11 +338,7 @@ export function AIChatPanel({
           if (message.role === "system") {
             return <div key={message.id}>{renderStatusMessage(message)}</div>;
           }
-<<<<<<< HEAD
 
-=======
-          
->>>>>>> f7a346fe990de12b26a76a700995fa7435226860
           if (message.role === "assistant" && isCodeContent(message.content)) {
             return null;
           }
@@ -431,11 +356,7 @@ export function AIChatPanel({
               className={`flex gap-2 ${message.role === "user" ? "justify-end" : "justify-start"}`}
             >
               {message.role === "assistant" && (
-                <div className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-1 ${
-                  useHermes 
-                    ? "bg-gradient-to-br from-purple-500 to-pink-500" 
-                    : "bg-gradient-to-br from-cyan-500 to-blue-500"
-                }`}>
+                <div className="w-6 h-6 rounded-full flex items-center justify-center shrink-0 mt-1 bg-gradient-to-br from-purple-500 to-pink-500">
                   <Bot className="w-3.5 h-3.5 text-white" />
                 </div>
               )}
@@ -443,15 +364,13 @@ export function AIChatPanel({
                 className={`max-w-[85%] rounded-lg px-3 py-2 text-sm ${
                   message.role === "user"
                     ? "bg-cyan-50 text-gray-900 border border-cyan-200 ml-4"
-                    : useHermes
-                    ? "bg-purple-50 text-gray-800 mr-4 border border-purple-200"
-                    : "bg-gray-100 text-gray-800 mr-4 border border-gray-200"
+                    : "bg-purple-50 text-gray-800 mr-4 border border-purple-200"
                 }`}
               >
                 {message.isLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    {useHermes ? "Kelly is thinking..." : "Generating code..."}
+                    Kelly is thinking...
                   </div>
                 ) : (
                   <>
@@ -504,29 +423,20 @@ export function AIChatPanel({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-<<<<<<< HEAD
             placeholder="Ask Kelly anything..."
-=======
-            placeholder={useHermes ? "Ask Kelly anything..." : "Ask the AI to modify your app..."}
->>>>>>> f7a346fe990de12b26a76a700995fa7435226860
             className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-500"
-            disabled={isLoading || hermesLoading}
+            disabled={isLoading}
           />
           <button
             type="submit"
-<<<<<<< HEAD
             disabled={isLoading || !input.trim()}
-            className="px-3 py-2 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 bg-gradient-to-r from-purple-500 to-pink-500"
-=======
-            disabled={isLoading || hermesLoading || !input.trim()}
-            className={`px-3 py-2 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 ${
-              useHermes 
-                ? "bg-gradient-to-r from-purple-500 to-pink-500" 
-                : "bg-gradient-to-r from-cyan-500 to-blue-500"
-            }`}
->>>>>>> f7a346fe990de12b26a76a700995fa7435226860
+            className="px-3 py-2 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 bg-gradient-to-r from-purple-500 to-pink-500 flex items-center gap-2"
           >
-            <Send className="w-4 h-4" />
+            {isLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Send className="w-4 h-4" />
+            )}
           </button>
         </div>
       </form>
