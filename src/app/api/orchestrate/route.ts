@@ -6,7 +6,6 @@ import { db } from "@/lib/db";
 import { projects, projectFiles, conversations, tasks } from "@/lib/db/schema";
 import { generateShortName } from "@/lib/project-name-generator";
 import { eq } from "drizzle-orm";
-import { runMorganTask, getMorganTaskList } from "@/lib/morgan-executor";
 
 const execAsync = promisify(exec);
 
@@ -184,24 +183,56 @@ Provide a structured response with actionable insights.`;
   }
 }
 
-// Execute with Morgan (lightweight executor - no OpenManus install needed)
+// Execute with Morgan (OpenManus - security, fixes, automation)
 async function executeWithMorgan(prompt: string, projectId?: string) {
-  console.log("[Orchestrator] Executing with Morgan (lightweight)...");
+  console.log("[Orchestrator] Executing with Morgan...");
   
-  // Determine which task to run based on prompt
-  const taskName = prompt.toLowerCase().includes("security") ? "security-audit" :
-                   prompt.toLowerCase().includes("clean") ? "code-cleanup" :
-                   prompt.toLowerCase().includes("depend") ? "dependency-audit" :
-                   prompt.toLowerCase().includes("test") ? "test-generation" :
-                   "security-audit"; // Default
+  if (!existsSync(OPENMANUS_DIR)) {
+    return {
+      error: "OpenManus not installed. Run: cd /root && git clone https://github.com/mannaandpoem/OpenManus.git",
+      type: "morgan_error",
+    };
+  }
 
-  const result = await runMorganTask(taskName, projectId);
+  const tmpFileName = `morgan_task_${Date.now()}.txt`;
+  const taskFilePath = `${OPENMANUS_DIR}/tasks/${tmpFileName}`;
 
-  return {
-    output: result.output,
-    type: result.success ? "morgan_response" : "morgan_error",
-    taskId: result.taskId,
-  };
+  // Ensure tasks directory exists
+  if (!existsSync(`${OPENMANUS_DIR}/tasks`)) {
+    mkdirSync(`${OPENMANUS_DIR}/tasks`, { recursive: true });
+  }
+
+  const morganPrompt = `You are Morgan, the AI Executor. 
+You perform security audits, bulk fixes, refactoring, and automation tasks.
+Be thorough and produce actionable results.
+
+TASK: ${prompt}
+${projectId ? `PROJECT ID: ${projectId}` : ""}
+
+Execute this task and provide a summary of changes made.`;
+
+  writeFileSync(taskFilePath, morganPrompt, "utf-8");
+
+  try {
+    // Run OpenManus with the task
+    const command = `cd ${OPENMANUS_DIR} && python3 run_mcp.py --task "${taskFilePath}"`;
+    const { stdout, stderr } = await execAsync(command, {
+      timeout: 300000, // 5 minutes for complex tasks
+      maxBuffer: 5 * 1024 * 1024,
+    });
+
+    return {
+      output: stdout,
+      errors: stderr || null,
+      type: "morgan_response",
+    };
+  } catch (error: any) {
+    return {
+      error: error.message,
+      output: error.stdout || "",
+      type: "morgan_error",
+    };
+  }
 }
 
 // Execute with BuildAny native (code generation)
