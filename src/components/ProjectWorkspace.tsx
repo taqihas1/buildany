@@ -13,14 +13,14 @@ import {
 import { MemoryPanel } from "./memory-panel";
 import dynamic from "next/dynamic";
 const AIChatPanel = dynamic(() => import("./AIChatPanel").then((mod) => mod.AIChatPanel), { ssr: false });
-import { SwarmDashboard } from "./SwarmDashboard";
 import { ResearchPanel } from "./ResearchPanel";
 import { LivePreview } from "./LivePreview";
 import { MobilePreview } from "./MobilePreview";
 import { WikiViewer } from "./WikiViewer";
 import { AutomatedTestingPanel } from "./automated-testing-panel";
+import { AgentsTasksPanel } from "./AgentsTasksPanel";
 
-type WorkspaceTab = 'preview' | 'code' | 'research' | 'swarm' | 'wiki' | 'review' | 'testing' | 'memory';
+type WorkspaceTab = 'preview' | 'code' | 'research' | 'agents' | 'wiki' | 'review' | 'testing' | 'memory';
 
 interface ProjectWorkspaceProps {
   project: any;
@@ -77,7 +77,7 @@ export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: P
     if (tab === 'code') setWorkspaceTab('code');
     if (tab === 'preview') setWorkspaceTab('preview');
     if (tab === 'research') setWorkspaceTab('research');
-    if (tab === 'swarm') setWorkspaceTab('swarm');
+    if (tab === 'agents') setWorkspaceTab('agents');
     if (tab === 'wiki') setWorkspaceTab('wiki');
     if (tab === 'review') setWorkspaceTab('review');
     if (tab === 'testing') setWorkspaceTab('testing');
@@ -194,7 +194,7 @@ export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: P
     { id: 'review' as WorkspaceTab, label: 'Code Review', icon: Shield },
     { id: 'testing' as WorkspaceTab, label: 'Auto Tests', icon: Play },
     { id: 'memory' as WorkspaceTab, label: 'Memory', icon: Brain },
-    { id: 'swarm' as WorkspaceTab, label: 'Future Release', icon: Bot },
+    { id: 'agents' as WorkspaceTab, label: 'Agents/Tasks', icon: Bot },
   ];
 
   return (
@@ -466,8 +466,8 @@ export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: P
               <ResearchPanel projectId={project.id} />
             )}
 
-            {workspaceTab === 'swarm' && (
-              <SwarmDashboard projectId={project.id} projectDescription={project.description} projectType={project.type} />
+            {workspaceTab === 'agents' && (
+              <AgentsTasksPanel projectId={project.id} />
             )}
 
             {workspaceTab === 'wiki' && (
