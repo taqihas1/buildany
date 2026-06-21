@@ -11,16 +11,14 @@ import {
   ChevronLeft, ChevronRight, MessageSquare, Brain
 } from 'lucide-react';
 import { MemoryPanel } from "./memory-panel";
-
+import dynamic from "next/dynamic";
+const AIChatPanel = dynamic(() => import("./AIChatPanel").then((mod) => mod.AIChatPanel), { ssr: false });
 import { SwarmDashboard } from "./SwarmDashboard";
 import { ResearchPanel } from "./ResearchPanel";
 import { LivePreview } from "./LivePreview";
 import { MobilePreview } from "./MobilePreview";
 import { WikiViewer } from "./WikiViewer";
 import { AutomatedTestingPanel } from "./automated-testing-panel";
-import dynamic from "next/dynamic";
-
-const AIChatPanel = dynamic(() => import("./AIChatPanel").then((mod) => mod.AIChatPanel), { ssr: false });
 
 type WorkspaceTab = 'preview' | 'code' | 'research' | 'swarm' | 'wiki' | 'review' | 'testing' | 'memory';
 

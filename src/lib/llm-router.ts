@@ -439,7 +439,7 @@ export function parseGeneratedCode(content: string): ParsedFile[] {
   }
   
   // If still no files, assume it's a single HTML file
-  if (files.length === 0 && content.includes('<!DOCTYPE html>') || content.includes('<html')) {
+  if (files.length === 0 && (content.includes('<!DOCTYPE html>') || content.includes('<html'))) {
     files.push({ path: 'index.html', content, language: 'html' });
   }
   

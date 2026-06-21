@@ -50,8 +50,9 @@ export function useHermesOrchestrator() {
 
   const abortRef = useRef(false);
   const projectIdRef = useRef<string | undefined>(undefined);
+  const platformRef = useRef<'web' | 'mobile' | 'backend'>('web');
 
-  // Keep projectIdRef in sync with status
+  // Keep refs in sync with status
   useEffect(() => {
     projectIdRef.current = status.projectId;
   }, [status.projectId]);
@@ -62,6 +63,7 @@ export function useHermesOrchestrator() {
     platform: 'web' | 'mobile' | 'backend'
   ) => {
     abortRef.current = false;
+    platformRef.current = platform; // Store original platform
     
     setStatus({
       message: 'Initializing orchestration...',
@@ -105,11 +107,17 @@ export function useHermesOrchestrator() {
         progress: 50,
       }));
 
-      await fetch('/api/decompose', {
+      // MEDIUM FIX: Handle decompose response, don't silently swallow errors
+      const decomposeResult = await fetch('/api/decompose', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ projectId: result.projectId || projectId }),
-      }).catch(() => {/* non-blocking */});
+      }).catch((err) => {
+        console.error('Decompose fetch error:', err);
+        return null;
+      });
+
+      const decomposeSuccess = decomposeResult?.ok || false;
 
       if (abortRef.current) return;
 
@@ -123,7 +131,7 @@ export function useHermesOrchestrator() {
         phases: [
           ...prev.phases,
           { phase: 'coding', success: true, message: 'Code generated', details: result },
-          { phase: 'decompose', success: true, message: 'Tasks decomposed' },
+          { phase: 'decompose', success: decomposeSuccess, message: decomposeSuccess ? 'Tasks decomposed' : 'Task decomposition failed' },
           { phase: 'completed', success: true, message: 'All done!' },
         ],
       }));
@@ -154,9 +162,9 @@ export function useHermesOrchestrator() {
       showCorrections: false,
     }));
     
-    // Retry with correction
+    // HIGH FIX: Use original platform from ref, not hardcoded 'web'
     if (projectIdRef.current) {
-      startOrchestration(projectIdRef.current, correction, 'web');
+      startOrchestration(projectIdRef.current, correction, platformRef.current);
     }
   }, [startOrchestration]);
 
@@ -169,12 +177,12 @@ export function useHermesOrchestrator() {
   }, []);
 
   const retry = useCallback(() => {
-    setStatus(prev => {
-      if (prev.projectId) {
-        startOrchestration(prev.projectId, 'Retrying...', 'web');
-      }
-      return prev;
-    });
+    // CRITICAL FIX: Do NOT call startOrchestration inside setState updater!
+    // Read projectId directly from ref, not from inside updater
+    const pid = projectIdRef.current;
+    if (pid) {
+      startOrchestration(pid, 'Retrying...', platformRef.current);
+    }
   }, [startOrchestration]);
 
   const abort = useCallback(() => {

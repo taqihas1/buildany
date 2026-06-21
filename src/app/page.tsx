@@ -7,6 +7,8 @@ import { db } from "@/lib/db";
 import { projects } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 
+import { KellyWelcomePanel } from "@/components/KellyWelcomePanel";
+
 export default async function Home() {
   const authData = await auth();
   const userId = authData.userId;
@@ -28,11 +30,16 @@ export default async function Home() {
         <p className="font-sans-ui text-xl text-vogue-gray mb-4 max-w-2xl mx-auto leading-relaxed">
           AI-powered app builder. Web, mobile, backend — describe it, we build it.
         </p>
-        <div className="font-sans-ui flex items-center justify-center gap-4 text-sm text-vogue-light-gray mb-12">
+        <div className="font-sans-ui flex items-center justify-center gap-4 text-sm text-vogue-light-gray mb-8">
           <span className="flex items-center gap-1">⚡ Instant preview</span>
           <span className="flex items-center gap-1">📱 Mobile + Web</span>
           <span className="flex items-center gap-1">🤖 Multi-LLM</span>
           <span className="flex items-center gap-1">🔗 GitHub export</span>
+        </div>
+        
+        {/* Kelly Welcome Panel */}
+        <div className="max-w-2xl mx-auto mb-8">
+          <KellyWelcomePanel />
         </div>
         
         <PromptBox />

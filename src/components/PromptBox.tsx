@@ -9,8 +9,7 @@ export function PromptBox({ selectedModel }: { selectedModel?: string }) {
   const [appType, setAppType] = useState<"web" | "mobile" | "dashboard">("web");
   const [skipResearch, setSkipResearch] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [useKelly, setUseKelly] = useState(true); // Default to Kelly (Hermes + Skills)
-  const [loadingStage, setLoadingStage] = useState<"" | "research" | "generating" | "decomposing">("");
+  const [kellyStatus, setKellyStatus] = useState<"idle" | "researching" | "planning" | "coding" | "done">("idle");
   const [researchPreview, setResearchPreview] = useState<any>(null);
   const router = useRouter();
 
@@ -36,11 +35,14 @@ export function PromptBox({ selectedModel }: { selectedModel?: string }) {
     if (!prompt.trim() || isLoading) return;
 
     setIsLoading(true);
-    setLoadingStage("research");
+    setKellyStatus("researching");
     setResearchPreview(null);
 
     try {
-      const res = await fetch(useKelly ? "/api/hermes-orchestrate" : "/api/generate", {
+      setKellyStatus("researching");
+      setResearchPreview(null);
+
+      const res = await fetch("/api/hermes-orchestrate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ 
@@ -57,7 +59,7 @@ export function PromptBox({ selectedModel }: { selectedModel?: string }) {
         console.error("Generation failed:", errorData);
         alert(`Error: ${errorData.error || "Failed to generate"}`);
         setIsLoading(false);
-        setLoadingStage("");
+        setKellyStatus("idle");
         return;
       }
       
@@ -65,12 +67,12 @@ export function PromptBox({ selectedModel }: { selectedModel?: string }) {
 
       // Show research results if available
       if (data.research) {
-        setLoadingStage("generating");
+        setKellyStatus("planning");
         setResearchPreview(data.research);
         await new Promise(r => setTimeout(r, 800)); // Brief pause to show research
       }
 
-      setLoadingStage("decomposing");
+      setKellyStatus("coding");
       await new Promise(r => setTimeout(r, 300));
 
       if (data.projectId) {
@@ -83,7 +85,7 @@ export function PromptBox({ selectedModel }: { selectedModel?: string }) {
       console.error("Generation failed:", err);
       alert(`Network error: ${err instanceof Error ? err.message : "Failed to connect"}`);
       setIsLoading(false);
-      setLoadingStage("");
+      setKellyStatus("idle");
     }
   };
 
@@ -152,15 +154,10 @@ export function PromptBox({ selectedModel }: { selectedModel?: string }) {
             />
             Skip research
           </label>
-          <label className="flex items-center gap-2 text-sm text-purple-600 cursor-pointer font-medium">
-            <input
-              type="checkbox"
-              checked={useKelly}
-              onChange={(e) => setUseKelly(e.target.checked)}
-              className="rounded border-gray-300 bg-white text-purple-500"
-            />
-            🤖 Use Kelly (Skills + Orchestration)
-          </label>
+          <span className="flex items-center gap-2 text-sm text-purple-600 font-medium">
+            <span className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+            🤖 Kelly Active
+          </span>
         </div>
         <span className="text-sm text-gray-500">
           {appType === "mobile" ? "Expo SDK 54 + React Native" : "Next.js 15 + Tailwind + shadcn/ui"}
@@ -172,14 +169,14 @@ export function PromptBox({ selectedModel }: { selectedModel?: string }) {
         <div className="mt-4 space-y-2">
           <div className="flex items-center gap-3 text-base">
             <div className={`w-2 h-2 rounded-full ${
-              loadingStage === "research" ? "bg-cyan-500 animate-pulse" :
-              loadingStage === "generating" || loadingStage === "decomposing" ? "bg-emerald-500" :
+              kellyStatus === "researching" ? "bg-purple-500 animate-pulse" :
+              kellyStatus === "planning" || kellyStatus === "coding" ? "bg-emerald-500" :
               "bg-gray-300"
             }`} />
-            <span className={loadingStage === "research" ? "text-cyan-700 font-medium" : "text-emerald-700 font-medium"}>
-              {loadingStage === "research" && <><Search className="w-3.5 h-3.5 inline mr-1" /> Researching market...</>}
-              {loadingStage === "generating" && <><Code2 className="w-3.5 h-3.5 inline mr-1" /> Generating code...</>}
-              {loadingStage === "decomposing" && <><Layers className="w-3.5 h-3.5 inline mr-1" /> Planning tasks...</>}
+            <span className={kellyStatus === "researching" ? "text-purple-700 font-medium" : "text-emerald-700 font-medium"}>
+              {kellyStatus === "researching" && <><Search className="w-3.5 h-3.5 inline mr-1" /> Kelly is researching the market...</>}
+              {kellyStatus === "planning" && <><Layers className="w-3.5 h-3.5 inline mr-1" /> Kelly is planning the architecture...</>}
+              {kellyStatus === "coding" && <><Code2 className="w-3.5 h-3.5 inline mr-1" /> Kelly is generating code...</>}
             </span>
           </div>
 
