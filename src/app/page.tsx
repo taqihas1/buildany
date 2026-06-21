@@ -28,12 +28,12 @@ export default async function Home() {
           What would you build?
         </h1>
         <p className="font-sans-ui text-xl text-vogue-gray mb-4 max-w-2xl mx-auto leading-relaxed">
-          AI-powered app builder. Web, mobile, backend — describe it, we build it.
+          Kelly (Brain) + Morgan (Executor) — describe your app, we build it.
         </p>
         <div className="font-sans-ui flex items-center justify-center gap-4 text-sm text-vogue-light-gray mb-8">
           <span className="flex items-center gap-1">⚡ Instant preview</span>
           <span className="flex items-center gap-1">📱 Mobile + Web</span>
-          <span className="flex items-center gap-1">🤖 Multi-LLM</span>
+          <span className="flex items-center gap-1">🧠 Kelly AI</span>
           <span className="flex items-center gap-1">🔗 GitHub export</span>
         </div>
         
@@ -58,8 +58,8 @@ export default async function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <FeatureCard 
             icon="🧠"
-            title="AI Research First"
-            description="Auto-researches top apps in your space before building. No more guessing."
+            title="Kelly — The Brain"
+            description="AI architect that researches, plans, and designs your app before a single line of code is written."
           />
           <FeatureCard 
             icon="📱"
@@ -68,23 +68,23 @@ export default async function Home() {
           />
           <FeatureCard 
             icon="🤖"
-            title="Multi-LLM Power"
-            description="Routes to the best AI model for the job — Kimi, DeepSeek, GPT-4o, Claude."
+            title="Morgan — The Executor"
+            description="Security audits, bulk fixes, refactoring, and automated testing. The muscle behind the brain."
           />
           <FeatureCard 
             icon="🔧"
-            title="Auto-Test Agent"
-            description="AI tests every screen, finds bugs, fixes them before you see them."
+            title="Ponytail Code"
+            description="Minimalist code generation — 54% less code, 20% cheaper, 27% faster. No bloat, no YAGNI."
           />
           <FeatureCard 
             icon="📚"
             title="Living Wiki"
-            description="Auto-generated docs that update as your code changes. Never outdated."
+            description="Auto-generated docs that update as your code changes. Kelly remembers everything."
           />
           <FeatureCard 
             icon="🧬"
             title="Second Brain"
-            description="Remembers your preferences, suggests before you ask, learns your style."
+            description="Remembers your preferences, suggests before you ask, learns your style across projects."
           />
         </div>
       </div>
