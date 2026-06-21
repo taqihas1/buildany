@@ -1,0 +1,17 @@
+{
+  "BusinessUnit": "US001",
+  "InvoiceNumber": "API-INV-001",
+  "InvoiceDate": "2026-05-23",
+  "InvoiceCurrency": "USD",
+  "InvoiceAmount": 1500.00,
+  "Supplier": "Acme Corp",
+  "SupplierSite": "MAIN",
+  "invoiceLines": [
+    {
+      "LineNumber": 1,
+      "LineAmount": 1500.00,
+      "DistributionCombination": "01.510.5110.0000.000",
+      "Description": "API test invoice"
+    }
+  ]
+}

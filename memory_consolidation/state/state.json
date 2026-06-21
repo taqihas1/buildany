@@ -1,29 +1,29 @@
 {
   "diary": {
-    "count": 17,
-    "last_ts": "2026-05-15T03:51:01.041262",
-    "last_skip": "conversation_hash_unchanged",
-    "last_messages": 336,
-    "last_day": 11,
-    "last_sessions": 8,
-    "last_filename": "day11-2026-05-15-abb_incident_and_the_ghost_server.md",
-    "last_latency_s": 26.5,
+    "count": 84,
+    "last_ts": "2026-06-21T03:32:56.879710",
+    "last_skip": "no_sessions_today",
+    "last_messages": 38,
+    "last_day": 42,
+    "last_sessions": 3,
+    "last_filename": "day42-2026-06-15-ssh_ghosted_but_we_won.md",
+    "last_latency_s": 15.2,
     "last_error": "The read operation timed out"
   },
   "stm": {
-    "count": 11,
-    "last_ts": "2026-05-15T05:07:29.792721",
-    "last_sessions": 44,
-    "last_messages": 1203,
-    "last_chars": 52465
+    "count": 14,
+    "last_ts": "2026-06-21T08:27:15.584630",
+    "last_sessions": 226,
+    "last_messages": 13883,
+    "last_chars": 91627
   },
   "compact": {
-    "count": 12,
-    "last_ts": "2026-05-15T03:51:04.037087",
-    "last_invoke": 8,
-    "last_sessions": 43,
-    "last_messages": 1193,
-    "last_latency_s": 18.8,
+    "count": 79,
+    "last_ts": "2026-06-21T03:33:07.030361",
+    "last_invoke": 44,
+    "last_sessions": 215,
+    "last_messages": 13492,
+    "last_latency_s": 39.9,
     "last_model": "k2p6",
     "last_error": "The read operation timed out",
     "last_skip": "stm_hash_unchanged"

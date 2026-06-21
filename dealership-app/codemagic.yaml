@@ -1,0 +1,49 @@
+workflows:
+  android-release:
+    name: Android Release AAB
+    instance_type: mac_mini_m1
+    max_build_duration: 60
+    environment:
+      node: 22
+      java: 17
+    cache:
+      cache_paths:
+        - $CM_BUILD_DIR/node_modules
+        - $HOME/.gradle/caches
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: false
+      cancel_previous_builds: true
+    scripts:
+      - name: Install dependencies
+        script: |
+          npm ci --legacy-peer-deps
+
+      - name: Expo Prebuild (Android)
+        script: |
+          npx expo prebuild --platform android --no-install
+
+      - name: Patch Android Release Files
+        script: |
+          node scripts/patch-release-signing.js android/app/build.gradle
+          node scripts/patch-android-release.js
+
+      - name: Build Release AAB
+        script: |
+          cd android
+          ./gradlew bundleRelease
+
+    artifacts:
+      - android/app/build/outputs/bundle/release/*.aab
+      - android/app/build/outputs/apk/release/*.apk
+
+    publishing:
+      email:
+        recipients:
+          - taqihas@gmail.com
+        notify:
+          success: true
+          failure: true

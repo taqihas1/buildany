@@ -1,0 +1,12 @@
+# .easignore — files to exclude from EAS build archive
+node_modules/
+*.log
+.git/
+.gitignore
+*.aab
+*.apk
+recipe-app/
+rfp-revisions/
+skills/
+*.tar.gz
+EOF

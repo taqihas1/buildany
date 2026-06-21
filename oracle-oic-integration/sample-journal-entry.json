@@ -1,0 +1,21 @@
+{
+  "JournalName": "API-TEST-001",
+  "AccountingDate": "2026-05-23",
+  "JournalSource": "Manual",
+  "JournalCategory": "Adjustment",
+  "CurrencyCode": "USD",
+  "journalEntryLines": [
+    {
+      "AccountCombination": "01.110.1110.0000.000",
+      "EnteredDebitAmount": 1000.00,
+      "EnteredCreditAmount": 0,
+      "Description": "API test debit"
+    },
+    {
+      "AccountCombination": "01.210.2110.0000.000",
+      "EnteredDebitAmount": 0,
+      "EnteredCreditAmount": 1000.00,
+      "Description": "API test credit"
+    }
+  ]
+}

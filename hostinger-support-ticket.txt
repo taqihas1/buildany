@@ -1,0 +1,103 @@
+Subject: base66.cloud - External traffic not reaching VPS (upstream layer caching responses)
+
+Hello Hostinger Support,
+
+I am experiencing a critical issue where external HTTPS requests to base66.cloud are NOT reaching my VPS. Instead, an upstream layer (CDN/WAF/proxy/cache) is intercepting requests and returning stale cached responses.
+
+---
+
+## VPS INFORMATION
+
+- Domain: base66.cloud (www.base66.cloud)
+- VPS IP: 2.25.170.135
+- VPS Hostname: srv1730121.hstgr.cloud
+- Operating System: Ubuntu 24.04
+- Web Server: Nginx 1.24.0
+- Application: Next.js 16.2.7 running on port 3000 via PM2
+
+---
+
+## DEFINITIVE EVIDENCE
+
+### Evidence 1: Debug Header Test (SMOKING GUN)
+
+I changed the X-VPS-Debug header in my nginx configuration and reloaded nginx:
+
+  /etc/nginx/sites-available/base66:
+  add_header X-VPS-Debug "nginx-ALIVE-TEST-2026-06-14-2152" always;
+
+After reloading nginx, the external response still shows the OLD cached header:
+
+  $ curl -k -I https://base66.cloud/
+  HTTP/1.1 502 Bad Gateway
+  Server: nginx/1.24.0 (Ubuntu)
+  X-VPS-Debug: nginx-on-vps-2026-06-14-2022   <-- OLD VALUE! (cached)
+
+This proves that my nginx config changes are NOT being seen externally. The response is coming from a cached/upstream layer.
+
+---
+
+### Evidence 2: Local nginx Works Perfectly
+
+Testing nginx locally on the VPS shows it works correctly:
+
+  $ curl -k https://127.0.0.1/ -H "Host: base66.cloud" | head -5
+  <!DOCTYPE html><html lang="en">... (full BuildAny homepage loads)
+
+Local test through nginx returns HTTP 200 with the NEW header:
+  X-VPS-Debug: nginx-ALIVE-TEST-2026-06-14-2152  <-- NEW VALUE (correct)
+
+This proves the VPS nginx is healthy and correctly configured.
+
+---
+
+### Evidence 3: Application is Running Correctly
+
+The application is running on port 3000 and responds correctly to localhost:
+
+  $ curl http://localhost:3000/api/no-db-test
+  {"success":true,"message":"No DB GET works!"}
+
+  $ pm2 list
+  buildany | online | PID 4078235 | port 3000 | 76.3mb
+
+---
+
+### Evidence 4: No Inbound Connections on Port 443
+
+Checking for inbound connections on port 443 shows NO external connections reaching the VPS:
+
+  $ ss -tnp | grep :443
+  (only shows outbound connections - nothing inbound from external IPs)
+
+---
+
+## WHAT I HAVE TRIED
+
+1. ✅ Restarted nginx multiple times
+2. ✅ Changed proxy ports (3000 and 3001)
+3. ✅ Cleared all application caches (.next, node_modules/.cache)
+4. ✅ Rebuilt the application successfully
+5. ✅ Verified the application works on localhost
+6. ✅ Verified nginx works locally with correct headers
+7. ❌ External requests still show cached 502 responses
+
+---
+
+## REQUEST
+
+Please investigate and resolve:
+
+1. Is there a CDN, WAF, proxy, or cache layer in front of my VPS for base66.cloud?
+2. If yes, please CLEAR the cache or DISABLE the layer so traffic reaches my VPS directly.
+3. If there is a "Website" or "Hosting" service attached to this domain in hPanel, please remove it so only the DNS A record controls routing.
+
+The VPS application is 100% healthy. The issue is entirely that external traffic is not reaching it.
+
+---
+
+## CONTACT INFORMATION
+
+I am available to provide any additional logs or run diagnostic commands as needed.
+
+Thank you for your assistance.

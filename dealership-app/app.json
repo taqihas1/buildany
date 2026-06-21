@@ -9,17 +9,22 @@
     "splash": {
       "image": "./assets/splash.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1E40AF"
     },
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.carbuyassistant.app"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#1E40AF"
       },
-      "package": "com.carbuyassistant.app"
+      "package": "com.carbuyassistant.app",
+      "permissions": [
+        "android.permission.ACCESS_NETWORK_STATE",
+        "com.google.android.gms.permission.AD_ID"
+      ]
     },
     "plugins": [
       [

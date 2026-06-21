@@ -249,6 +249,26 @@ grep -n "function " src/services/*.ts
 npx tsc --noEmit src/services/carApi.ts
 ```
 
+### 11. Expo SDK Upgrade to SDK 54 (Latest)
+**Standard practice:** All new and existing projects should target Expo SDK 54.
+
+**SDK 54 dependency mapping:**
+- `expo@~54.0.0`
+- `react-native@0.81.x`
+- `react@19.1.x` (or `19.0.0` to start, then adjust)
+
+**Upgrade command:**
+```bash
+cd <project-dir>
+npx expo install expo@~54.0.0 react@19.0.0 react-native@0.79.0 --legacy-peer-deps
+npx expo start --clear --offline
+```
+
+**Verify after upgrade:**
+- Check `node_modules/expo/package.json` → version should start with `54.`
+- Check user's Expo Go app version matches SDK 54
+- Clear Metro cache: `npx expo start --clear`
+
 ## Quick Fixes Cheat Sheet
 
 | Error | Quick Fix |
@@ -275,5 +295,110 @@ npx tsc --noEmit src/services/carApi.ts
 5. **Always use `exp://`** for QR code URLs
 6. **Always generate QR dynamically** — never hardcode tunnel URLs
 7. **Always read the full function block** after editing to check for stray code
+8. **Always use GitHub Actions for EAS Build** — never build locally. Push to `main` and let CI handle iOS/Android builds
 9. **Always provide QR as downloadable file** — Inline images may not render in all chat clients. ZIP with PNG is safest.
 10. **Always verify QR scans correctly** before telling user to scan — test with `curl` on tunnel URL first.
+
+## EAS Build CI/CD (GitHub Actions)
+
+**Standard practice:** Always use GitHub Actions to build iOS/Android via EAS. Never build locally.
+
+### Setup
+
+1. **Install EAS CLI** (one-time):
+   ```bash
+   npm install -g eas-cli
+   ```
+
+2. **Create EAS project**:
+   ```bash
+   cd <project-dir>
+   eas build:configure
+   # Copy the project ID from output
+   ```
+
+3. **Add `eas.json`** with preview + production profiles:
+   ```json
+   {
+     "cli": { "version": ">= 16.0.0" },
+     "build": {
+       "preview": {
+         "distribution": "internal",
+         "android": { "buildType": "apk" },
+         "ios": { "enterpriseProvisioning": "adhoc" }
+       },
+       "production": {
+         "distribution": "store",
+         "android": { "buildType": "app-bundle" },
+         "ios": { "enterpriseProvisioning": "adhoc" }
+       }
+     }
+   }
+   ```
+
+4. **Add EAS project ID to `app.json`**:
+   ```json
+   {
+     "expo": {
+       "extra": {
+         "eas": { "projectId": "YOUR_PROJECT_ID" }
+       }
+     }
+   }
+   ```
+
+5. **Get Expo token**:
+   - Go to https://expo.dev/accounts/[username]/settings/access-tokens
+   - Create token → Name it `github-actions`
+   - Copy token (shown once!)
+
+6. **Add GitHub Secret**:
+   - Go to https://github.com/[user]/[repo]/settings/secrets/actions
+   - New repository secret → Name: `EXPO_TOKEN` → Value: your token
+
+7. **Create `.github/workflows/eas-build.yml`**:
+   ```yaml
+   name: EAS Build
+   on:
+     push:
+       branches: [main]
+     workflow_dispatch:
+   jobs:
+     build:
+       runs-on: ubuntu-latest
+       steps:
+         - uses: actions/checkout@v4
+         - uses: actions/setup-node@v4
+           with: { node-version: 20 }
+         - uses: expo/expo-github-action@v8
+           with: { eas-version: latest, token: ${{ secrets.EXPO_TOKEN }} }
+         - run: npm install --legacy-peer-deps
+         - run: eas build --platform ios --profile preview --non-interactive
+         - run: eas build --platform android --profile preview --non-interactive
+   ```
+
+### What Happens
+
+| Trigger | Action | Output |
+|---------|--------|--------|
+| Push to `main` | GitHub Actions triggers | EAS Build starts |
+| EAS Build | Cloud builds iOS + Android | `.ipa` (iOS) + `.apk` (Android) |
+| Download | EAS dashboard or CLI | Install on device |
+
+### iOS Install Options (No App Store)
+
+| Method | Requires | Best For |
+|--------|----------|----------|
+| **Expo Go** | Nothing (free) | Quick testing |
+| **TestFlight** | Apple Dev ($99/yr) | Share with 100 people |
+| **Ad Hoc** | Apple Dev + UDIDs | Specific devices only |
+| **Diawi** | `.ipa` file | Share install link |
+
+### For Testing (Expo Go)
+
+```bash
+npx expo start --clear --offline
+# Scan QR with iPhone camera → opens in Expo Go
+```
+
+**User confirmed:** They always use Expo Go for testing. EAS Build is for sharing the real app.
