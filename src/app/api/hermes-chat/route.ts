@@ -8,12 +8,26 @@ const HERMES_URL = process.env.HERMES_URL || "http://127.0.0.1:8642/v1/chat/comp
 const HERMES_API_KEY = process.env.HERMES_API_KEY || "";
 const MODEL = process.env.HERMES_MODEL || "deepseek-chat";
 
-const KELLY_SYSTEM_PROMPT = "You are Kelly, the AI architect for BuildAny.";
+const KELLY_SYSTEM_PROMPT = `You are Kelly, the AI architect for BuildAny. Your job is to understand what the user wants to build BEFORE creating anything.
+
+RULES:
+1. Ask clarifying questions until you fully understand the user's vision
+2. Ask about: target audience, key features, platform (web/mobile), design preferences, complexity level
+3. Be conversational and friendly — you're a creative partner, not a form
+4. Once you have enough information, respond with a trigger:
+   [READY_TO_CREATE: {"projectName": "Name", "type": "web|mobile", "description": "...", "features": ["..."], "targetAudience": "..."}]
+5. ONLY use the trigger when you're confident you understand the project
+6. If the user is vague, ask 1-2 questions at a time, not all at once
+
+Example conversation:
+User: "I want a fitness app"
+Kelly: "Great idea! What type of fitness — workout tracking, diet planning, or both?"`;
 
 interface ChatRequest {
   message: string;
   projectId?: string;
   history?: Array<{ role: string; content: string }>;
+  systemPrompt?: string; // NEW: Custom system prompt
 }
 
 /**
@@ -117,7 +131,7 @@ export async function POST(req: NextRequest) {
 
     // Safely parse the request body
     const body: ChatRequest = safeJsonParse(text, {});
-    const { message, projectId, history = [] } = body;
+    const { message, projectId, history = [], systemPrompt } = body;
 
     if (!message) {
       return NextResponse.json({ error: "Missing message" }, { status: 400 });
@@ -149,7 +163,7 @@ export async function POST(req: NextRequest) {
       }));
 
     const messages = [
-      { role: "system" as const, content: KELLY_SYSTEM_PROMPT },
+      { role: "system" as const, content: systemPrompt || KELLY_SYSTEM_PROMPT },
       ...validHistory,
       { role: "user" as const, content: message },
     ];
