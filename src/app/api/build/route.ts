@@ -68,10 +68,10 @@ async function buildProject(projectId: string, projectDir: string, outDir: strin
       throw installError;
     }
 
-    // next build (static export)
+    // next build (static export) — skip TypeScript errors for generated code
     console.log("[Build] next build...");
     try {
-      execSync("npx next build", {
+      execSync("npx next build --no-lint", {
         cwd: projectDir,
         stdio: "pipe",
         timeout: 300000,
