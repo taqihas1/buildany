@@ -1,10 +1,11 @@
 // BuildAny Hermes Orchestrator
 // Everything goes through Hermes with loaded skills
 // Agent name: Kelly
+// Uses Hermes Gateway API (port 8642) instead of docker exec
 
-const HERMES_CONTAINER = "hermes-agent-cvaj-hermes-agent-1";
-const HERMES_HOME = "/opt/data";
-const HOST_DATA_DIR = "/docker/hermes-agent-cvaj/data";
+const HERMES_URL = "http://127.0.0.1:8642/v1/chat/completions";
+const HERMES_API_KEY = "820a8890e58dfd3dadd4166cb2be9b8c4db1afce6514110039374ea1da7b84cc";
+const HERMES_MODEL = "deepseek-chat";
 
 // Skills to load for orchestration
 const ORCHESTRATION_SKILLS = [
@@ -100,4 +101,4 @@ Follow the loaded skills above. Return ONLY valid JSON with this structure:
 Generate complete, runnable code. Use TypeScript, React/Next.js, Tailwind CSS. Ensure all imports are correct. Return ONLY the JSON, no markdown formatting.`;
 }
 
-export { HERMES_CONTAINER, HERMES_HOME, HOST_DATA_DIR };
+export { HERMES_URL, HERMES_API_KEY, HERMES_MODEL, ORCHESTRATION_SKILLS };

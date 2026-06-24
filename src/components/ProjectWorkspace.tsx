@@ -10,6 +10,7 @@ import {
   ArrowRight, AlertTriangle, CheckCircle, Trash2, Home,
   ChevronLeft, ChevronRight, MessageSquare, Brain
 } from 'lucide-react';
+import { CodeReviewPanel } from "./CodeReviewPanel";
 import { MemoryPanel } from "./memory-panel";
 import dynamic from "next/dynamic";
 const AIChatPanel = dynamic(() => import("./AIChatPanel").then((mod) => mod.AIChatPanel), { ssr: false });

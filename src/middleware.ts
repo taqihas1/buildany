@@ -1,19 +1,29 @@
+import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
-import { NextResponse } from 'next/server';
-import type { NextRequest } from 'next/server';
+const isPublicRoute = createRouteMatcher([
+  "/",
+  "/project/new",
+  "/project/(.*)",
+  "/api/hermes-chat",
+  "/api/hermes-orchestrate",
+  "/api/morgan-generate",
+  "/api/build",
+  "/api/preview/(.*)",
+  "/api/project-files",
+  "/api/project-status",
+  "/api/git",
+  "/api/test-post",
+  "/api/diag",
+]);
 
-function addNoCacheHeaders(response: NextResponse) {
-  response.headers.set('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
-  response.headers.set('Pragma', 'no-cache');
-  response.headers.set('Expires', '0');
-  response.headers.set('Surrogate-Control', 'no-store');
-  return response;
-}
-
-export async function middleware(req: NextRequest) {
-  return addNoCacheHeaders(NextResponse.next());
-}
+export default clerkMiddleware(async (auth, req) => {
+  if (!isPublicRoute(req)) {
+    await auth.protect();
+  }
+  return NextResponse.next();
+});
 
 export const config = {
-  matcher: ['/((?!_next/image|favicon.ico).*)'],
+  matcher: ["/((?!_next/image|favicon.ico).*)"],
 };

@@ -20,11 +20,16 @@ export function DashboardHeader({ user }: DashboardHeaderProps) {
   return (
     <header className="border-b border-gray-200 bg-white/80 backdrop-blur-sm sticky top-0 z-50">
       <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
-            <Code2 className="w-5 h-5 text-white" />
-          </div>
-          <span className="text-xl font-bold text-gray-900">BuildAny</span>
+        <div className="flex items-center gap-3">
+          <Link href="/" className="flex items-center gap-2 group">
+            <div className="w-8 h-8 bg-gradient-to-br from-cyan-500 to-blue-500 rounded-lg flex items-center justify-center">
+              <Code2 className="w-5 h-5 text-white" />
+            </div>
+            <div className="flex flex-col">
+              <span className="text-xl font-bold text-gray-900 leading-none">BuildAny</span>
+              <span className="text-[10px] text-gray-400 group-hover:text-cyan-600 transition-colors mt-0.5">← Back to Home</span>
+            </div>
+          </Link>
           <span className="text-xs bg-cyan-500/10 text-cyan-600 px-2 py-0.5 rounded-full border border-cyan-500/20">
             Beta
           </span>
