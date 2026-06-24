@@ -40,7 +40,7 @@ export default async function Home() {
         {/* Prompt Box — First (at top) */}
         <PromptBox />
         
-        {/* Kelly Welcome Panel — Below */}
+        {/* Morgan Welcome Panel — Below */}
         <div className="max-w-2xl mx-auto mt-8">
           <KellyWelcomePanel />
         </div>
@@ -59,7 +59,7 @@ export default async function Home() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           <FeatureCard 
             icon="🧠"
-            title="Kelly — The Brain"
+            title="Morgan — The Builder"
             description="AI architect that researches, plans, and designs your app before a single line of code is written."
           />
           <FeatureCard 
@@ -80,7 +80,7 @@ export default async function Home() {
           <FeatureCard 
             icon="📚"
             title="Living Wiki"
-            description="Auto-generated docs that update as your code changes. Kelly remembers everything."
+            description="Auto-generated docs that update as your code changes. Morgan remembers everything."
           />
           <FeatureCard 
             icon="🧬"
