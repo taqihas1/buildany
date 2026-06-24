@@ -152,6 +152,9 @@ async function generateWithMorgan(
     // Write package.json if not provided
     await writePackageJson(projectDir, type);
 
+    // 🧹 Sanitize: strip dangerous next/document imports from generated files
+    sanitizeGeneratedFiles(projectDir);
+
     // Git checkpoint — initial commit
     try {
       execSync("git add .", { cwd: projectDir, stdio: "ignore" });
@@ -190,6 +193,35 @@ async function generateWithMorgan(
       model: "morgan/error",
       createdAt: new Date(),
     });
+  }
+}
+
+// 🧹 Auto-strip dangerous imports from generated files
+function sanitizeGeneratedFiles(projectDir: string) {
+  try {
+    const { execSync } = require("child_process");
+    const nodeFs = require("fs");
+    const out = execSync(
+      `find "${projectDir}/src" -type f \\( -name "*.tsx" -o -name "*.ts" -o -name "*.jsx" -o -name "*.js" \\) -exec grep -l "from ['\x22]next/document['\x22]" {} + 2>/dev/null || true`,
+      { encoding: "utf8", shell: "/bin/bash" }
+    );
+    for (const fp of out.trim().split("\n").filter((f: string) => f && !f.includes("_document"))) {
+      console.log(`[Sanitize] Fixing: ${fp}`);
+      let code = nodeFs.readFileSync(fp, "utf8");
+      code = code.replace(/import\s*\{[^}]*Html[^}]*\}\s*from\s*['\x22]next\/document['\x22];?\s*\n?/gi, "");
+      code = code.replace(/import\s*\{[^}]*Head[^}]*\}\s*from\s*['\x22]next\/document['\x22];?\s*\n?/gi, "");
+      code = code.replace(/import\s*\{[^}]*Main[^}]*\}\s*from\s*['\x22]next\/document['\x22];?\s*\n?/gi, "");
+      code = code.replace(/import\s*\{[^}]*NextScript[^}]*\}\s*from\s*['\x22]next\/document['\x22];?\s*\n?/gi, "");
+      code = code.replace(/import\s+\w+\s+from\s*['\x22]next\/document['\x22];?\s*\n?/gi, "");
+      code = code.replace(/<Html([^>]*)>/gi, "<div$1>");
+      code = code.replace(/<\/Html>/gi, "</div>");
+      code = code.replace(/<Main([^>]*)>/gi, "<main$1>");
+      code = code.replace(/<\/Main>/gi, "</main>");
+      code = code.replace(/<NextScript\s*\/>/gi, "");
+      nodeFs.writeFileSync(fp, code);
+    }
+  } catch (e) {
+    // Silently ignore cleanup errors
   }
 }
 
