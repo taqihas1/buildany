@@ -57,20 +57,30 @@ async function buildProject(projectId: string, projectDir: string, outDir: strin
 
     // npm install
     console.log("[Build] npm install...");
-    execSync("npm install", {
-      cwd: projectDir,
-      stdio: "pipe",
-      timeout: 120000,
-    });
+    try {
+      execSync("npm install", {
+        cwd: projectDir,
+        stdio: "pipe",
+        timeout: 120000,
+      });
+    } catch (installError: any) {
+      console.error("[Build] npm install failed:", installError.stderr?.toString() || installError.message);
+      throw installError;
+    }
 
     // next build (static export)
     console.log("[Build] next build...");
-    execSync("npx next build", {
-      cwd: projectDir,
-      stdio: "pipe",
-      timeout: 300000,
-      env: { ...process.env, NODE_ENV: "production" },
-    });
+    try {
+      execSync("npx next build", {
+        cwd: projectDir,
+        stdio: "pipe",
+        timeout: 300000,
+        env: { ...process.env, NODE_ENV: "production" },
+      });
+    } catch (buildError: any) {
+      console.error("[Build] next build failed:", buildError.stderr?.toString() || buildError.message);
+      throw buildError;
+    }
 
     // Check output exists
     try {
