@@ -54,7 +54,7 @@ export function KellyWelcomePanel({ onStart }: { onStart?: () => void }) {
               Online
             </span>
           </div>
-          <p className="text-sm text-gray-500">Powered by Hermes + 37 skills</p>
+          {/* Removed: Powered by Hermes + 37 skills */}
         </div>
       </div>
 

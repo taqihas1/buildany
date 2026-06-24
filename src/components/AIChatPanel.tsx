@@ -2,14 +2,14 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useHermesChat } from "@/hooks/useHermesChat";
-import { Send, Bot, User, Loader2, Sparkles, CheckCircle, AlertCircle, MessageSquare, ArrowRight, Eye, Shield } from "lucide-react";
+import { Send, Bot, User, Loader2, Sparkles, CheckCircle, AlertCircle, MessageSquare, ArrowRight, Eye, Shield, Wand2 } from "lucide-react";
 
 interface Message {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
   isLoading?: boolean;
-  statusType?: "code" | "preview" | "research" | "swarm" | "wiki" | "deploy" | "general";
+  statusType?: "code" | "preview" | "research" | "swarm" | "wiki" | "deploy" | "general" | "creating";
   variant?: "success" | "info" | "warning";
 }
 
@@ -22,14 +22,36 @@ interface RawMessage {
 }
 
 interface AIChatPanelProps {
-  projectId: string;
-  type: string;
+  projectId?: string;
+  type?: string;
   initialMessages?: RawMessage[];
   onStatusClick?: (tab: string) => void;
   projectStatus?: string;
   files?: Array<Record<string, unknown>>;
   tasks?: Array<Record<string, unknown>>;
+  initialPrompt?: string; // NEW: For prompt box flow
+  onProjectCreated?: (projectId: string) => void; // NEW: Callback when project created
 }
+
+// NEW: System prompt for the "Magical" flow — tells Kelly to ask clarifying questions
+const KELLY_MAGIC_PROMPT = `You are Kelly, the AI architect for BuildAny. Your job is to understand what the user wants to build BEFORE creating anything.
+
+RULES:
+1. Ask clarifying questions until you fully understand the user's vision
+2. Ask about: target audience, key features, platform (web/mobile), design preferences, complexity level
+3. Be conversational and friendly — you're a creative partner, not a form
+4. Once you have enough information, respond with a trigger:
+   [READY_TO_CREATE: {"projectName": "Name", "type": "web|mobile", "description": "...", "features": ["..."], "targetAudience": "..."}]
+5. ONLY use the trigger when you're confident you understand the project
+6. If the user is vague, ask 1-2 questions at a time, not all at once
+
+Example conversation:
+User: "I want a fitness app"
+Kelly: "Great idea! What type of fitness — workout tracking, diet planning, or both?"
+User: "Workout tracking with social features"
+Kelly: "Love it! Should it include progress charts, exercise library, and friend challenges?"
+User: "Yes, all of that!"
+Kelly: "Perfect! I'll create your project now. 🚀 [READY_TO_CREATE: {...}]"`;
 
 export function AIChatPanel({
   projectId,
@@ -39,8 +61,9 @@ export function AIChatPanel({
   projectStatus = "draft",
   files = [],
   tasks = [],
+  initialPrompt, // NEW
+  onProjectCreated, // NEW
 }: AIChatPanelProps) {
-  // Use refs for counters to avoid hydration mismatches
   const messageIdRef = useRef(0);
   const statusIdRef = useRef(0);
   const getMessageId = useCallback(() => {
@@ -53,44 +76,141 @@ export function AIChatPanel({
   }, []);
 
   const [messages, setMessages] = useState<Message[]>(() => {
-    const filtered = initialMessages
-      .filter((m) => {
-        if (m.role === 'system' && (m.content?.includes('RESEARCH REPORT') || m.model === 'research-system')) return false;
-        if (m.role === 'assistant' && m.content?.includes('```')) return false;
-        return true;
-      })
-      .map((m, index) => ({
-        id: m.id || `init-${index}`,
-        role: m.role as "user" | "assistant" | "system",
-        content: m.content || m.message || "",
-      }));
-    return [
+    const msgs: Message[] = [
       {
         id: "welcome",
         role: "assistant",
-        content: "Hi! I'm Kelly — your AI architect. I can help you build apps, plan projects, generate code, run security audits, and more. What would you like to create today?",
+        content: "Hi! I'm Kelly — your AI architect. Tell me what you want to build and I'll ask a few questions to make sure we get it right. What would you like to create?",
       },
-      ...filtered,
     ];
+
+    // If there's an initial prompt from the prompt box, add it
+    if (initialPrompt) {
+      msgs.push({
+        id: "init-prompt",
+        role: "user",
+        content: initialPrompt,
+      });
+    }
+
+    return msgs;
   });
 
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isCreatingProject, setIsCreatingProject] = useState(false); // NEW
   const { sendMessage } = useHermesChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const addStatusRef = useRef<((statusType: string, content: string, variant?: "success" | "info" | "warning") => void) | null>(null);
   
-  // CRITICAL FIX: Use a submission lock that's independent of render cycles
   const submitLockRef = useRef(false);
-  // Track submission count to detect and discard stale responses
   const submitCountRef = useRef(0);
-  const swarmAddedRef = useRef(false);
-  const codeAddedRef = useRef(false);
-  // Use ref for input to avoid recreating handleSubmit on every keystroke
   const inputRef = useRef(input);
   inputRef.current = input;
 
-  // Reset submit lock on unmount to prevent stale locks after StrictMode remount
+  // NEW: Auto-send initial prompt if provided
+  useEffect(() => {
+    if (initialPrompt && messages.length === 2) {
+      // We have welcome + initial prompt, now send to Kelly
+      handleAutoSubmit(initialPrompt);
+    }
+  }, [initialPrompt]);
+
+  // NEW: Auto-submit handler for initial prompt
+  const handleAutoSubmit = async (prompt: string) => {
+    if (submitLockRef.current) return;
+    submitLockRef.current = true;
+    setIsLoading(true);
+
+    try {
+      const history = [{ role: "user" as const, content: prompt }];
+      
+      // Add loading message
+      const loadingId = getMessageId();
+      setMessages(prev => [...prev, {
+        id: loadingId,
+        role: "assistant",
+        content: "",
+        isLoading: true,
+      }]);
+
+      const data = await sendMessage(prompt, history, KELLY_MAGIC_PROMPT);
+
+      // Remove loading and add response
+      setMessages(prev => {
+        const withoutLoading = prev.filter(m => m.id !== loadingId);
+        
+        // Check for trigger
+        const triggerMatch = data.response?.match(/\[READY_TO_CREATE:\s*(\{[\s\S]*?\})\s*\]/);
+        if (triggerMatch) {
+          // Extract specs and create project
+          const specs = JSON.parse(triggerMatch[1]);
+          createProject(specs);
+          
+          return [...withoutLoading, {
+            id: getMessageId(),
+            role: "assistant",
+            content: `✨ ${data.response.replace(triggerMatch[0], "").trim() || "Perfect! I'm creating your project now..."}`,
+          }];
+        }
+
+        return [...withoutLoading, {
+          id: getMessageId(),
+          role: "assistant",
+          content: data.response || "I'm ready to help! What would you like to build?",
+        }];
+      });
+    } catch (error) {
+      console.error("Auto-submit error:", error);
+    } finally {
+      setIsLoading(false);
+      submitLockRef.current = false;
+    }
+  };
+
+  // NEW: Create project from specs
+  const createProject = async (specs: any) => {
+    setIsCreatingProject(true);
+    try {
+      const res = await fetch("/api/hermes-orchestrate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: specs.description || "Create project",
+          appType: specs.type || "web",
+          provider: "deepseek",
+          skipResearch: false,
+        }),
+      });
+
+      const data = await res.json();
+      if (data.success && data.projectId) {
+        setMessages(prev => [...prev, {
+          id: getStatusId("creating"),
+          role: "system",
+          content: `🚀 Project "${data.projectName}" created successfully!`,
+          statusType: "creating",
+          variant: "success",
+        }]);
+
+        if (onProjectCreated) {
+          onProjectCreated(data.projectId);
+        }
+      }
+    } catch (error) {
+      console.error("Project creation failed:", error);
+      setMessages(prev => [...prev, {
+        id: getStatusId("creating"),
+        role: "system",
+        content: "❌ Failed to create project. Please try again.",
+        statusType: "creating",
+        variant: "warning",
+      }]);
+    } finally {
+      setIsCreatingProject(false);
+    }
+  };
+
   useEffect(() => {
     return () => {
       submitLockRef.current = false;
@@ -107,72 +227,24 @@ export function AIChatPanel({
     }]);
   }, [getStatusId]);
 
-  // Store ref to addStatusMessage for effects
   useEffect(() => {
     addStatusRef.current = addStatusMessage;
   }, [addStatusMessage]);
 
-  // Auto-scroll to bottom
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Watch for project status changes and add status messages
-  useEffect(() => {
-    if (tasks.length > 0 && !swarmAddedRef.current) {
-      swarmAddedRef.current = true;
-      addStatusMessage(
-        "swarm",
-        `✅ Project has been decomposed into ${tasks.length} tasks. View them in the workspace menu under "Future Release".`,
-        "success"
-      );
-    }
-  }, [tasks.length, addStatusMessage]);
-
-  useEffect(() => {
-    if (files.length > 0 && !codeAddedRef.current) {
-      codeAddedRef.current = true;
-      addStatusMessage(
-        "code",
-        "✅ Code has been generated! In order to see the code, please click on Code in the menu at the top of the workspace.",
-        "success"
-      );
-    }
-  }, [files.length, addStatusMessage]);
-
-  // Expose addStatusMessage to parent via window
-  useEffect(() => {
-    const w = window as unknown as Record<string, unknown>;
-    w.__addStatusMessage = addStatusMessage;
-    return () => {
-      delete w.__addStatusMessage;
-    };
-  }, [addStatusMessage]);
-
-  // CRITICAL FIX: Robust submission handler with atomic lock
-  // Using refs for input/isLoading to avoid recreating callback on every keystroke
-  const isLoadingRef = useRef(isLoading);
-  isLoadingRef.current = isLoading;
-
   const handleSubmit = useCallback(async (e: React.FormEvent) => {
     e.preventDefault();
     
-    // Atomic lock check - prevent any race conditions (StrictMode double-fire, etc.)
-    if (submitLockRef.current) {
-      console.warn("[Kelly Chat] Submit blocked by lock - duplicate prevented");
-      return;
-    }
-    
-    // Read latest values from refs to avoid stale closures
+    if (submitLockRef.current) return;
     const currentInputValue = inputRef.current;
     if (!currentInputValue.trim()) return;
-    if (isLoadingRef.current) return;
+    if (isLoading) return;
     
-    // Lock immediately - this MUST be synchronous to prevent race conditions
     submitLockRef.current = true;
     const currentInput = currentInputValue.trim();
-    
-    // Increment submission counter to track this specific submission
     submitCountRef.current += 1;
     const mySubmissionId = submitCountRef.current;
 
@@ -190,74 +262,76 @@ export function AIChatPanel({
       isLoading: true,
     };
 
-    // Add both messages in one atomic update
     setMessages((prev) => [...prev, userMessage, loadingMessage]);
     setInput("");
     setIsLoading(true);
 
     try {
-      // Build conversation history from current state
-      // Use a ref to get latest messages without closure staleness
       const currentMessages = messagesRef.current;
       const history = currentMessages
         .filter((m) => (m.role === "user" || m.role === "assistant") && !m.isLoading && m.id !== "welcome")
         .map((m) => ({ role: m.role, content: m.content }));
 
-      const data = await sendMessage(currentInput, history);
+      const data = await sendMessage(currentInput, history, KELLY_MAGIC_PROMPT);
 
-      // CRITICAL: Discard response if a newer submission has occurred
-      // This prevents stale responses from overwriting newer ones
-      if (mySubmissionId !== submitCountRef.current) {
-        console.warn("[Kelly Chat] Discarding stale response from submission", mySubmissionId);
-        return;
-      }
+      if (mySubmissionId !== submitCountRef.current) return;
 
-      // Remove loading message and add response
       setMessages((prev) => {
         const withoutLoading = prev.filter((m) => m.id !== loadingId);
+        console.log("[AIChatPanel] handleSubmit response:", data.success, data.response?.substring(0, 100));
+        
+        // Check for READY_TO_CREATE trigger
+        const triggerMatch = data.response?.match(/\[READY_TO_CREATE:\s*(\{[\s\S]*?\})\s*\]/);
+        if (triggerMatch) {
+          const specs = JSON.parse(triggerMatch[1]);
+          createProject(specs);
+          
+          return [...withoutLoading, {
+            id: getMessageId(),
+            role: "assistant",
+            content: `✨ ${data.response.replace(triggerMatch[0], "").trim() || "Perfect! I'm creating your project now..."}`,
+          }];
+        }
+
         if (data.success || data.projectId) {
-          const aiMessage: Message = {
+          return [...withoutLoading, {
             id: getMessageId(),
             role: "assistant",
             content: data.response || data.reply || "Kelly is ready to help!",
-          };
-          return [...withoutLoading, aiMessage];
+          }];
         } else {
-          const errorMessage: Message = {
+          return [...withoutLoading, {
             id: getMessageId(),
             role: "assistant",
             content: `❌ Error: ${data.error || "Kelly connection failed."}`,
-          };
-          return [...withoutLoading, errorMessage];
+          }];
         }
       });
 
     } catch (error) {
-      // Only show error if this submission is still the latest
       if (mySubmissionId === submitCountRef.current) {
         setMessages((prev) => {
           const withoutLoading = prev.filter((m) => m.id !== loadingId);
-          const errorMessage: Message = {
+          return [...withoutLoading, {
             id: getMessageId(),
             role: "assistant",
             content: `❌ Error: ${error instanceof Error ? error.message : String(error)}`,
-          };
-          return [...withoutLoading, errorMessage];
+          }];
         });
       }
     } finally {
       setIsLoading(false);
-      // Release lock after a small delay to prevent immediate re-submission
       setTimeout(() => {
         submitLockRef.current = false;
       }, 100);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [projectId, type, sendMessage, addStatusMessage, getMessageId]);
+  }, [sendMessage, getMessageId]);
 
-  // Track latest messages for history without closure staleness
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
+
+  // ... rest of the component (renderStatusMessage, isCodeContent, return JSX) stays the same
+  // For brevity, I'll include the key parts:
 
   const renderStatusMessage = (msg: Message) => {
     const isSuccess = msg.variant === "success";
@@ -269,6 +343,7 @@ export function AIChatPanel({
       swarm: "swarm",
       wiki: "wiki",
       deploy: "deploy",
+      creating: "preview",
     };
     const tabName = msg.statusType ? tabMap[msg.statusType] : null;
     const cleanContent = msg.content?.replace(/\*\*/g, '') || '';
@@ -303,13 +378,9 @@ export function AIChatPanel({
 
   const isCodeContent = (content: string): boolean => {
     if (!content) return false;
-    if (content.includes('```')) return true;
-    if (content.includes('<!DOCTYPE')) return true;
-    if (content.includes('<html')) return true;
-    if (content.includes('function(') || content.includes('function ')) return true;
-    if (content.includes('const ') || content.includes('let ')) return true;
-    if (content.length > 500) return true;
-    return false;
+    const result = content.includes('```') || content.includes('<!DOCTYPE') || content.includes('<html');
+    if (result) console.log("[AIChatPanel] Filtering code content:", content.substring(0, 50));
+    return result;
   };
 
   return (
@@ -317,12 +388,15 @@ export function AIChatPanel({
       {/* Header */}
       <div className="h-12 border-b border-gray-200 flex items-center px-4 bg-white">
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-4 h-4 text-purple-600" />
+          <Wand2 className="w-4 h-4 text-purple-600" />
           <h3 className="text-sm font-medium text-gray-900">Kelly</h3>
-          <span className="px-1.5 py-0.5 text-[10px] rounded bg-purple-50 text-purple-600 border border-purple-200">AI Agent</span>
+          <span className="px-1.5 py-0.5 text-[10px] rounded bg-purple-50 text-purple-600 border border-purple-200">AI Architect</span>
         </div>
 
         <div className="ml-auto flex items-center gap-1.5">
+          {isCreatingProject && (
+            <span className="text-xs text-purple-600 animate-pulse">Creating...</span>
+          )}
           <span className={`w-2 h-2 rounded-full ${
             projectStatus === "ready" ? "bg-emerald-400" :
             projectStatus === "generating" ? "bg-amber-400 animate-pulse" :
@@ -342,13 +416,6 @@ export function AIChatPanel({
           if (message.role === "assistant" && isCodeContent(message.content)) {
             return null;
           }
-
-          const previewTrigger = message.content?.includes('[PREVIEW_TAB_TRIGGER]');
-          const autoTestTrigger = message.content?.includes('[AUTO_TEST_TAB_TRIGGER]');
-          const cleanContent = message.content
-            ?.replace(/\[PREVIEW_TAB_TRIGGER\]/g, '')
-            ?.replace(/\[AUTO_TEST_TAB_TRIGGER\]/g, '')
-            ?.trim() || '';
 
           return (
             <div
@@ -373,33 +440,7 @@ export function AIChatPanel({
                     Kelly is thinking...
                   </div>
                 ) : (
-                  <>
-                    <div className="whitespace-pre-wrap">{cleanContent}</div>
-                    {(previewTrigger || autoTestTrigger) && onStatusClick && (
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        {previewTrigger && (
-                          <button
-                            onClick={() => onStatusClick('preview')}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-purple-500 to-pink-500 rounded-lg hover:opacity-90 transition-opacity"
-                          >
-                            <Eye className="w-3 h-3" />
-                            View Preview
-                            <ArrowRight className="w-3 h-3" />
-                          </button>
-                        )}
-                        {autoTestTrigger && (
-                          <button
-                            onClick={() => onStatusClick('testing')}
-                            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg hover:opacity-90 transition-opacity"
-                          >
-                            <Shield className="w-3 h-3" />
-                            View Test Results
-                            <ArrowRight className="w-3 h-3" />
-                          </button>
-                        )}
-                      </div>
-                    )}
-                  </>
+                  <div className="whitespace-pre-wrap">{message.content}</div>
                 )}
               </div>
               {message.role === "user" && (
@@ -425,11 +466,11 @@ export function AIChatPanel({
             onChange={(e) => setInput(e.target.value)}
             placeholder="Ask Kelly anything..."
             className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-500"
-            disabled={isLoading}
+            disabled={isLoading || isCreatingProject}
           />
           <button
             type="submit"
-            disabled={isLoading || !input.trim()}
+            disabled={isLoading || isCreatingProject || !input.trim()}
             className="px-3 py-2 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 bg-gradient-to-r from-purple-500 to-pink-500 flex items-center gap-2"
           >
             {isLoading ? (

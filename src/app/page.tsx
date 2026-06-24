@@ -24,25 +24,26 @@ export default async function Home() {
       
       {/* Hero Section */}
       <div className="container mx-auto px-4 pt-20 pb-12 text-center">
-        <h1 className="font-display text-5xl md:text-7xl font-medium bg-gradient-to-r from-black via-gray-900 to-gray-700 bg-clip-text text-transparent mb-6 tracking-tight">
+        <h1 className="font-display text-5xl md:text-7xl font-medium bg-gradient-to-r from-black via-gray-900 to-gray-700 bg-clip-text text-transparent mb-4 tracking-tight">
           What would you build?
         </h1>
-        <p className="font-sans-ui text-xl text-vogue-gray mb-4 max-w-2xl mx-auto leading-relaxed">
-          Kelly (Brain) + Morgan (Executor) — describe your app, we build it.
+        <p className="text-xl md:text-2xl text-purple-600 font-medium mb-8">
+          Let us make things Magical ✨
         </p>
         <div className="font-sans-ui flex items-center justify-center gap-4 text-sm text-vogue-light-gray mb-8">
           <span className="flex items-center gap-1">⚡ Instant preview</span>
           <span className="flex items-center gap-1">📱 Mobile + Web</span>
-          <span className="flex items-center gap-1">🧠 Kelly AI</span>
+          <span className="flex items-center gap-1">🧠 AI Powered</span>
           <span className="flex items-center gap-1">🔗 GitHub export</span>
         </div>
         
-        {/* Kelly Welcome Panel */}
-        <div className="max-w-2xl mx-auto mb-8">
+        {/* Prompt Box — First (at top) */}
+        <PromptBox />
+        
+        {/* Kelly Welcome Panel — Below */}
+        <div className="max-w-2xl mx-auto mt-8">
           <KellyWelcomePanel />
         </div>
-        
-        <PromptBox />
       </div>
       
       {/* Projects Grid */}
@@ -101,10 +102,10 @@ export default async function Home() {
 
 function FeatureCard({ icon, title, description }: { icon: string; title: string; description: string }) {
   return (
-    <div className="bg-white border border-gray-100 rounded-xl p-6 hover:border-black transition-colors shadow-sm">
-      <div className="text-3xl mb-3">{icon}</div>
-      <h3 className="font-display text-lg font-medium text-vogue-black mb-2">{title}</h3>
-      <p className="font-sans-ui text-vogue-gray text-base">{description}</p>
+    <div className="p-6 rounded-xl bg-white border border-gray-200 hover:border-purple-300 transition-colors">
+      <div className="text-3xl mb-4">{icon}</div>
+      <h3 className="text-lg font-semibold text-gray-900 mb-2">{title}</h3>
+      <p className="text-sm text-gray-600">{description}</p>
     </div>
   );
 }
