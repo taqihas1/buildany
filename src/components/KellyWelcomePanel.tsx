@@ -24,7 +24,7 @@ export function KellyWelcomePanel({ onStart }: { onStart?: () => void }) {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (visibleMessages < KELLY_MESSAGES.length) {
+      if (visibleMessages < MORGAN_MESSAGES.length) {
         setVisibleMessages((prev) => prev + 1);
       } else {
         setIsTyping(false);
@@ -69,7 +69,7 @@ export function KellyWelcomePanel({ onStart }: { onStart?: () => void }) {
             {msg}
           </div>
         ))}
-        {isTyping && visibleMessages < KELLY_MESSAGES.length && (
+        {isTyping && visibleMessages < MORGAN_MESSAGES.length && (
           <div className="flex items-center gap-2 text-gray-400 text-sm px-4 py-2">
             <div className="flex gap-1">
               <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
