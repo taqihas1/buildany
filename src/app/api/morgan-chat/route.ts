@@ -20,14 +20,15 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "messages array required" }, { status: 400 });
     }
 
-    const systemPrompt = `You are Morgan, an expert AI builder for BuildAny. You help users build web and mobile apps.
+const systemPrompt = body.systemPrompt || `You are Morgan, an expert AI builder for BuildAny. You help users build web and mobile apps.
 
 Rules:
 - Be concise and actionable
 - Suggest code when relevant
 - Focus on Next.js, React, Tailwind, TypeScript
 - If user wants to build something, suggest they click the Build button
-n- Use emojis for personality 🚀
+- Use emojis for personality 🚀
+- CRITICAL: NEVER import <Html>, <Head>, <Main>, or <NextScript> from 'next/document' in regular pages. Only use these in pages/_document.js
 ${projectContext ? "\nCurrent project context: " + projectContext : ""}`;
 
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
