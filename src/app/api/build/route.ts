@@ -68,7 +68,7 @@ async function buildProject(projectId: string, projectDir: string, outDir: strin
       throw installError;
     }
 
-    // next build (static export) — skip TypeScript errors for generated code
+    // next build — normal build (not static export to avoid <Html> errors)
     console.log("[Build] next build...");
     try {
       execSync("npx next build --no-lint 2>&1 || true", {
@@ -78,17 +78,22 @@ async function buildProject(projectId: string, projectDir: string, outDir: strin
         env: { ...process.env, NODE_ENV: "production" },
       });
     } catch (buildError: any) {
-      console.error("[Build] next build failed:", buildError.stderr?.toString() || buildError.message);
-      // Try to continue even if build had warnings
+      console.error("[Build] next build warning:", buildError.stderr?.toString() || buildError.message);
+      // Continue even with warnings
     }
 
-    // Check if output was created despite any errors
-    const possibleOutDirs = [outDir, path.join(projectDir, "dist"), path.join(projectDir, ".next", "server", "app")];
-    let foundOutput = false;
+    // Check multiple possible output locations
+    const possibleOutDirs = [
+      outDir,                                    // output: 'export'
+      path.join(projectDir, "dist"),             // custom dist
+      path.join(projectDir, ".next", "server", "app"),  // app router output
+    ];
+    
+    let foundOutputDir = "";
     for (const dir of possibleOutDirs) {
       try {
         await fs.access(path.join(dir, "index.html"));
-        foundOutput = true;
+        foundOutputDir = dir;
         console.log("[Build] Found output at:", dir);
         break;
       } catch {
@@ -96,8 +101,47 @@ async function buildProject(projectId: string, projectDir: string, outDir: strin
       }
     }
     
-    if (!foundOutput) {
+    // If no static export output, try to generate it manually from .next
+    if (!foundOutputDir) {
+      console.log("[Build] No static export found, checking .next directory...");
+      try {
+        await fs.access(path.join(projectDir, ".next"));
+        // If .next exists, use the standalone server output or copy static files
+        const staticDir = path.join(projectDir, ".next", "standalone");
+        try {
+          await fs.access(staticDir);
+          foundOutputDir = staticDir;
+          console.log("[Build] Found standalone output at:", staticDir);
+        } catch {
+          // Try static HTML files
+          const staticHtmlDir = path.join(projectDir, ".next", "server", "app");
+          try {
+            await fs.access(path.join(staticHtmlDir, "index.html"));
+            foundOutputDir = staticHtmlDir;
+            console.log("[Build] Found app router output at:", staticHtmlDir);
+          } catch {
+            // No output found
+          }
+        }
+      } catch {
+        // .next doesn't exist
+      }
+    }
+    
+    if (!foundOutputDir) {
       throw new Error("Build completed but no output found in any expected directory");
+    }
+    
+    // If output is not in 'out', copy it there for consistency
+    if (foundOutputDir !== outDir) {
+      console.log("[Build] Copying output to 'out' directory...");
+      try {
+        await fs.mkdir(outDir, { recursive: true });
+        execSync(`cp -r "${foundOutputDir}"/* "${outDir}"`, { stdio: "ignore" });
+      } catch (copyError: any) {
+        console.log("[Build] Copy failed, using original location:", foundOutputDir);
+        // Just use the found directory
+      }
     }
 
     // Git checkpoint
