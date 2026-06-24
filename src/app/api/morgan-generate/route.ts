@@ -201,7 +201,7 @@ Generate ONLY these essential files (max 5):
 1. package.json
 2. next.config.js (with output: 'export', typescript.ignoreBuildErrors: true, eslint.ignoreDuringBuilds: true)
 3. src/app/page.tsx (main page, add '// @ts-nocheck' at top)
-4. src/app/layout.tsx (root layout, add '// @ts-nocheck' at top)
+4. src/app/layout.tsx (root layout, add '// @ts-nocheck' at top. Use ONLY <div> as root, do NOT use <html> or <body> tags — Next.js handles those)
 5. src/app/globals.css (styles)
 
 Return ONLY valid JSON:
