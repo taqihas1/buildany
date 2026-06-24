@@ -224,7 +224,9 @@ Rules:
 - Add '// @ts-nocheck' at the top of every .ts file
 - Make sure all object properties match their TypeScript types exactly
 - NO placeholder text, NO lorem ipsum
-- Real data, real UI`;
+- Real data, real UI
+- CRITICAL: NEVER import <Html>, <Head>, <Main>, or <NextScript> from 'next/document' in any page. Only pages/_document.js can use those imports. For regular pages, use <div> instead of <Html> and <Main>.
+- CRITICAL: Do NOT create a 404 or _error page with next/document imports. Keep it simple with just JSX elements.`;
 }
 
 async function writePackageJson(projectDir: string, type: string) {
