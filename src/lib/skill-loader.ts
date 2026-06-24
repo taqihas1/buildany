@@ -5,6 +5,8 @@ import { join } from "path";
 const SKILL_DIRS = [
   "/root/.openclaw/skills/agent-skills/skills",
   "/root/.openclaw/skills/superpowers/skills",
+  "/root/.hermes/skills/agent-skills/skills",
+  "/root/.hermes/skills/superpowers/skills",
 ];
 
 // Skill name → file path cache
