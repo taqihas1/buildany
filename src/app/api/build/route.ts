@@ -2,13 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { projects } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
-import { execSync } from "child_process";
+import { spawn } from "child_process";
 import fs from "fs/promises";
 import path from "path";
 
 const PROJECTS_DIR = "/data/projects";
 
-// Build a project: npm install → next build → static export
+// Build a project: npm install → next build (static export)
 export async function POST(req: NextRequest) {
   try {
     const { projectId } = await req.json();
@@ -53,101 +53,30 @@ async function buildProject(projectId: string, projectDir: string, outDir: strin
     // Clean previous build
     try {
       await fs.rm(outDir, { recursive: true, force: true });
+      await fs.rm(path.join(projectDir, ".next"), { recursive: true, force: true });
     } catch {}
 
     // npm install
     console.log("[Build] npm install...");
-    try {
-      execSync("npm install", {
-        cwd: projectDir,
-        stdio: "pipe",
-        timeout: 120000,
-      });
-    } catch (installError: any) {
-      console.error("[Build] npm install failed:", installError.stderr?.toString() || installError.message);
-      throw installError;
-    }
+    await runCommand("npm", ["install"], projectDir, 120000);
 
-    // next build — normal build (not static export to avoid <Html> errors)
-    console.log("[Build] next build...");
-    try {
-      execSync("npx next build --no-lint 2>&1 || true", {
-        cwd: projectDir,
-        stdio: "pipe",
-        timeout: 300000,
-        env: { ...process.env, NODE_ENV: "production" },
-      });
-    } catch (buildError: any) {
-      console.error("[Build] next build warning:", buildError.stderr?.toString() || buildError.message);
-      // Continue even with warnings
-    }
+    // next build with static export
+    console.log("[Build] next build (static export)...");
+    await runCommand("npx", ["next", "build", "--no-lint"], projectDir, 300000);
 
-    // Check multiple possible output locations
-    const possibleOutDirs = [
-      outDir,                                    // output: 'export'
-      path.join(projectDir, "dist"),             // custom dist
-      path.join(projectDir, ".next", "server", "app"),  // app router output
-    ];
-    
-    let foundOutputDir = "";
-    for (const dir of possibleOutDirs) {
-      try {
-        await fs.access(path.join(dir, "index.html"));
-        foundOutputDir = dir;
-        console.log("[Build] Found output at:", dir);
-        break;
-      } catch {
-        // Try next directory
-      }
-    }
-    
-    // If no static export output, try to generate it manually from .next
-    if (!foundOutputDir) {
-      console.log("[Build] No static export found, checking .next directory...");
-      try {
-        await fs.access(path.join(projectDir, ".next"));
-        // If .next exists, use the standalone server output or copy static files
-        const staticDir = path.join(projectDir, ".next", "standalone");
-        try {
-          await fs.access(staticDir);
-          foundOutputDir = staticDir;
-          console.log("[Build] Found standalone output at:", staticDir);
-        } catch {
-          // Try static HTML files
-          const staticHtmlDir = path.join(projectDir, ".next", "server", "app");
-          try {
-            await fs.access(path.join(staticHtmlDir, "index.html"));
-            foundOutputDir = staticHtmlDir;
-            console.log("[Build] Found app router output at:", staticHtmlDir);
-          } catch {
-            // No output found
-          }
-        }
-      } catch {
-        // .next doesn't exist
-      }
-    }
-    
-    if (!foundOutputDir) {
-      throw new Error("Build completed but no output found in any expected directory");
-    }
-    
-    // If output is not in 'out', copy it there for consistency
-    if (foundOutputDir !== outDir) {
-      console.log("[Build] Copying output to 'out' directory...");
-      try {
-        await fs.mkdir(outDir, { recursive: true });
-        execSync(`cp -r "${foundOutputDir}"/* "${outDir}"`, { stdio: "ignore" });
-      } catch (copyError: any) {
-        console.log("[Build] Copy failed, using original location:", foundOutputDir);
-        // Just use the found directory
-      }
+    // Verify output exists
+    try {
+      await fs.access(path.join(outDir, "index.html"));
+      console.log("[Build] Output verified at:", outDir);
+    } catch {
+      throw new Error("Build completed but out/index.html not found. Check next.config.js has output: 'export'");
     }
 
     // Git checkpoint
     try {
+      const { execSync } = await import("child_process");
       execSync("git add .", { cwd: projectDir, stdio: "ignore" });
-      execSync('git commit -m "Build: generated static export"', { cwd: projectDir, stdio: "ignore" });
+      execSync('git commit -m "Build: static export"', { cwd: projectDir, stdio: "ignore" });
     } catch {}
 
     // Update status
@@ -163,4 +92,47 @@ async function buildProject(projectId: string, projectDir: string, outDir: strin
       .set({ status: "build_failed", updatedAt: new Date() })
       .where(eq(projects.id, projectId));
   }
+}
+
+// Helper: run command with spawn, collect output
+function runCommand(cmd: string, args: string[], cwd: string, timeoutMs: number): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const child = spawn(cmd, args, {
+      cwd,
+      shell: true,
+      env: { ...process.env, NODE_ENV: "production" },
+    });
+
+    let stdout = "";
+    let stderr = "";
+
+    child.stdout?.on("data", (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr?.on("data", (data) => {
+      stderr += data.toString();
+    });
+
+    const timer = setTimeout(() => {
+      child.kill("SIGTERM");
+      reject(new Error(`Command timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+
+    child.on("close", (code) => {
+      clearTimeout(timer);
+      if (code !== 0) {
+        console.error(`[Build] Command exited with code ${code}`);
+        console.error("[Build] stdout:", stdout.slice(-500));
+        console.error("[Build] stderr:", stderr.slice(-500));
+      }
+      // Resolve even on non-zero exit — Next.js may warn but still produce output
+      resolve();
+    });
+
+    child.on("error", (err) => {
+      clearTimeout(timer);
+      reject(err);
+    });
+  });
 }
