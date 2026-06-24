@@ -199,16 +199,16 @@ Type: ${type}
 
 Generate ONLY these essential files (max 5):
 1. package.json
-2. next.config.js (with typescript.ignoreBuildErrors: true, eslint.ignoreDuringBuilds: true — do NOT use output: 'export')
+2. next.config.js (MUST have output: 'export' and images.unoptimized for static build)
 3. src/app/page.tsx (main page, add '// @ts-nocheck' at top)
-4. src/app/layout.tsx (root layout, add '// @ts-nocheck' at top. Use ONLY <div> as root, do NOT use <html> or <body> tags — Next.js handles those)
+4. src/app/layout.tsx (root layout, add '// @ts-nocheck' at top)
 5. src/app/globals.css (styles)
 
 Return ONLY valid JSON:
 {
   "files": [
     {"path": "package.json", "content": "..."},
-    {"path": "next.config.js", "content": "// @ts-nocheck\n/** @type {import('next').NextConfig} */\nconst nextConfig = {\n  typescript: { ignoreBuildErrors: true },\n  eslint: { ignoreDuringBuilds: true }\n};\nmodule.exports = nextConfig;"},
+    {"path": "next.config.js", "content": "// @ts-nocheck\n/** @type {import('next').NextConfig} */\nconst nextConfig = {\n  output: 'export',\n  distDir: 'out',\n  images: { unoptimized: true },\n  typescript: { ignoreBuildErrors: true },\n  eslint: { ignoreDuringBuilds: true }\n};\nmodule.exports = nextConfig;"},
     {"path": "src/app/page.tsx", "content": "..."},
     {"path": "src/app/layout.tsx", "content": "..."},
     {"path": "src/app/globals.css", "content": "..."}
