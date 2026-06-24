@@ -61,7 +61,7 @@ export function useHermesChat(): UseHermesChatReturn {
       }
 
       try {
-        const response = await fetch("/api/hermes-chat", {
+        const response = await fetch("/api/morgan-chat", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({

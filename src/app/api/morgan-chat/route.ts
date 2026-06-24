@@ -4,7 +4,17 @@ const DEEPSEEK_KEY = process.env.DEEPSEEK_API_KEY || "";
 
 export async function POST(req: NextRequest) {
   try {
-    const { messages, projectContext } = await req.json();
+    const body = await req.json();
+    let messages = body.messages;
+    let projectContext = body.projectContext;
+    
+    // Support old format: { message, history, systemPrompt }
+    if (!messages && body.message) {
+      messages = [
+        ...(body.history || []),
+        { role: "user", content: body.message }
+      ];
+    }
 
     if (!messages || !Array.isArray(messages)) {
       return NextResponse.json({ error: "messages array required" }, { status: 400 });

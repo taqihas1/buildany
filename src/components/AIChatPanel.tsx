@@ -80,7 +80,7 @@ export function AIChatPanel({
       {
         id: "welcome",
         role: "assistant",
-        content: "Hi! I'm Kelly — your AI architect. Tell me what you want to build and I'll ask a few questions to make sure we get it right. What would you like to create?",
+        content: "Hi! I'm Morgan — your AI architect. Tell me what you want to build and I'll ask a few questions to make sure we get it right. What would you like to create?",
       },
     ];
 
@@ -297,13 +297,13 @@ export function AIChatPanel({
           return [...withoutLoading, {
             id: getMessageId(),
             role: "assistant",
-            content: data.response || data.reply || "Kelly is ready to help!",
+            content: data.response || data.reply || "Morgan is ready to help!",
           }];
         } else {
           return [...withoutLoading, {
             id: getMessageId(),
             role: "assistant",
-            content: `❌ Error: ${data.error || "Kelly connection failed."}`,
+            content: `❌ Error: ${data.error || "Morgan connection failed."}`,
           }];
         }
       });
@@ -389,8 +389,8 @@ export function AIChatPanel({
       <div className="h-12 border-b border-gray-200 flex items-center px-4 bg-white">
         <div className="flex items-center gap-2">
           <Wand2 className="w-4 h-4 text-purple-600" />
-          <h3 className="text-sm font-medium text-gray-900">Kelly</h3>
-          <span className="px-1.5 py-0.5 text-[10px] rounded bg-purple-50 text-purple-600 border border-purple-200">AI Architect</span>
+          <h3 className="text-sm font-medium text-gray-900">Morgan</h3>
+          <span className="px-1.5 py-0.5 text-[10px] rounded bg-purple-50 text-purple-600 border border-purple-200">AI Builder</span>
         </div>
 
         <div className="ml-auto flex items-center gap-1.5">
@@ -437,7 +437,7 @@ export function AIChatPanel({
                 {message.isLoading ? (
                   <div className="flex items-center gap-2">
                     <Loader2 className="w-3 h-3 animate-spin" />
-                    Kelly is thinking...
+                    Morgan is thinking...
                   </div>
                 ) : (
                   <div className="whitespace-pre-wrap">{message.content}</div>
@@ -464,7 +464,7 @@ export function AIChatPanel({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask Kelly anything..."
+            placeholder="Ask Morgan anything..."
             className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-500"
             disabled={isLoading || isCreatingProject}
           />
