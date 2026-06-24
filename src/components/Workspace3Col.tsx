@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Send, Loader2, Code2, Play, Folder, FileCode, ChevronRight, ChevronDown,
   GitBranch, RotateCcw, Home, Eye, Hammer, MessageSquare
@@ -29,6 +29,9 @@ interface Workspace3ColProps {
 
 export function Workspace3Col({ project, initialFiles, initialChat, user }: Workspace3ColProps) {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const promptFromUrl = searchParams.get('prompt');
+  
   const [chatMessages, setChatMessages] = useState<Message[]>(initialChat);
   const [inputMessage, setInputMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
@@ -40,6 +43,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
   const [gitCommits, setGitCommits] = useState<{hash: string; message: string}[]>([]);
   const [showGitPanel, setShowGitPanel] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
+  const autoSentRef = useRef(false);
 
   // Auto-scroll chat
   useEffect(() => {
@@ -68,39 +72,86 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
     return () => clearInterval(interval);
   }, [project.id, project.status]);
 
-  const sendMessage = useCallback(async () => {
-    if (!inputMessage.trim() || isSending) return;
-    const msg = inputMessage.trim();
-    setInputMessage("");
+  // Auto-send prompt from URL on first load (chat-first flow)
+  useEffect(() => {
+    if (promptFromUrl && !autoSentRef.current && chatMessages.length > 0) {
+      autoSentRef.current = true;
+      // Check if the prompt is already in chat messages (from DB)
+      const hasPrompt = chatMessages.some(m => m.role === 'user' && m.content === promptFromUrl);
+      if (!hasPrompt) {
+        sendMessageToMorgan(promptFromUrl);
+      }
+    }
+  }, [promptFromUrl, chatMessages]);
+
+  const sendMessageToMorgan = useCallback(async (msg: string) => {
+    if (isSending) return;
     setIsSending(true);
 
     const userMsg: Message = { id: crypto.randomUUID(), role: 'user', content: msg };
     setChatMessages(prev => [...prev, userMsg]);
 
     try {
-      const res = await fetch('/api/hermes-chat', {
+      const res = await fetch('/api/morgan-chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          message: msg,
-          history: chatMessages.map(m => ({ role: m.role, content: m.content })),
+          messages: [...chatMessages, userMsg].map(m => ({ role: m.role, content: m.content })),
+          projectContext: { projectId: project.id, description: project.description, type: project.type },
         }),
       });
       const data = await res.json();
+      const responseText = data.response || data.message || "No response";
+      
+      // Check for [BUILD: ...] trigger
+      const buildMatch = responseText.match(/\[BUILD:\s*(\{[^\]]*\})\]/);
+      if (buildMatch) {
+        try {
+          const buildConfig = JSON.parse(buildMatch[1]);
+          // Trigger generation
+          setBuildStatus('creating');
+          fetch('/api/morgan-generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: project.description,
+              type: buildConfig.appType || project.type,
+              projectId: project.id,
+            }),
+          }).then(() => {
+            setBuildStatus('ready');
+            // Refresh files
+            setTimeout(() => window.location.reload(), 2000);
+          }).catch(err => {
+            console.error('Build trigger failed:', err);
+            setBuildStatus('failed');
+          });
+        } catch (e) {
+          // Invalid JSON in BUILD tag
+        }
+      }
+      
       const assistantMsg: Message = {
         id: crypto.randomUUID(),
         role: 'assistant',
-        content: data.response || data.message || "No response",
+        content: responseText,
       };
       setChatMessages(prev => [...prev, assistantMsg]);
     } catch (error) {
       setChatMessages(prev => [...prev, {
-        id: crypto.randomUUID(), role: 'system', content: 'Error: Failed to get response'
+        id: crypto.randomUUID(), role: 'system', content: 'Error: Failed to get response from Morgan'
       }]);
     } finally {
       setIsSending(false);
     }
-  }, [inputMessage, isSending, chatMessages]);
+  }, [isSending, chatMessages, project]);
+
+  const sendMessage = useCallback(async () => {
+    if (!inputMessage.trim() || isSending) return;
+    const msg = inputMessage.trim();
+    setInputMessage("");
+    await sendMessageToMorgan(msg);
+  }, [inputMessage, isSending, sendMessageToMorgan]);
 
   const handleBuild = useCallback(async () => {
     setIsBuilding(true);

@@ -14,53 +14,73 @@ const PROJECTS_DIR = "/data/projects";
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { prompt, type = "web", appType, userId } = body;
+    const { prompt, type = "web", appType, userId, projectId: existingProjectId } = body;
     const projectType = appType || type;
 
     if (!prompt?.trim()) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
     }
 
-    // 1. Create project record
-    const projectId = crypto.randomUUID();
-    const shortName = generateShortName(prompt);
+    let projectId: string;
+    let projectDir: string;
+    let shortName: string;
 
-    await db.insert(projects).values({
-      id: projectId,
-      userId: userId || "guest-" + crypto.randomUUID(),
-      name: shortName,
-      description: prompt,
-      type: projectType as "web" | "mobile" | "dashboard",
-      status: "creating",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    if (existingProjectId) {
+      // Use existing project
+      projectId = existingProjectId;
+      const existing = await db.select().from(projects).where(eq(projects.id, projectId)).get();
+      if (!existing) {
+        return NextResponse.json({ error: "Project not found" }, { status: 404 });
+      }
+      shortName = existing.name;
+      projectDir = path.join(PROJECTS_DIR, projectId);
+      
+      // Update status to creating
+      await db.update(projects)
+        .set({ status: "creating", updatedAt: new Date() })
+        .where(eq(projects.id, projectId));
+    } else {
+      // Create new project record
+      projectId = crypto.randomUUID();
+      shortName = generateShortName(prompt);
 
-    // 2. Create filesystem project dir + git init
-    const projectDir = path.join(PROJECTS_DIR, projectId);
-    await fs.mkdir(projectDir, { recursive: true });
-    await fs.mkdir(path.join(projectDir, "src", "app"), { recursive: true });
-    await fs.mkdir(path.join(projectDir, "src", "components"), { recursive: true });
-    await fs.mkdir(path.join(projectDir, "src", "lib"), { recursive: true });
+      await db.insert(projects).values({
+        id: projectId,
+        userId: userId || "guest-" + crypto.randomUUID(),
+        name: shortName,
+        description: prompt,
+        type: projectType as "web" | "mobile" | "dashboard",
+        status: "creating",
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
 
-    // Git init
-    try {
-      execSync("git init", { cwd: projectDir, stdio: "ignore" });
-      execSync('git config user.email "morgan@buildany.local"', { cwd: projectDir, stdio: "ignore" });
-      execSync('git config user.name "Morgan"', { cwd: projectDir, stdio: "ignore" });
-    } catch {
-      // ponytail: git optional, don't fail if missing
+      // Create filesystem project dir + git init
+      projectDir = path.join(PROJECTS_DIR, projectId);
+      await fs.mkdir(projectDir, { recursive: true });
+      await fs.mkdir(path.join(projectDir, "src", "app"), { recursive: true });
+      await fs.mkdir(path.join(projectDir, "src", "components"), { recursive: true });
+      await fs.mkdir(path.join(projectDir, "src", "lib"), { recursive: true });
+
+      // Git init
+      try {
+        execSync("git init", { cwd: projectDir, stdio: "ignore" });
+        execSync('git config user.email "morgan@buildany.local"', { cwd: projectDir, stdio: "ignore" });
+        execSync('git config user.name "Morgan"', { cwd: projectDir, stdio: "ignore" });
+      } catch {
+        // ponytail: git optional
+      }
+
+      // Log user prompt
+      await db.insert(conversations).values({
+        id: crypto.randomUUID(),
+        projectId,
+        role: "user",
+        content: prompt,
+        model: "user",
+        createdAt: new Date(),
+      });
     }
-
-    // 3. Log user prompt
-    await db.insert(conversations).values({
-      id: crypto.randomUUID(),
-      projectId,
-      role: "user",
-      content: prompt,
-      model: "user",
-      createdAt: new Date(),
-    });
 
     // 4. Return immediately — Morgan generates in background
     generateWithMorgan(projectId, prompt, projectType, projectDir);
