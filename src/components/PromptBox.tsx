@@ -18,8 +18,8 @@ export function PromptBox() {
     setIsLoading(true);
 
     try {
-      // Call Morgan directly — one shot, no chat in between
-      const res = await fetch("/api/morgan-generate", {
+      // Create project for chat-first flow — NO generation yet
+      const res = await fetch("/api/project-chat-init", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ prompt: currentPrompt, type: "web" }),
@@ -28,8 +28,8 @@ export function PromptBox() {
       const data = await res.json();
 
       if (data.success && data.projectId) {
-        // Redirect directly to workspace — no intermediate chat
-        router.push(`/project/${data.projectId}`);
+        // Redirect to workspace with prompt for chat flow
+        router.push(`/project/${data.projectId}?prompt=${encodeURIComponent(currentPrompt)}`);
       } else {
         alert(data.error || "Failed to create project");
       }
