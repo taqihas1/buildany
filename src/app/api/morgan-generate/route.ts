@@ -124,36 +124,27 @@ export async function POST(req: NextRequest) {
 Tech: ${projectTypeForPrompt}, TypeScript, Tailwind CSS.
 Rules:
 - Use the App Router (src/app).
-- Keep components in src/components.
+- ALL components must be INLINE in page files. DO NOT create separate component files.
+- DO NOT use @/components/ imports. Define all JSX directly in each page.
 - Use client components ONLY when needed ('use client').
 - Keep server components async when possible.
 - Use Next.js built-in features: Image, Link, Script.
 - Export default page components.
-- CRITICAL: NEVER import <Html>, <Head>, <Main>, or <NextScript> from 'next/document' in any page. Only use these in pages/_document.js
+- CRITICAL: NEVER import <Html>, <Head>, <Main>, or <NextScript> from 'next/document' in any page.
 - CRITICAL: NEVER create pages/_error.js or pages/_document.js or pages/500.js or pages/404.js
 - Do NOT use <img>; always use next/image <Image>.
-- CRITICAL: NEVER put <link rel="stylesheet" /> in JSX. Use next/head <Head> for global stylesheets OR import CSS modules. For Google Fonts, NEVER use <link> tags for fonts. Always use next/font.
-- CRITICAL: NEVER call hooks like useState() directly in JSX (e.g., {useState(...)}). Hooks MUST be inside a function component, not in JSX expressions.
-- Do NOT create empty route files. If a page is empty, add a simple React component.
-- Use @/components and @/lib path aliases.
+- CRITICAL: NEVER put <link rel="stylesheet" /> in JSX.
+- CRITICAL: NEVER call hooks like useState() directly in JSX.
+- Do NOT create empty route files.
 - Return ONLY the file paths and code blocks, no extra commentary.
 
-Generate:
-1. src/app/page.tsx
-2. src/app/layout.tsx
-3. src/components/Header.tsx
-4. src/components/Hero.tsx
-5. src/app/globals.css
-6. next.config.js
-7. package.json
-8. tsconfig.json
-9. src/app/about/page.tsx
-10. src/app/contact/page.tsx
-11. src/app/blog/page.tsx
-12. src/app/blog/[slug]/page.tsx
-13. src/app/api/hello/route.ts
-14. README.md
-15. .env.example`;
+Generate these files ONLY:
+1. src/app/page.tsx (main page with ALL components inline)
+2. src/app/layout.tsx (root layout, NO external imports)
+3. src/app/globals.css (Tailwind directives + custom styles)
+4. next.config.js
+5. package.json
+6. tsconfig.json`;
 
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
