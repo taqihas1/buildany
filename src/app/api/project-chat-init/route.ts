@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { projects, conversations } from "@/lib/db/schema";
+import { projects } from "@/lib/db/schema";
 import { generateShortName } from "@/lib/project-name-generator";
 import fs from "fs/promises";
 import path from "path";
@@ -37,15 +37,9 @@ export async function POST(req: NextRequest) {
     const projectDir = path.join(PROJECTS_DIR, projectId);
     await fs.mkdir(projectDir, { recursive: true });
 
-    // 3. Log user prompt as conversation
-    await db.insert(conversations).values({
-      id: crypto.randomUUID(),
-      projectId,
-      role: "user",
-      content: prompt,
-      model: "user",
-      createdAt: new Date(),
-    });
+    // NOTE: We do NOT create the conversation here. The client will auto-send
+    // the prompt to Morgan, which will create both the user message and the
+    // assistant response in the DB. This ensures Morgan actually sees the prompt.
 
     return NextResponse.json({
       success: true,

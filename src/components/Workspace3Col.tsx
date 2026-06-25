@@ -74,15 +74,15 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
 
   // Auto-send prompt from URL on first load (chat-first flow)
   useEffect(() => {
-    if (promptFromUrl && !autoSentRef.current && chatMessages.length > 0) {
+    if (promptFromUrl && !autoSentRef.current) {
       autoSentRef.current = true;
-      // Check if the prompt is already in chat messages (from DB)
-      const hasPrompt = chatMessages.some(m => m.role === 'user' && m.content === promptFromUrl);
-      if (!hasPrompt) {
+      // Small delay to ensure component is fully mounted
+      const timer = setTimeout(() => {
         sendMessageToMorgan(promptFromUrl);
-      }
+      }, 500);
+      return () => clearTimeout(timer);
     }
-  }, [promptFromUrl, chatMessages]);
+  }, [promptFromUrl]);
 
   const sendMessageToMorgan = useCallback(async (msg: string) => {
     if (isSending) return;
@@ -103,11 +103,11 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
       const data = await res.json();
       const responseText = data.response || data.message || "No response";
       
-      // Check for [BUILD: ...] trigger
-      const buildMatch = responseText.match(/\[BUILD:\s*(\{[^\]]*\})\]/);
+      // Check for [BUILD: ...] trigger - flexible regex to handle JSON inside
+      const buildMatch = responseText.match(/\[BUILD:\s*([^\]]+)\]/);
       if (buildMatch) {
         try {
-          const buildConfig = JSON.parse(buildMatch[1]);
+          const buildConfig = JSON.parse(buildMatch[1].trim());
           // Trigger generation
           setBuildStatus('creating');
           fetch('/api/morgan-generate', {
