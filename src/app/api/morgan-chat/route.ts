@@ -8,7 +8,6 @@ export async function POST(req: NextRequest) {
     let messages = body.messages;
     let projectContext = body.projectContext;
     
-    // Support old format: { message, history, systemPrompt }
     if (!messages && body.message) {
       messages = [
         ...(body.history || []),
@@ -20,38 +19,17 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "messages array required" }, { status: 400 });
     }
 
-    const systemPrompt = body.systemPrompt || `You are Morgan, an expert AI builder for BuildAny. You build apps instantly.
+    const systemPrompt = body.systemPrompt || `You are Morgan, an expert AI builder for BuildAny. You help users build web and mobile apps.
 
-YOUR FLOW (MANDATORY):
-1. User asks to build something -> YOU PROPOSE a complete plan immediately with smart defaults. DO NOT ask questions.
-2. Ask: "Should I start building? 🚀"
-3. User says yes -> Respond with ONLY: [BUILD: {\\"appType\\": \\"web\\"}] and a brief "Let's build! 🚀"
-4. User says no or wants changes -> Adjust and re-propose
-
-SMART DEFAULTS (use these unless user specifies otherwise):
-- Web apps: Next.js 14 + App Router + TypeScript + Tailwind CSS + Prisma + SQLite + NextAuth
-- Mobile apps: Expo + React Native + TypeScript + NativeWind
-- Data source: TheMealDB (free), OpenWeatherMap (free), or custom SQLite
-- Auth: NextAuth.js with Google/GitHub OAuth
-- Design: Clean, modern, responsive
-- Image storage: Cloudinary (free tier) or local storage
-
-CODE GENERATION RULES (CRITICAL):
-- Generate ALL components inline in each page file. DO NOT create import statements for components you don't also generate.
-- NEVER use @/components/ imports unless you also generate those component files
-- NEVER import <Html>, <Head>, <Main>, <NextScript> from 'next/document' in pages
-- Each page must be self-contained with all its JSX inline
-- If you need a shared component, define it in the same file or generate it as a separate file
-- ALWAYS generate a complete working app — no missing files, no broken imports
-
-RULES:
-- Be concise, warm, and actionable
+Rules:
+- Be concise and actionable
+- Suggest code when relevant
+- Focus on Next.js, React, Tailwind, TypeScript
+- If user wants to build something, ask clarifying questions then say "Should I start building?"
+- When user confirms building, emit [BUILD: start] to trigger generation
 - Use emojis for personality 🚀
-- NEVER ask what tech stack they want — YOU DECIDE based on best practices
-- NEVER ask about data sources — YOU pick the best free option
-- NEVER ask about design preferences — YOU choose a clean modern look
-- If user says "yes", "build", "let's go", "go ahead", "start building" -> IMMEDIATELY emit [BUILD: {\\"appType\\": \\"web\\"}] then build
-` + (projectContext ? "\\nCurrent project context: " + projectContext : "");
+- CRITICAL: NEVER import <Html>, <Head>, <Main>, or <NextScript> from 'next/document' in regular pages. Only use these in pages/_document.js
+${projectContext ? "\nCurrent project context: " + JSON.stringify(projectContext) : ""}`;
 
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
@@ -77,12 +55,21 @@ RULES:
     }
 
     const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "I'm Morgan! How can I help you build today? 🚀";
+    let content = data.choices?.[0]?.message?.content || "I'm Morgan! How can I help you build today? 🚀";
+
+    // Detect BUILD trigger in response
+    const buildTrigger = content.match(/\[BUILD:\s*(\w+)\]/);
+    const shouldBuild = !!buildTrigger;
+    if (buildTrigger) {
+      content = content.replace(/\[BUILD:\s*\w+\]/g, "").trim();
+    }
 
     return NextResponse.json({
       role: "assistant",
       content,
       model: "morgan",
+      shouldBuild,
+      buildTrigger: buildTrigger?.[1] || null,
     });
 
   } catch (error: any) {
