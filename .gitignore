@@ -43,3 +43,5 @@ next-env.d.ts
 *.bak
 e2e/test-results/
 playwright-report/
+.env.local
+.env
