@@ -213,11 +213,53 @@ export const KELLY_TOOLS = [
           type: { type: "string", enum: ["fact", "preference", "decision", "pattern", "bugfix", "project"] },
           project_id: { type: "string" },
         },
-        required: ["key", "value", "type"],
+    {
+    type: "function" as const,
+    function: {
+      name: "github_push",
+      description: "Push project code to GitHub repository. Creates repo if needed.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string" },
+          repo_name: { type: "string", description: "GitHub repo name (optional - uses project name if empty)" },
+          message: { type: "string", description: "Commit message" },
+        },
+        required: ["project_id"],
       },
     },
   },
-];
+  {
+    type: "function" as const,
+    function: {
+      name: "cloudflare_deploy",
+      description: "Deploy project to Cloudflare Pages.",
+      parameters: {
+        type: "object",
+        properties: {
+          project_id: { type: "string" },
+          project_name: { type: "string", description: "Cloudflare Pages project name" },
+          account_id: { type: "string", description: "Cloudflare account ID" },
+        },
+        required: ["project_id", "project_name", "account_id"],
+      },
+    },
+  },
+  {
+    type: "function" as const,
+    function: {
+      name: "cloudflare_purge_cache",
+      description: "Purge Cloudflare CDN cache for a zone.",
+      parameters: {
+        type: "object",
+        properties: {
+          zone_id: { type: "string" },
+          urls: { type: "array", items: { type: "string" }, description: "Specific URLs to purge (empty = purge all)" },
+        },
+        required: ["zone_id"],
+      },
+    },
+  },
 
 /**
  * Execute a tool by name
@@ -249,9 +291,12 @@ export async function executeTool(name: string, args: any): Promise<ToolResult> 
         return await toolWriteFile(args);
       case "memory_read":
         return await toolMemoryRead(args);
-      case "memory_write":
-        return await toolMemoryWrite(args);
-      default:
+      case "github_push":
+        return await toolGitHubPush(args);
+      case "cloudflare_deploy":
+        return await toolCloudflareDeploy(args);
+      case "cloudflare_purge_cache":
+        return await toolCloudflarePurgeCache(args);
         return { success: false, error: `Unknown tool: ${name}` };
     }
   } catch (err: any) {
@@ -598,6 +643,78 @@ async function toolMemoryWrite(args: any): Promise<ToolResult> {
       }),
     });
     return { success: true, data: await res.json() };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+// ─── GITHUB & CLOUDFLARE TOOLS ───
+
+async function toolGitHubPush(args: any): Promise<ToolResult> {
+  const { project_id, repo_name, message = "Update from Kelly" } = args;
+
+  try {
+    // Call GitHub tool API
+    const res = await fetch("http://localhost:3000/api/github-tool", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "push_changes",
+        project_id,
+        message,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "GitHub push failed");
+
+    return { success: true, data };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+async function toolCloudflareDeploy(args: any): Promise<ToolResult> {
+  const { project_id, project_name, account_id } = args;
+
+  try {
+    const res = await fetch("http://localhost:3000/api/cloudflare-tool", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "deploy_pages",
+        project_name,
+        account_id,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Cloudflare deploy failed");
+
+    return { success: true, data };
+  } catch (e: any) {
+    return { success: false, error: e.message };
+  }
+}
+
+async function toolCloudflarePurgeCache(args: any): Promise<ToolResult> {
+  const { zone_id, urls = [] } = args;
+
+  try {
+    const res = await fetch("http://localhost:3000/api/cloudflare-tool", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        action: "purge_cache",
+        zone_id,
+        urls,
+      }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || "Cache purge failed");
+
+    return { success: true, data };
   } catch (e: any) {
     return { success: false, error: e.message };
   }
