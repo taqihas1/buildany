@@ -123,7 +123,7 @@ export class LLMRouter {
       if (provider === "deepseek") {
         this.configs.set(provider, {
           baseUrl: "https://api.deepseek.com/v1",
-          model: "deepseek-chat",
+          model: "deepseek-v4-pro",
           apiKey: key.keyValue,
         });
       } else if (provider === "kimi") {
@@ -155,7 +155,7 @@ export class LLMRouter {
   selectProvider(prompt: string, preferred?: string): LLMProvider {
     // Map model IDs to provider names
     const modelToProvider: Record<string, LLMProvider> = {
-      'deepseek-chat': 'deepseek',
+      'deepseek-v4-pro': 'deepseek',
       'kimi-k2p6': 'kimi',
       'gpt-4o': 'openai',
       'gemma-4': 'gemma',

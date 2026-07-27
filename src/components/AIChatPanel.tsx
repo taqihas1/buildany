@@ -293,11 +293,11 @@ export function AIChatPanel({
           }];
         }
 
-        if (data.success || data.projectId) {
+        if (data.success || (data as any).projectId) {
           return [...withoutLoading, {
             id: getMessageId(),
             role: "assistant",
-            content: data.response || data.reply || "Morgan is ready to help!",
+            content: data.response || (data as any).reply || "Morgan is ready to help!",
           }];
         } else {
           return [...withoutLoading, {

@@ -6,7 +6,7 @@ import { randomUUID } from "crypto";
 
 const HERMES_URL = process.env.HERMES_URL || "http://127.0.0.1:8642/v1/chat/completions";
 const HERMES_API_KEY = process.env.HERMES_API_KEY || "";
-const MODEL = process.env.HERMES_MODEL || "deepseek-chat";
+const MODEL = process.env.HERMES_MODEL || "deepseek-v4-pro";
 
 const KELLY_SYSTEM_PROMPT = `You are Kelly, the AI architect for BuildAny. Your job is to understand what the user wants to build BEFORE creating anything.
 

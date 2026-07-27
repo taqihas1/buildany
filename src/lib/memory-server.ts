@@ -166,7 +166,7 @@ const server = createServer((req, res) => {
         // Update access counts
         const updateStmt = db.prepare("UPDATE memories SET access_count = access_count + 1, last_accessed = unixepoch() WHERE id = ?");
         for (const row of results) {
-          updateStmt.run(row.id);
+          updateStmt.run((row as any).id);
         }
         
         res.writeHead(200, { "Content-Type": "application/json" });

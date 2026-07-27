@@ -181,6 +181,7 @@ async function generateProjectInBackground(
           title: page.title,
           content: page.content,
           createdAt: new Date(),
+      pageType: "page",
         });
       }
     }

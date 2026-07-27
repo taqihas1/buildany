@@ -6,6 +6,24 @@ import { conversations, projects } from "@/lib/db/schema";
 import { llmRouter, getSystemPromptForType } from "@/lib/llm-router";
 import { randomUUID } from "crypto";
 
+
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  try {
+    const { id } = await params;
+    
+    // Load conversation history for this project
+    const history = await db.select().from(conversations).where(eq(conversations.projectId, id));
+    
+    return NextResponse.json({
+      success: true,
+      messages: history.map(h => ({ role: h.role, content: h.content, createdAt: h.createdAt })),
+    });
+  } catch (error: any) {
+    console.error("[Chat GET] Error:", error);
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const authData = await auth();

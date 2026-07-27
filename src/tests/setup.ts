@@ -1,5 +1,5 @@
 // Test setup - mock database and environment
-process.env.NODE_ENV = 'test';
+(process.env as any).NODE_ENV = 'test';
 
 // Mock crypto.randomUUID for consistent test IDs
 if (!crypto.randomUUID) {

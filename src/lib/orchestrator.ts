@@ -1508,7 +1508,7 @@ ${this.state.learningContext.complexity}
     // Save to memory for cross-project learning
     try {
       memoryClient.write({
-        content: `Correction: User manually fixed ${correction.phase} phase — ${correction.correction}. Original: "${correction.originalOutput?.substring(0, 100)}..."`,
+        content: `Correction: User manually fixed ${(correction as any).phase} phase — ${(correction as any).correction}. Original: "${(correction as any).originalOutput?.substring(0, 100)}..."`,
         category: 'decision',
         importance: 85,
         projectId: this.state.projectId,

@@ -38,7 +38,7 @@ ${projectContext ? "\nCurrent project context: " + JSON.stringify(projectContext
         "Authorization": `Bearer ${DEEPSEEK_KEY}`,
       },
       body: JSON.stringify({
-        model: "deepseek-chat",
+        model: "deepseek-v4-pro",
         messages: [
           { role: "system", content: systemPrompt },
           ...messages,
