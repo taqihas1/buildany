@@ -8,6 +8,8 @@ const isPublicRoute = createRouteMatcher([
   "/api/hermes-chat",
   "/api/hermes-orchestrate",
   "/api/morgan-generate",
+  "/api/morgan-chat",
+  "/api/project-chat-init",
   "/api/build",
   "/api/preview/(.*)",
   "/api/project-files",
@@ -15,6 +17,11 @@ const isPublicRoute = createRouteMatcher([
   "/api/git",
   "/api/test-post",
   "/api/diag",
+  "/_next/static/(.*)",
+  "/api/kelly",
+  "/api/github-tool",
+  "/api/cloudflare-tool",
+  "/kelly-test",
 ]);
 
 export default clerkMiddleware(async (auth, req) => {
@@ -25,5 +32,5 @@ export default clerkMiddleware(async (auth, req) => {
 });
 
 export const config = {
-  matcher: ["/((?!_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next|favicon.ico|.*\..*).*)"],
 };

@@ -153,7 +153,7 @@ Generate these files ONLY:
         "Authorization": `Bearer ${DEEPSEEK_KEY}`,
       },
       body: JSON.stringify({
-        model: "deepseek-chat",
+        model: "deepseek-v4-pro",
         messages: [{ role: "user", content: morganPrompt }],
         temperature: 0.7,
         max_tokens: 4000,

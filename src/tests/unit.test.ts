@@ -188,7 +188,7 @@ describe('Orchestrator Logic', () => {
     }));
 
     const mod = await import('../lib/orchestrator');
-    HermesOrchestrator = mod.HermesOrchestrator;
+    HermesOrchestrator = (mod as any).HermesOrchestrator || (mod as any).default;
   });
 
   it('decomposes a project into display tasks', () => {

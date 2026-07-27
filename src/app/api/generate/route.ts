@@ -36,6 +36,15 @@ export async function POST(req: NextRequest) {
     
     const { projectId, prompt, type = "web", provider = "deepseek", skipResearch = false } = body;
 
+    // If projectId provided but no prompt, look up project description
+    if (!prompt && projectId) {
+      const existingProject = await db.select().from(projects).where(eq(projects.id, projectId)).get();
+      if (existingProject?.description) {
+        prompt = existingProject.description;
+        debug("FOUND_PROMPT", { projectId, prompt: prompt.substring(0, 50) + "..." });
+      }
+    }
+
     if (!prompt) {
       debug("ERROR", "Missing prompt");
       return NextResponse.json({ error: "Missing prompt" }, { status: 400 });

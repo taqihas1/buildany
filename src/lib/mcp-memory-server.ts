@@ -209,11 +209,11 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
   switch (name) {
     case "memory_write": {
       const id = generateId();
-      const content = String(args.content || "");
-      const category = String(args.category || "general");
-      const importance = Math.min(100, Math.max(1, Number(args.importance || 50)));
-      const projectId = args.projectId ? String(args.projectId) : null;
-      const tags = args.tags ? String(args.tags) : null;
+      const content = String((args || {}).content || "");
+      const category = String((args || {}).category || "general");
+      const importance = Math.min(100, Math.max(1, Number((args || {}).importance || 50)));
+      const projectId = (args || {}).projectId ? String((args || {}).projectId) : null;
+      const tags = (args || {}).tags ? String((args || {}).tags) : null;
 
       db.prepare(
         `INSERT INTO memories (id, content, category, importance, project_id, tags)
@@ -228,10 +228,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case "memory_search": {
-      const query = String(args.query || "");
-      const limit = Math.min(50, Math.max(1, Number(args.limit || 10)));
-      const projectId = args.projectId ? String(args.projectId) : null;
-      const category = args.category ? String(args.category) : null;
+      const query = String((args || {}).query || "");
+      const limit = Math.min(50, Math.max(1, Number((args || {}).limit || 10)));
+      const projectId = (args || {}).projectId ? String((args || {}).projectId) : null;
+      const category = (args || {}).category ? String((args || {}).category) : null;
 
       let results: any[];
       if (projectId && category) {
@@ -290,8 +290,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case "memory_read": {
-      const maxTokens = Math.min(2000, Math.max(50, Number(args.maxTokens || 180)));
-      const projectId = args.projectId ? String(args.projectId) : null;
+      const maxTokens = Math.min(2000, Math.max(50, Number((args || {}).maxTokens || 180)));
+      const projectId = (args || {}).projectId ? String((args || {}).projectId) : null;
 
       let hot = projectId
         ? db
@@ -327,23 +327,23 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case "memory_delete": {
-      if (args.id) {
-        const result = db.prepare("DELETE FROM memories WHERE id = ?").run(String(args.id));
+      if ((args || {}).id) {
+        const result = db.prepare("DELETE FROM memories WHERE id = ?").run(String((args || {}).id));
         return {
           content: [{ type: "text", text: `Deleted ${result.changes} memory.` }],
         };
       }
 
-      if (args.olderThan) {
-        const cutoff = Math.floor(Date.now() / 1000) - Number(args.olderThan) * 24 * 3600;
+      if ((args || {}).olderThan) {
+        const cutoff = Math.floor(Date.now() / 1000) - Number((args || {}).olderThan) * 24 * 3600;
         const result = db.prepare("DELETE FROM memories WHERE created_at < ? AND importance < 50").run(cutoff);
         return {
           content: [{ type: "text", text: `Deleted ${result.changes} old memories.` }],
         };
       }
 
-      if (args.category) {
-        const result = db.prepare("DELETE FROM memories WHERE category = ?").run(String(args.category));
+      if ((args || {}).category) {
+        const result = db.prepare("DELETE FROM memories WHERE category = ?").run(String((args || {}).category));
         return {
           content: [{ type: "text", text: `Deleted ${result.changes} memories in category '${args.category}'.` }],
         };
@@ -377,8 +377,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
     }
 
     case "memory_consolidate": {
-      const archiveThreshold = Math.min(100, Math.max(1, Number(args.archiveThreshold || 30)));
-      const mergeSimilar = Boolean(args.mergeSimilar ?? true);
+      const archiveThreshold = Math.min(100, Math.max(1, Number((args || {}).archiveThreshold || 30)));
+      const mergeSimilar = Boolean((args || {}).mergeSimilar ?? true);
 
       // Archive old low-importance memories
       const oneMonthAgo = Math.floor(Date.now() / 1000) - 30 * 24 * 3600;
@@ -402,7 +402,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         for (const dup of dups) {
           const deleted = db
             .prepare("DELETE FROM memories WHERE content = ? AND id != ?")
-            .run(dup.content, dup.keep_id);
+            .run((dup as any).content, (dup as any).keep_id);
           merged += deleted.changes;
         }
       }

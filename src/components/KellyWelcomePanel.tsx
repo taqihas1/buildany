@@ -3,13 +3,13 @@
 import { useState, useEffect } from "react";
 import { Sparkles, Brain, MessageCircle, Wand2, Search, FileText, Code2, Layers } from "lucide-react";
 
-const MORGAN_MESSAGES = [
-  "👋 Hi! I'm Morgan, your AI builder.",
+const KELLY_MESSAGES = [
+  "👋 Hi! I'm Kelly, your unified AI agent.",
   "Describe your app idea and I'll build it for you instantly.",
   "I can build web apps, mobile apps, and dashboards.",
 ];
 
-const MORGAN_SKILLS = [
+const KELLY_SKILLS = [
   { icon: Search, label: "Market Research", desc: "Study top apps in your space" },
   { icon: FileText, label: "Wiki Generation", desc: "Auto-generated documentation" },
   { icon: Layers, label: "Task Planning", desc: "Decompose into actionable tasks" },
@@ -24,7 +24,7 @@ export function KellyWelcomePanel({ onStart }: { onStart?: () => void }) {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (visibleMessages < MORGAN_MESSAGES.length) {
+      if (visibleMessages < KELLY_MESSAGES.length) {
         setVisibleMessages((prev) => prev + 1);
       } else {
         setIsTyping(false);
@@ -35,7 +35,7 @@ export function KellyWelcomePanel({ onStart }: { onStart?: () => void }) {
 
   return (
     <div className="bg-gradient-to-br from-purple-50 via-white to-cyan-50 border border-purple-100 rounded-2xl p-6 mb-6 shadow-sm">
-      {/* Morgan Header */}
+      {/* Kelly Header */}
       <div className="flex items-start gap-4 mb-4">
         <div className="relative">
           <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-purple-500 to-cyan-500 flex items-center justify-center text-white text-xl font-bold shadow-lg">
@@ -45,9 +45,9 @@ export function KellyWelcomePanel({ onStart }: { onStart?: () => void }) {
         </div>
         <div className="flex-1">
           <div className="flex items-center gap-2 mb-1">
-            <h3 className="font-semibold text-gray-900">Morgan</h3>
+            <h3 className="font-semibold text-gray-900">Kelly</h3>
             <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full font-medium">
-              AI Builder
+              Unified Agent
             </span>
             <span className="text-xs bg-emerald-100 text-emerald-700 px-2 py-0.5 rounded-full font-medium flex items-center gap-1">
               <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
@@ -58,9 +58,9 @@ export function KellyWelcomePanel({ onStart }: { onStart?: () => void }) {
         </div>
       </div>
 
-      {/* Morgan Messages */}
+      {/* Kelly Messages */}
       <div className="space-y-2 mb-4">
-        {MORGAN_MESSAGES.slice(0, visibleMessages).map((msg, i) => (
+        {KELLY_MESSAGES.slice(0, visibleMessages).map((msg, i) => (
           <div
             key={i}
             className="bg-white border border-gray-100 rounded-xl px-4 py-3 text-sm text-gray-700 shadow-sm animate-fade-in"
@@ -69,21 +69,21 @@ export function KellyWelcomePanel({ onStart }: { onStart?: () => void }) {
             {msg}
           </div>
         ))}
-        {isTyping && visibleMessages < MORGAN_MESSAGES.length && (
+        {isTyping && visibleMessages < KELLY_MESSAGES.length && (
           <div className="flex items-center gap-2 text-gray-400 text-sm px-4 py-2">
             <div className="flex gap-1">
               <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
               <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
               <span className="w-1.5 h-1.5 bg-purple-400 rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
             </div>
-            Morgan is thinking...
+            Kelly is thinking...
           </div>
         )}
       </div>
 
-      {/* Morgan Skills */}
+      {/* Kelly Skills */}
       <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-        {MORGAN_SKILLS.map((skill) => {
+        {KELLY_SKILLS.map((skill) => {
           const Icon = skill.icon;
           return (
             <div
@@ -106,7 +106,7 @@ export function KellyWelcomePanel({ onStart }: { onStart?: () => void }) {
         className="mt-4 w-full bg-gradient-to-r from-purple-500 to-cyan-500 text-white py-2.5 rounded-xl font-medium text-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
       >
         <Sparkles className="w-4 h-4" />
-        Start Building with Morgan
+        Start Building with Kelly
       </button>
     </div>
   );

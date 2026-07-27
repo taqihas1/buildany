@@ -48,7 +48,7 @@ export async function POST(req: NextRequest) {
     mkdirSync(tmpDir, { recursive: true });
 
     // Get project files
-    const files = await getProjectFiles(projectId, body.files);
+    const files = await getProjectFiles(projectId, (body as any).files);
     
     if (!files || files.length === 0) {
       return NextResponse.json({ error: "No files found for project" }, { status: 404 });

@@ -58,11 +58,16 @@ async function buildProject(projectId: string, projectDir: string, outDir: strin
 
     // npm install
     console.log("[Build] npm install...");
-    await runCommand("npm", ["install"], projectDir, 120000);
+    // Clean node_modules to prevent corruption from concurrent builds
+    try {
+      await fs.rm(path.join(projectDir, "node_modules"), { recursive: true, force: true });
+      await fs.rm(path.join(projectDir, "package-lock.json"), { force: true });
+    } catch {}
+    await runCommand("npm", ["install"], projectDir, 180000);
 
     // next build with static export
     console.log("[Build] next build (static export)...");
-    await runCommand("npx", ["next", "build", "--no-lint"], projectDir, 300000);
+    await runCommand("npx", ["next", "build"], projectDir, 300000);
 
     // Verify output exists
     try {

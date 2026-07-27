@@ -1,5 +1,4 @@
 import { notFound } from "next/navigation";
-import { auth } from "@clerk/nextjs/server";
 import { db } from "@/lib/db";
 import { projects, conversations } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -11,6 +10,7 @@ const PROJECTS_DIR = "/data/projects";
 
 interface PageProps {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ prompt?: string }>;
 }
 
 async function getProjectFiles(projectId: string) {
@@ -40,10 +40,9 @@ async function listDirRecursive(dir: string, rootDir: string): Promise<any[]> {
   return result;
 }
 
-export default async function ProjectPage({ params }: PageProps) {
+export default async function ProjectPage({ params, searchParams }: PageProps) {
   const { id } = await params;
-  const authData = await auth();
-  const userId = authData.userId;
+  const { prompt } = await searchParams;
 
   const project = await db.select().from(projects).where(eq(projects.id, id)).get();
 
@@ -57,16 +56,21 @@ export default async function ProjectPage({ params }: PageProps) {
   // Convert DB messages to workspace format
   const messages = chatHistory.map(c => ({
     id: c.id,
-    role: c.role as 'user' | 'assistant' | 'system',
+    role: c.role as "user" | "assistant" | "system",
     content: c.content,
   }));
+
+  // If prompt was passed in URL, add it as first user message
+  const initialMessages = prompt && messages.length === 0
+    ? [{ id: "init", role: "user" as const, content: prompt }]
+    : messages;
 
   return (
     <Workspace3Col
       project={project}
       initialFiles={files}
-      initialChat={messages}
-      user={userId ? { id: userId } : null}
+      initialChat={initialMessages}
+      user={null}
     />
   );
 }

@@ -6,8 +6,6 @@ const PROJECTS_DIR = "/data/projects";
 
 // Serve built preview files for a project
 // URL: /api/preview/{projectId}/{filePath?}
-import { existsSync } from "fs";
-import { join } from "path";
 
 export async function GET(
   req: NextRequest,
@@ -19,19 +17,6 @@ export async function GET(
     
     // First segment is projectId, rest is file path
     const projectId = pathSegments[0];
-  // Check if build output exists
-  const outDir = join(process.cwd(), "projects", projectId, "out");
-  if (!existsSync(outDir)) {
-    return new NextResponse(
-      `<!DOCTYPE html><html><head><style>
-        body { font-family: system-ui; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; background: #f5f5f5; }
-        .box { text-align: center; padding: 40px; background: white; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
-      </style></head><body>
-        <div class="box"><h2>🔨 Build In Progress</h2><p>Morgan is generating your app. This may take 1-2 minutes.</p></div>
-      </body></html>`,
-      { status: 200, headers: { "Content-Type": "text/html" } }
-    );
-  }
 
     const filePath = pathSegments.slice(1).join("/");
 
