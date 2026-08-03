@@ -42,15 +42,8 @@ export function AutomatedTestingPanel({ projectId, appUrl }: AutomatedTestingPan
   const [selectedScreenshot, setSelectedScreenshot] = useState<string | null>(null);
 
   const fetchResults = async () => {
-    try {
-      const res = await fetch(`/api/auto-test?projectId=${projectId}`);
-      const data = await res.json();
-      if (data.success) {
-        setResults(data.results);
-      }
-    } catch (error) {
-      console.error("Failed to fetch test results:", error);
-    }
+    // Playwright removed - testing disabled
+    setResults([]);
   };
 
   useEffect(() => {
@@ -60,33 +53,7 @@ export function AutomatedTestingPanel({ projectId, appUrl }: AutomatedTestingPan
   }, [projectId]);
 
   const runTest = async () => {
-    if (!appUrl) {
-      alert("No app URL available. Deploy the app first.");
-      return;
-    }
-
-    setLoading(true);
-
-    try {
-      const res = await fetch("/api/auto-test", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ projectId, url: appUrl }),
-      });
-
-      const data = await res.json();
-
-      if (data.success) {
-        await fetchResults();
-      } else {
-        alert(data.error || "Tests failed");
-      }
-    } catch (error) {
-      alert("Failed to run tests");
-      console.error(error);
-    } finally {
-      setLoading(false);
-    }
+    alert(Automated testing is disabled. Playwright has been removed.);
   };
 
   const getStatusIcon = (status: string) => {

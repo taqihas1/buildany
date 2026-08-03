@@ -396,6 +396,9 @@ export function ProjectWorkspace({ project, files, chatHistory, tasks, user }: P
             projectStatus={project.status}
             files={files}
             tasks={tasks}
+            onProjectCreated={(newProjectId) => {
+              router.push(`/project/${newProjectId}`);
+            }}
           />
         </div>
 

@@ -1,0 +1,20 @@
+--- src/lib/orchestrator.ts
++++ src/lib/orchestrator.ts
+@@ -260,7 +260,7 @@ export class KellyOrchestrator {
+       await saveConversation({
+         projectId: this.state.projectId,
+         role: 'assistant',
+-        content: ,
++        content: ,
+         model: 'kelly-orchestrator',
+         createdAt: new Date(),
+       });
+@@ -268,7 +268,7 @@ export class KellyOrchestrator {
+       // Update project status
+       await updateProjectStatus(this.state.projectId, 'completed');
+       
+-      this.onStatusUpdate();
++      this.onStatusUpdate();
+       
+       // Save memory about preview success
+       try {

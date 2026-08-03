@@ -1,0 +1,628 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Test Site</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    /* Custom styles for animations and transitions */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes slideIn {
+      from { opacity: 0; transform: translateX(-20px); }
+      to { opacity: 1; transform: translateX(0); }
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 5px rgba(59, 130, 246, 0.3); }
+      50% { box-shadow: 0 0 20px rgba(59, 130, 246, 0.6); }
+    }
+    .animate-fadeIn { animation: fadeIn 0.3s ease-out; }
+    .animate-slideIn { animation: slideIn 0.3s ease-out; }
+    .hover-glow:hover { animation: pulse-glow 1.5s infinite; }
+    .card-hover { transition: all 0.2s ease; }
+    .card-hover:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(0,0,0,0.1); }
+    .gradient-text {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .gradient-bg {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    .gradient-border {
+      border: 2px solid transparent;
+      background-clip: padding-box;
+      position: relative;
+    }
+    .gradient-border::before {
+      content: '';
+      position: absolute;
+      top: -2px; left: -2px; right: -2px; bottom: -2px;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      border-radius: inherit;
+      z-index: -1;
+    }
+    .glass {
+      background: rgba(255, 255, 255, 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+    .glass-dark {
+      background: rgba(17, 24, 39, 0.8);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    .toast {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+    .btn-primary {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 0.5rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      transition: all 0.2s ease;
+      border: none;
+      cursor: pointer;
+    }
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+    }
+    .btn-primary:active {
+      transform: translateY(0);
+    }
+    .btn-secondary {
+      background: white;
+      color: #374151;
+      padding: 0.5rem 1.5rem;
+      border-radius: 0.5rem;
+      font-weight: 500;
+      border: 1px solid #e5e7eb;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+    .btn-secondary:hover {
+      background: #f9fafb;
+      border-color: #d1d5db;
+    }
+    .input-field {
+      width: 100%;
+      padding: 0.75rem 1rem;
+      border: 1px solid #e5e7eb;
+      border-radius: 0.5rem;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+    .input-field:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+    }
+    select.input-field {
+      appearance: none;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b7280' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 0.75rem center;
+      padding-right: 2.5rem;
+    }
+    .tab-active {
+      border-bottom: 2px solid #667eea;
+      color: #667eea;
+    }
+    .tab-inactive {
+      color: #6b7280;
+      border-bottom: 2px solid transparent;
+    }
+    .tab-inactive:hover {
+      color: #374151;
+      border-bottom-color: #e5e7eb;
+    }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+  <!-- Navigation -->
+  <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex justify-between h-16 items-center">
+        <div class="flex items-center gap-2">
+          <i data-lucide="test-tube" class="w-6 h-6 text-indigo-500"></i>
+          <span class="text-xl font-bold gradient-text">TestSite</span>
+        </div>
+        <div class="flex items-center gap-4">
+          <button onclick="showToast('Notifications clicked', 'info')" class="p-2 rounded-lg hover:bg-gray-100 transition-colors relative" aria-label="Notifications">
+            <i data-lucide="bell" class="w-5 h-5 text-gray-600"></i>
+            <span class="absolute top-1 right-1 w-2 h-2 bg-red-500 rounded-full"></span>
+          </button>
+          <button onclick="toggleTheme()" class="p-2 rounded-lg hover:bg-gray-100 transition-colors" aria-label="Toggle theme">
+            <i data-lucide="moon" class="w-5 h-5 text-gray-600" id="themeIcon"></i>
+          </button>
+          <div class="flex items-center gap-2 pl-4 border-l border-gray-200">
+            <div class="w-8 h-8 rounded-full gradient-bg flex items-center justify-center text-white text-sm font-medium">JD</div>
+            <span class="text-sm font-medium text-gray-700 hidden sm:block">John Doe</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </nav>
+
+  <!-- Main Content -->
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <!-- Hero Section -->
+    <div class="text-center mb-12 animate-fadeIn">
+      <h1 class="text-4xl sm:text-5xl font-bold text-gray-900 mb-4">Welcome to <span class="gradient-text">TestSite</span></h1>
+      <p class="text-lg text-gray-600 max-w-2xl mx-auto">A modern, fully functional test application built with vanilla HTML, CSS, and JavaScript.</p>
+    </div>
+
+    <!-- Stats Cards -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      <div class="bg-white rounded-xl p-6 shadow-sm card-hover border border-gray-100">
+        <div class="flex items-center justify-between mb-4">
+          <div class="p-2 bg-blue-100 rounded-lg">
+            <i data-lucide="users" class="w-5 h-5 text-blue-600"></i>
+          </div>
+          <span class="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">+12%</span>
+        </div>
+        <p class="text-2xl font-bold text-gray-900" id="userCount">1,234</p>
+        <p class="text-sm text-gray-500">Total Users</p>
+      </div>
+      <div class="bg-white rounded-xl p-6 shadow-sm card-hover border border-gray-100">
+        <div class="flex items-center justify-between mb-4">
+          <div class="p-2 bg-green-100 rounded-lg">
+            <i data-lucide="activity" class="w-5 h-5 text-green-600"></i>
+          </div>
+          <span class="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">+8%</span>
+        </div>
+        <p class="text-2xl font-bold text-gray-900" id="activeCount">567</p>
+        <p class="text-sm text-gray-500">Active Now</p>
+      </div>
+      <div class="bg-white rounded-xl p-6 shadow-sm card-hover border border-gray-100">
+        <div class="flex items-center justify-between mb-4">
+          <div class="p-2 bg-purple-100 rounded-lg">
+            <i data-lucide="file-text" class="w-5 h-5 text-purple-600"></i>
+          </div>
+          <span class="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">+23%</span>
+        </div>
+        <p class="text-2xl font-bold text-gray-900" id="docCount">892</p>
+        <p class="text-sm text-gray-500">Documents</p>
+      </div>
+      <div class="bg-white rounded-xl p-6 shadow-sm card-hover border border-gray-100">
+        <div class="flex items-center justify-between mb-4">
+          <div class="p-2 bg-amber-100 rounded-lg">
+            <i data-lucide="dollar-sign" class="w-5 h-5 text-amber-600"></i>
+          </div>
+          <span class="text-xs font-medium text-green-600 bg-green-100 px-2 py-1 rounded-full">+5%</span>
+        </div>
+        <p class="text-2xl font-bold text-gray-900" id="revenueCount">$12.4k</p>
+        <p class="text-sm text-gray-500">Revenue</p>
+      </div>
+    </div>
+
+    <!-- Tabs -->
+    <div class="mb-6">
+      <div class="border-b border-gray-200">
+        <nav class="flex gap-8" role="tablist">
+          <button onclick="switchTab('features')" id="tab-features" class="tab-active pb-3 px-1 text-sm font-medium transition-colors" role="tab" aria-selected="true">Features</button>
+          <button onclick="switchTab('tasks')" id="tab-tasks" class="tab-inactive pb-3 px-1 text-sm font-medium transition-colors" role="tab" aria-selected="false">Task List</button>
+          <button onclick="switchTab('settings')" id="tab-settings" class="tab-inactive pb-3 px-1 text-sm font-medium transition-colors" role="tab" aria-selected="false">Settings</button>
+        </nav>
+      </div>
+    </div>
+
+    <!-- Tab Content: Features -->
+    <div id="content-features" class="animate-fadeIn">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="bg-white rounded-xl p-6 shadow-sm card-hover border border-gray-100">
+          <div class="p-3 bg-indigo-100 rounded-lg w-fit mb-4">
+            <i data-lucide="zap" class="w-6 h-6 text-indigo-600"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Fast Performance</h3>
+          <p class="text-gray-600 text-sm mb-4">Optimized for speed with instant loading and smooth interactions.</p>
+          <button onclick="showToast('Performance feature clicked!', 'success')" class="btn-primary text-sm">Learn More</button>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-sm card-hover border border-gray-100">
+          <div class="p-3 bg-green-100 rounded-lg w-fit mb-4">
+            <i data-lucide="shield" class="w-6 h-6 text-green-600"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Secure by Default</h3>
+          <p class="text-gray-600 text-sm mb-4">Enterprise-grade security built into every layer of the application.</p>
+          <button onclick="showToast('Security feature clicked!', 'success')" class="btn-primary text-sm">Learn More</button>
+        </div>
+        <div class="bg-white rounded-xl p-6 shadow-sm card-hover border border-gray-100">
+          <div class="p-3 bg-purple-100 rounded-lg w-fit mb-4">
+            <i data-lucide="paintbrush" class="w-6 h-6 text-purple-600"></i>
+          </div>
+          <h3 class="text-lg font-semibold text-gray-900 mb-2">Modern Design</h3>
+          <p class="text-gray-600 text-sm mb-4">Beautiful, responsive design that works perfectly on any device.</p>
+          <button onclick="showToast('Design feature clicked!', 'success')" class="btn-primary text-sm">Learn More</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Content: Tasks -->
+    <div id="content-tasks" class="animate-fadeIn" style="display: none;">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100">
+        <div class="p-6 border-b border-gray-100">
+          <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <h2 class="text-lg font-semibold text-gray-900">Task List</h2>
+            <div class="flex gap-2">
+              <button onclick="addTask()" class="btn-primary text-sm flex items-center gap-2">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                Add Task
+              </button>
+            </div>
+          </div>
+          <div class="mt-4 flex flex-col sm:flex-row gap-3">
+            <input type="text" id="taskInput" placeholder="Enter a new task..." class="input-field flex-1" onkeydown="if(event.key==='Enter') addTask()">
+            <select id="taskPriority" class="input-field w-full sm:w-40">
+              <option value="low">Low Priority</option>
+              <option value="medium" selected>Medium Priority</option>
+              <option value="high">High Priority</option>
+            </select>
+          </div>
+        </div>
+        <div class="p-6">
+          <div class="flex gap-2 mb-4 flex-wrap">
+            <button onclick="filterTasks('all')" id="filter-all" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-100 text-indigo-700 transition-colors">All</button>
+            <button onclick="filterTasks('active')" id="filter-active" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">Active</button>
+            <button onclick="filterTasks('completed')" id="filter-completed" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">Completed</button>
+            <button onclick="filterTasks('high')" id="filter-high" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors">High Priority</button>
+            <button onclick="clearCompleted()" class="px-3 py-1.5 rounded-lg text-sm font-medium bg-red-50 text-red-600 hover:bg-red-100 transition-colors ml-auto">Clear Completed</button>
+          </div>
+          <div id="taskList" class="space-y-2">
+            <!-- Tasks will be rendered here -->
+          </div>
+          <div id="emptyState" class="text-center py-12 hidden">
+            <i data-lucide="clipboard-list" class="w-12 h-12 text-gray-300 mx-auto mb-3"></i>
+            <p class="text-gray-500 text-sm">No tasks yet. Add one above!</p>
+          </div>
+        </div>
+        <div class="px-6 py-3 bg-gray-50 rounded-b-xl flex items-center justify-between text-sm text-gray-500">
+          <span id="taskCount">0 tasks</span>
+          <span id="completedCount">0 completed</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tab Content: Settings -->
+    <div id="content-settings" class="animate-fadeIn" style="display: none;">
+      <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
+        <h2 class="text-lg font-semibold text-gray-900 mb-6">Application Settings</h2>
+        <div class="space-y-6">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-medium text-gray-900">Dark Mode</p>
+              <p class="text-sm text-gray-500">Toggle dark mode for the application</p>
+            </div>
+            <button onclick="toggleTheme()" class="relative w-12 h-6 rounded-full transition-colors" id="themeToggle" style="background-color: #e5e7eb;">
+              <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform" id="themeToggleThumb"></span>
+            </button>
+          </div>
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-medium text-gray-900">Email Notifications</p>
+              <p class="text-sm text-gray-500">Receive email updates about your activity</p>
+            </div>
+            <button onclick="toggleSetting('email')" class="relative w-12 h-6 rounded-full transition-colors" id="emailToggle" style="background-color: #667eea;">
+              <span class="absolute top-0.5 right-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform" id="emailToggleThumb"></span>
+            </button>
+          </div>
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="font-medium text-gray-900">Sound Effects</p>
+              <p class="text-sm text-gray-500">Play sounds for notifications and actions</p>
+            </div>
+            <button onclick="toggleSetting('sound')" class="relative w-12 h-6 rounded-full transition-colors" id="soundToggle" style="background-color: #e5e7eb;">
+              <span class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform" id="soundToggleThumb"></span>
+            </button>
+          </div>
+          <div class="pt-4 border-t border-gray-100">
+            <button onclick="resetSettings()" class="btn-secondary text-sm">Reset to Defaults</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <!-- Toast Container -->
+  <div id="toastContainer" class="toast"></div>
+
+  <script>
+    // Initialize Lucide icons
+    lucide.createIcons();
+
+    // ===== TAB SYSTEM =====
+    function switchTab(tab) {
+      const tabs = ['features', 'tasks', 'settings'];
+      tabs.forEach(t => {
+        document.getElementById(`content-${t}`).style.display = t === tab ? 'block' : 'none';
+        const tabBtn = document.getElementById(`tab-${t}`);
+        if (t === tab) {
+          tabBtn.className = 'tab-active pb-3 px-1 text-sm font-medium transition-colors';
+          tabBtn.setAttribute('aria-selected', 'true');
+        } else {
+          tabBtn.className = 'tab-inactive pb-3 px-1 text-sm font-medium transition-colors';
+          tabBtn.setAttribute('aria-selected', 'false');
+        }
+      });
+    }
+
+    // ===== THEME SYSTEM =====
+    let isDarkMode = false;
+    function toggleTheme() {
+      isDarkMode = !isDarkMode;
+      const themeIcon = document.getElementById('themeIcon');
+      const toggle = document.getElementById('themeToggle');
+      const thumb = document.getElementById('themeToggleThumb');
+      
+      if (isDarkMode) {
+        document.body.classList.add('bg-gray-900');
+        document.body.style.backgroundColor = '#111827';
+        document.querySelectorAll('.bg-white').forEach(el => {
+          el.style.backgroundColor = '#1f2937';
+          el.style.borderColor = '#374151';
+        });
+        document.querySelectorAll('.text-gray-900').forEach(el => el.style.color = '#f9fafb');
+        document.querySelectorAll('.text-gray-600').forEach(el => el.style.color = '#9ca3af');
+        document.querySelectorAll('.text-gray-500').forEach(el => el.style.color = '#6b7280');
+        document.querySelectorAll('.text-gray-700').forEach(el => el.style.color = '#d1d5db');
+        themeIcon.setAttribute('data-lucide', 'sun');
+        toggle.style.backgroundColor = '#667eea';
+        thumb.style.left = 'auto';
+        thumb.style.right = '0.125rem';
+      } else {
+        document.body.classList.remove('bg-gray-900');
+        document.body.style.backgroundColor = '#f9fafb';
+        document.querySelectorAll('[style*="background-color: rgb(31, 41, 55)"]').forEach(el => {
+          el.style.backgroundColor = '#ffffff';
+          el.style.borderColor = '#e5e7eb';
+        });
+        document.querySelectorAll('[style*="color: rgb(249, 250, 251)"]').forEach(el => el.style.color = '#111827');
+        document.querySelectorAll('[style*="color: rgb(156, 163, 175)"]').forEach(el => el.style.color = '#6b7280');
+        document.querySelectorAll('[style*="color: rgb(107, 114, 128)"]').forEach(el => el.style.color = '#6b7280');
+        document.querySelectorAll('[style*="color: rgb(209, 213, 219)"]').forEach(el => el.style.color = '#374151');
+        themeIcon.setAttribute('data-lucide', 'moon');
+        toggle.style.backgroundColor = '#e5e7eb';
+        thumb.style.left = '0.125rem';
+        thumb.style.right = 'auto';
+      }
+      lucide.createIcons();
+      showToast(isDarkMode ? 'Dark mode enabled' : 'Light mode enabled', 'info');
+    }
+
+    // ===== SETTINGS SYSTEM =====
+    const settings = {
+      email: true,
+      sound: false
+    };
+
+    function toggleSetting(setting) {
+      settings[setting] = !settings[setting];
+      const toggle = document.getElementById(`${setting}Toggle`);
+      const thumb = document.getElementById(`${setting}ToggleThumb`);
+      
+      if (settings[setting]) {
+        toggle.style.backgroundColor = '#667eea';
+        thumb.style.left = 'auto';
+        thumb.style.right = '0.125rem';
+        showToast(`${setting.charAt(0).toUpperCase() + setting.slice(1)} notifications enabled`, 'success');
+      } else {
+        toggle.style.backgroundColor = '#e5e7eb';
+        thumb.style.left = '0.125rem';
+        thumb.style.right = 'auto';
+        showToast(`${setting.charAt(0).toUpperCase() + setting.slice(1)} notifications disabled`, 'info');
+      }
+    }
+
+    function resetSettings() {
+      settings.email = true;
+      settings.sound = false;
+      // Reset email toggle
+      const emailToggle = document.getElementById('emailToggle');
+      const emailThumb = document.getElementById('emailToggleThumb');
+      emailToggle.style.backgroundColor = '#667eea';
+      emailThumb.style.left = 'auto';
+      emailThumb.style.right = '0.125rem';
+      // Reset sound toggle
+      const soundToggle = document.getElementById('soundToggle');
+      const soundThumb = document.getElementById('soundToggleThumb');
+      soundToggle.style.backgroundColor = '#e5e7eb';
+      soundThumb.style.left = '0.125rem';
+      soundThumb.style.right = 'auto';
+      showToast('Settings reset to defaults', 'success');
+    }
+
+    // ===== TASK SYSTEM =====
+    let tasks = [
+      { id: 1, text: 'Review project documentation', completed: false, priority: 'high', createdAt: new Date() },
+      { id: 2, text: 'Update dependencies', completed: true, priority: 'medium', createdAt: new Date() },
+      { id: 3, text: 'Fix responsive layout issues', completed: false, priority: 'low', createdAt: new Date() }
+    ];
+    let currentFilter = 'all';
+    let taskIdCounter = 4;
+
+    function renderTasks() {
+      const taskList = document.getElementById('taskList');
+      const emptyState = document.getElementById('emptyState');
+      
+      let filteredTasks = tasks;
+      if (currentFilter === 'active') filteredTasks = tasks.filter(t => !t.completed);
+      else if (currentFilter === 'completed') filteredTasks = tasks.filter(t => t.completed);
+      else if (currentFilter === 'high') filteredTasks = tasks.filter(t => t.priority === 'high');
+      
+      if (filteredTasks.length === 0) {
+        taskList.innerHTML = '';
+        emptyState.classList.remove('hidden');
+        return;
+      }
+      emptyState.classList.add('hidden');
+
+      taskList.innerHTML = filteredTasks.map(task => {
+        const priorityColors = { high: 'text-red-600 bg-red-50', medium: 'text-amber-600 bg-amber-50', low: 'text-green-600 bg-green-50' };
+        const priorityLabels = { high: 'High', medium: 'Medium', low: 'Low' };
+        return `
+          <div class="flex items-center gap-3 p-3 rounded-lg hover:bg-gray-50 transition-colors group animate-slideIn">
+            <button onclick="toggleTask(${task.id})" class="flex-shrink-0 w-5 h-5 rounded-full border-2 ${task.completed ? 'bg-indigo-500 border-indigo-500' : 'border-gray-300 hover:border-indigo-400'} flex items-center justify-center transition-colors">
+              ${task.completed ? '<i data-lucide="check" class="w-3 h-3 text-white"></i>' : ''}
+            </button>
+            <span class="flex-1 text-sm ${task.completed ? 'line-through text-gray-400' : 'text-gray-700'}">${task.text}</span>
+            <span class="text-xs px-2 py-1 rounded-full font-medium ${priorityColors[task.priority]}">${priorityLabels[task.priority]}</span>
+            <button onclick="deleteTask(${task.id})" class="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-red-50 transition-all" aria-label="Delete task">
+              <i data-lucide="trash-2" class="w-4 h-4 text-red-500"></i>
+            </button>
+          </div>
+        `;
+      }).join('');
+      
+      lucide.createIcons();
+      updateTaskCounts();
+    }
+
+    function addTask() {
+      const input = document.getElementById('taskInput');
+      const priority = document.getElementById('taskPriority').value;
+      const text = input.value.trim();
+      
+      if (!text) {
+        showToast('Please enter a task description', 'error');
+        input.focus();
+        return;
+      }
+
+      tasks.push({
+        id: taskIdCounter++,
+        text: text,
+        completed: false,
+        priority: priority,
+        createdAt: new Date()
+      });
+
+      input.value = '';
+      input.focus();
+      renderTasks();
+      showToast('Task added successfully!', 'success');
+    }
+
+    function toggleTask(id) {
+      const task = tasks.find(t => t.id === id);
+      if (task) {
+        task.completed = !task.completed;
+        renderTasks();
+        showToast(task.completed ? 'Task completed!' : 'Task reopened', 'info');
+      }
+    }
+
+    function deleteTask(id) {
+      tasks = tasks.filter(t => t.id !== id);
+      renderTasks();
+      showToast('Task deleted', 'info');
+    }
+
+    function filterTasks(filter) {
+      currentFilter = filter;
+      const filters = ['all', 'active', 'completed', 'high'];
+      filters.forEach(f => {
+        const btn = document.getElementById(`filter-${f}`);
+        if (f === filter) {
+          btn.className = 'px-3 py-1.5 rounded-lg text-sm font-medium bg-indigo-100 text-indigo-700 transition-colors';
+        } else {
+          btn.className = 'px-3 py-1.5 rounded-lg text-sm font-medium bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors';
+        }
+      });
+      renderTasks();
+    }
+
+    function clearCompleted() {
+      const completedTasks = tasks.filter(t => t.completed);
+      if (completedTasks.length === 0) {
+        showToast('No completed tasks to clear', 'info');
+        return;
+      }
+      tasks = tasks.filter(t => !t.completed);
+      renderTasks();
+      showToast(`${completedTasks.length} completed task(s) cleared`, 'success');
+    }
+
+    function updateTaskCounts() {
+      const total = tasks.length;
+      const completed = tasks.filter(t => t.completed).length;
+      document.getElementById('taskCount').textContent = `${total} task${total !== 1 ? 's' : ''}`;
+      document.getElementById('completedCount').textContent = `${completed} completed`;
+    }
+
+    // ===== TOAST SYSTEM =====
+    function showToast(message, type = 'info') {
+      const container = document.getElementById('toastContainer');
+      const colors = {
+        success: 'bg-green-50 border-green-200 text-green-800',
+        error: 'bg-red-50 border-red-200 text-red-800',
+        info: 'bg-blue-50 border-blue-200 text-blue-800'
+      };
+      const icons = {
+        success: 'check-circle',
+        error: 'alert-circle',
+        info: 'info'
+      };
+
+      const toast = document.createElement('div');
+      toast.className = `flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg mb-2 animate-slideIn ${colors[type]}`;
+      toast.innerHTML = `
+        <i data-lucide="${icons[type]}" class="w-5 h-5 flex-shrink-0"></i>
+        <span class="text-sm font-medium">${message}</span>
+        <button onclick="this.parentElement.remove()" class="ml-auto p-1 rounded hover:bg-black/5 transition-colors" aria-label="Close">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      `;
+      container.appendChild(toast);
+      lucide.createIcons();
+
+      // Auto-remove after 3 seconds
+      setTimeout(() => {
+        if (toast.parentElement) {
+          toast.style.opacity = '0';
+          toast.style.transform = 'translateX(20px)';
+          toast.style.transition = 'all 0.3s ease';
+          setTimeout(() => toast.remove(), 300);
+        }
+      }, 3000);
+    }
+
+    // ===== STATS COUNTER ANIMATION =====
+    function animateCounter(elementId, target, suffix = '') {
+      const element = document.getElementById(elementId);
+      let current = 0;
+      const increment = Math.ceil(target / 30);
+      const interval = setInterval(() => {
+        current += increment;
+        if (current >= target) {
+          current = target;
+          clearInterval(interval);
+        }
+        element.textContent = suffix ? `$${(current / 1000).toFixed(1)}k` : current.toLocaleString();
+      }, 50);
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', () => {
+      renderTasks();
+      animateCounter('userCount', 1234);
+      animateCounter('activeCount', 567);
+      animateCounter('docCount', 892);
+      animateCounter('revenueCount', 12400, 'k');
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,556 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PulseFit — fitness tracker</title>
+  <!-- Tailwind via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Lucide icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Chart.js for progress charts -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    /* custom smoothness + micro-interactions */
+    body {
+      background: #f7f9fc;
+      font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    }
+    .glass-card {
+      backdrop-filter: blur(6px);
+      background: rgba(255, 255, 255, 0.75);
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      box-shadow: 0 8px 20px rgba(0,20,50,0.06);
+    }
+    .hover-lift {
+      transition: all 0.2s ease;
+    }
+    .hover-lift:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px rgba(0,20,50,0.1);
+    }
+    .tab-active {
+      background: #2d3b5e;
+      color: white;
+      border-radius: 1rem;
+    }
+    .chart-container {
+      position: relative;
+      height: 220px;
+      width: 100%;
+    }
+    .btn-primary {
+      background: #2d3b5e;
+      color: white;
+      transition: all 0.15s;
+    }
+    .btn-primary:hover {
+      background: #1f2a44;
+    }
+    .btn-outline {
+      border: 1.5px solid #cbd5e1;
+      background: white;
+    }
+    .btn-outline:hover {
+      background: #f1f5f9;
+    }
+    .social-icon {
+      transition: all 0.15s;
+    }
+    .social-icon:hover {
+      transform: scale(1.12);
+      color: #2d3b5e;
+    }
+  </style>
+</head>
+<body class="min-h-screen antialiased">
+
+  <!-- main app container -->
+  <main class="max-w-6xl mx-auto px-4 sm:px-6 py-6 md:py-10">
+    
+    <!-- header / branding -->
+    <header class="flex items-center justify-between mb-6">
+      <div class="flex items-center gap-2">
+        <div class="w-9 h-9 bg-[#2d3b5e] rounded-xl flex items-center justify-center">
+          <i data-lucide="activity" class="w-5 h-5 text-white"></i>
+        </div>
+        <h1 class="text-2xl font-bold tracking-tight text-[#1e293b]">PulseFit</h1>
+      </div>
+      <div class="flex items-center gap-2">
+        <span class="text-sm font-medium text-slate-500 hidden sm:block">Alex Rivera</span>
+        <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600"></div>
+      </div>
+    </header>
+
+    <!-- tab navigation -->
+    <nav class="flex gap-2 p-1 bg-white rounded-2xl shadow-sm mb-6 w-fit">
+      <button id="tab-workouts" class="tab-btn px-5 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-2">
+        <i data-lucide="dumbbell" class="w-4 h-4"></i> Workouts
+      </button>
+      <button id="tab-progress" class="tab-btn px-5 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-2">
+        <i data-lucide="line-chart" class="w-4 h-4"></i> Progress
+      </button>
+      <button id="tab-social" class="tab-btn px-5 py-2 text-sm font-semibold text-slate-600 hover:text-slate-900 flex items-center gap-2">
+        <i data-lucide="share-2" class="w-4 h-4"></i> Community
+      </button>
+    </nav>
+
+    <!-- ================= WORKOUTS TAB ================= -->
+    <section id="panel-workouts" class="tab-panel">
+      <!-- active plan banner -->
+      <div class="glass-card rounded-3xl p-6 mb-8 hover-lift">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div>
+            <p class="text-xs uppercase tracking-wider text-slate-500 mb-1">Current plan</p>
+            <h2 class="text-2xl font-bold text-slate-800">Hybrid Strength + HIIT</h2>
+            <p class="text-slate-500 text-sm mt-1">4 days/week · 45–60 min</p>
+          </div>
+          <div class="flex gap-3">
+            <button id="completeWorkoutBtn" class="btn-primary px-5 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2">
+              <i data-lucide="check-circle" class="w-4 h-4"></i> Complete today
+            </button>
+            <button id="resetProgressBtn" class="btn-outline px-4 py-2.5 rounded-xl text-sm font-semibold text-slate-600 flex items-center gap-2">
+              <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Reset
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- weekly workout list -->
+      <div class="grid md:grid-cols-2 gap-4">
+        <!-- day cards -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover-lift">
+          <div class="flex items-center justify-between mb-3">
+            <span class="font-semibold text-slate-700">Day 1 · Push</span>
+            <span class="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium">Completed</span>
+          </div>
+          <p class="text-sm text-slate-500">Bench press · Overhead press · Triceps</p>
+          <div class="w-full bg-slate-200 h-2 rounded-full mt-4"><div class="bg-green-500 h-2 rounded-full w-full"></div></div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover-lift">
+          <div class="flex items-center justify-between mb-3">
+            <span class="font-semibold text-slate-700">Day 2 · Pull</span>
+            <span class="text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-medium">Today</span>
+          </div>
+          <p class="text-sm text-slate-500">Deadlift · Pull-ups · Rows</p>
+          <div class="w-full bg-slate-200 h-2 rounded-full mt-4"><div class="bg-amber-400 h-2 rounded-full w-1/4"></div></div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover-lift">
+          <div class="flex items-center justify-between mb-3">
+            <span class="font-semibold text-slate-700">Day 3 · Legs</span>
+            <span class="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full font-medium">Upcoming</span>
+          </div>
+          <p class="text-sm text-slate-500">Squat · Lunges · Leg press</p>
+          <div class="w-full bg-slate-200 h-2 rounded-full mt-4"></div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100 hover-lift">
+          <div class="flex items-center justify-between mb-3">
+            <span class="font-semibold text-slate-700">Day 4 · HIIT</span>
+            <span class="text-xs bg-slate-100 text-slate-500 px-3 py-1 rounded-full font-medium">Upcoming</span>
+          </div>
+          <p class="text-sm text-slate-500">Sprints · Burpees · Core circuit</p>
+          <div class="w-full bg-slate-200 h-2 rounded-full mt-4"></div>
+        </div>
+      </div>
+
+      <!-- custom workout builder -->
+      <div class="mt-8 bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+        <h3 class="font-semibold text-slate-700 mb-3 flex items-center gap-2"><i data-lucide="plus-circle" class="w-5 h-5 text-[#2d3b5e]"></i> Custom workout</h3>
+        <div class="flex flex-col sm:flex-row gap-2">
+          <input id="newWorkoutName" type="text" placeholder="e.g. Core blast" class="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d3b5e]/20">
+          <button id="addWorkoutBtn" class="btn-primary px-5 py-2.5 rounded-xl text-sm font-semibold">Add workout</button>
+        </div>
+        <!-- dynamic list of custom workouts -->
+        <ul id="customWorkoutList" class="mt-4 space-y-2 text-sm text-slate-600"></ul>
+      </div>
+    </section>
+
+    <!-- ================= PROGRESS TAB ================= -->
+    <section id="panel-progress" class="tab-panel hidden">
+      <div class="grid lg:grid-cols-3 gap-4 mb-6">
+        <!-- stat cards -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center"><i data-lucide="flame" class="w-6 h-6 text-blue-600"></i></div>
+          <div><p class="text-sm text-slate-500">Calories (week)</p><p class="text-2xl font-bold text-slate-800">4,320</p></div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center"><i data-lucide="clock" class="w-6 h-6 text-green-600"></i></div>
+          <div><p class="text-sm text-slate-500">Active minutes</p><p class="text-2xl font-bold text-slate-800">286</p></div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 shadow-sm flex items-center gap-4">
+          <div class="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center"><i data-lucide="repeat" class="w-6 h-6 text-purple-600"></i></div>
+          <div><p class="text-sm text-slate-500">Workouts / week</p><p class="text-2xl font-bold text-slate-800">4</p></div>
+        </div>
+      </div>
+
+      <!-- chart + weight log -->
+      <div class="grid lg:grid-cols-2 gap-6">
+        <div class="bg-white rounded-2xl p-5 shadow-sm">
+          <h3 class="font-semibold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="trending-up" class="w-5 h-5 text-[#2d3b5e]"></i> Strength progress (Squat 1RM)</h3>
+          <div class="chart-container"><canvas id="progressChart"></canvas></div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 shadow-sm">
+          <h3 class="font-semibold text-slate-700 mb-4 flex items-center gap-2"><i data-lucide="scale" class="w-5 h-5 text-[#2d3b5e]"></i> Body weight log</h3>
+          <div class="flex gap-2 mb-4">
+            <input id="weightInput" type="number" step="0.1" placeholder="kg" class="border border-slate-200 rounded-xl px-4 py-2 w-full text-sm">
+            <button id="addWeightBtn" class="btn-primary px-5 py-2 rounded-xl text-sm font-semibold">Log</button>
+          </div>
+          <div class="flex items-center justify-between text-sm bg-slate-50 rounded-xl px-4 py-3">
+            <span class="text-slate-500">Latest</span>
+            <span id="latestWeight" class="font-bold text-slate-700">82.5 kg</span>
+          </div>
+          <div id="weightHistory" class="mt-3 text-xs text-slate-500 space-y-1"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= SOCIAL TAB ================= -->
+    <section id="panel-social" class="tab-panel hidden">
+      <!-- share to community -->
+      <div class="glass-card rounded-3xl p-6 mb-6">
+        <h3 class="text-lg font-semibold text-slate-800 mb-3 flex items-center gap-2"><i data-lucide="share-2" class="w-5 h-5 text-[#2d3b5e]"></i> Share your achievement</h3>
+        <div class="flex flex-col sm:flex-row gap-3">
+          <input id="shareMessage" type="text" placeholder="e.g. New PR on deadlift! 🏋️ (no emojis, just text)" class="flex-1 border border-white/60 bg-white/80 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#2d3b5e]/30">
+          <button id="sharePostBtn" class="btn-primary px-6 py-2.5 rounded-xl text-sm font-semibold flex items-center gap-2 justify-center">
+            <i data-lucide="send" class="w-4 h-4"></i> Post
+          </button>
+        </div>
+        <div class="flex gap-2 mt-3">
+          <button id="copyShareLinkBtn" class="btn-outline px-4 py-2 rounded-lg text-xs font-medium flex items-center gap-1.5">
+            <i data-lucide="link" class="w-3.5 h-3.5"></i> Copy link
+          </button>
+          <span id="copyFeedback" class="text-xs text-green-600 self-center hidden">Copied!</span>
+        </div>
+      </div>
+
+      <!-- community feed -->
+      <h3 class="font-semibold text-slate-700 mb-3">Community feed</h3>
+      <div id="feedContainer" class="space-y-4">
+        <!-- static + dynamic posts -->
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-orange-400 to-pink-500"></div>
+            <span class="font-semibold text-sm">Maya Chen</span>
+            <span class="text-xs text-slate-400 ml-auto">2h ago</span>
+          </div>
+          <p class="text-sm text-slate-600">5k row in 19:32 – new personal best! 🚣</p>
+          <div class="flex gap-4 mt-3 text-slate-400 text-sm">
+            <button class="social-icon flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4"></i> 24</button>
+            <button class="social-icon flex items-center gap-1"><i data-lucide="message-circle" class="w-4 h-4"></i> 8</button>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl p-5 shadow-sm border border-slate-100">
+          <div class="flex items-center gap-3 mb-2">
+            <div class="w-8 h-8 rounded-full bg-gradient-to-br from-emerald-400 to-teal-600"></div>
+            <span class="font-semibold text-sm">James Lee</span>
+            <span class="text-xs text-slate-400 ml-auto">5h ago</span>
+          </div>
+          <p class="text-sm text-slate-600">Consistent 6 weeks of training. Feeling strong!</p>
+          <div class="flex gap-4 mt-3 text-slate-400 text-sm">
+            <button class="social-icon flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4"></i> 41</button>
+            <button class="social-icon flex items-center gap-1"><i data-lucide="message-circle" class="w-4 h-4"></i> 12</button>
+          </div>
+        </div>
+      </div>
+      <!-- dynamic posts will be prepended here -->
+    </section>
+  </main>
+
+  <!-- toast notification -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 bg-[#1e293b] text-white px-5 py-3 rounded-2xl text-sm shadow-xl opacity-0 transition-all duration-300 pointer-events-none"></div>
+
+  <script>
+    // ========== GLOBAL STATE ==========
+    const state = {
+      customWorkouts: [],
+      weightEntries: [82.5, 82.0, 81.8, 82.2, 81.5, 82.0, 81.7], // last 7 entries
+      feedPosts: [
+        { author: 'You', time: 'Just now', message: 'Completed Day 2 · Pull 💪', likes: 0 },
+      ],
+    };
+
+    // ========== UTILITIES ==========
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      toast.textContent = msg;
+      toast.classList.remove('opacity-0');
+      toast.classList.add('opacity-100');
+      setTimeout(() => {
+        toast.classList.add('opacity-0');
+        toast.classList.remove('opacity-100');
+      }, 2200);
+    }
+
+    // ========== TAB SWITCHING ==========
+    const tabBtns = document.querySelectorAll('.tab-btn');
+    const panels = {
+      workouts: document.getElementById('panel-workouts'),
+      progress: document.getElementById('panel-progress'),
+      social: document.getElementById('panel-social'),
+    };
+
+    function activateTab(tabId) {
+      // update button styles
+      tabBtns.forEach(btn => {
+        btn.classList.remove('tab-active', 'text-white');
+        btn.classList.add('text-slate-600');
+      });
+      const activeBtn = document.getElementById(`tab-${tabId}`);
+      activeBtn.classList.add('tab-active', 'text-white');
+      activeBtn.classList.remove('text-slate-600');
+
+      // show corresponding panel
+      Object.keys(panels).forEach(key => {
+        panels[key].classList.add('hidden');
+      });
+      panels[tabId].classList.remove('hidden');
+    }
+
+    tabBtns.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const tab = e.currentTarget.id.replace('tab-', '');
+        activateTab(tab);
+      });
+    });
+
+    // ========== WORKOUTS ==========
+    // complete today's workout
+    document.getElementById('completeWorkoutBtn').addEventListener('click', () => {
+      showToast('✅ Day 2 marked as completed!');
+      // visually update the "Today" badge
+      const badges = document.querySelectorAll('.text-amber-100');
+      badges.forEach(badge => {
+        badge.textContent = 'Completed';
+        badge.className = 'text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium';
+      });
+      // update the progress bar to full
+      const amberBar = document.querySelector('.bg-amber-400');
+      if (amberBar) amberBar.className = 'bg-green-500 h-2 rounded-full w-full';
+    });
+
+    // reset progress (demo)
+    document.getElementById('resetProgressBtn').addEventListener('click', () => {
+      showToast('Progress reset to default');
+      // reset the UI badges
+      const badges = document.querySelectorAll('.bg-green-100');
+      badges.forEach((badge, idx) => {
+        if (idx === 1) { // second badge (today)
+          badge.textContent = 'Today';
+          badge.className = 'text-xs bg-amber-100 text-amber-700 px-3 py-1 rounded-full font-medium';
+        } else if (idx === 0) {
+          badge.textContent = 'Completed';
+          badge.className = 'text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium';
+        }
+      });
+      const greenBars = document.querySelectorAll('.bg-green-500');
+      greenBars.forEach(bar => {
+        if (bar.parentElement.parentElement.querySelector('.text-amber-100') === null) {
+          // nothing
+        }
+      });
+      // reset the amber bar to 1/4
+      const amberBar = document.querySelector('.bg-amber-400');
+      if (amberBar) amberBar.className = 'bg-amber-400 h-2 rounded-full w-1/4';
+      // also reset day 1 bar to full (existing)
+    });
+
+    // custom workout: add
+    const addWorkoutBtn = document.getElementById('addWorkoutBtn');
+    const customList = document.getElementById('customWorkoutList');
+    const newWorkoutInput = document.getElementById('newWorkoutName');
+
+    function renderCustomWorkouts() {
+      customList.innerHTML = '';
+      state.customWorkouts.forEach((name, idx) => {
+        const li = document.createElement('li');
+        li.className = 'flex items-center justify-between bg-slate-50 rounded-xl px-4 py-2.5';
+        li.innerHTML = `
+          <span class="flex items-center gap-2"><i data-lucide="dumbbell" class="w-4 h-4 text-slate-400"></i> ${name}</span>
+          <button class="text-slate-400 hover:text-red-500 transition" data-index="${idx}" aria-label="Remove workout">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        `;
+        customList.appendChild(li);
+      });
+      // bind remove buttons
+      customList.querySelectorAll('button[data-index]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const index = e.currentTarget.getAttribute('data-index');
+          state.customWorkouts.splice(index, 1);
+          renderCustomWorkouts();
+          showToast('Workout removed');
+          lucide.createIcons();
+        });
+      });
+      lucide.createIcons();
+    }
+
+    addWorkoutBtn.addEventListener('click', () => {
+      const name = newWorkoutInput.value.trim();
+      if (!name) {
+        showToast('Please enter a workout name');
+        return;
+      }
+      state.customWorkouts.push(name);
+      newWorkoutInput.value = '';
+      renderCustomWorkouts();
+      showToast(`Added "${name}" to custom workouts`);
+    });
+
+    // ========== PROGRESS CHART ==========
+    let progressChart;
+    function initChart() {
+      const ctx = document.getElementById('progressChart').getContext('2d');
+      progressChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7'],
+          datasets: [{
+            label: 'Squat 1RM (kg)',
+            data: [100, 105, 102, 110, 115, 112, 120],
+            borderColor: '#2d3b5e',
+            backgroundColor: 'rgba(45,59,94,0.1)',
+            tension: 0.3,
+            fill: true,
+            pointBackgroundColor: '#2d3b5e',
+            pointBorderColor: '#fff',
+            pointRadius: 5,
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: { legend: { display: false } },
+          scales: { y: { beginAtZero: false, min: 90 } }
+        }
+      });
+    }
+
+    // ========== WEIGHT LOG ==========
+    const weightInput = document.getElementById('weightInput');
+    const addWeightBtn = document.getElementById('addWeightBtn');
+    const latestWeightSpan = document.getElementById('latestWeight');
+    const weightHistoryDiv = document.getElementById('weightHistory');
+
+    function renderWeightHistory() {
+      const lastFive = state.weightEntries.slice(-5).reverse();
+      weightHistoryDiv.innerHTML = lastFive.map((w, i) => 
+        `<div class="flex justify-between"><span>Entry ${state.weightEntries.length - i}</span><span>${w} kg</span></div>`
+      ).join('');
+      latestWeightSpan.textContent = `${state.weightEntries[state.weightEntries.length - 1]} kg`;
+    }
+
+    addWeightBtn.addEventListener('click', () => {
+      const val = parseFloat(weightInput.value);
+      if (isNaN(val) || val <= 30 || val > 200) {
+        showToast('Enter a valid weight (30-200 kg)');
+        return;
+      }
+      state.weightEntries.push(val);
+      weightInput.value = '';
+      renderWeightHistory();
+      // update chart dataset (simulate strength change) 
+      if (progressChart) {
+        const newData = [...progressChart.data.datasets[0].data];
+        newData.push(newData[newData.length - 1] + (Math.random() * 4 - 1));
+        progressChart.data.datasets[0].data = newData;
+        progressChart.update();
+      }
+      showToast('Weight logged 💪');
+    });
+
+    // ========== SOCIAL SHARE ==========
+    const shareMessageInput = document.getElementById('shareMessage');
+    const sharePostBtn = document.getElementById('sharePostBtn');
+    const feedContainer = document.getElementById('feedContainer');
+    const copyShareLinkBtn = document.getElementById('copyShareLinkBtn');
+    const copyFeedback = document.getElementById('copyFeedback');
+
+    function addPost(message) {
+      const postDiv = document.createElement('div');
+      postDiv.className = 'bg-white rounded-2xl p-5 shadow-sm border border-slate-100';
+      postDiv.innerHTML = `
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-8 h-8 rounded-full bg-gradient-to-br from-sky-400 to-indigo-500"></div>
+          <span class="font-semibold text-sm">Alex Rivera</span>
+          <span class="text-xs text-slate-400 ml-auto">Just now</span>
+        </div>
+        <p class="text-sm text-slate-600">${message}</p>
+        <div class="flex gap-4 mt-3 text-slate-400 text-sm">
+          <button class="social-icon flex items-center gap-1"><i data-lucide="heart" class="w-4 h-4"></i> 0</button>
+          <button class="social-icon flex items-center gap-1"><i data-lucide="message-circle" class="w-4 h-4"></i> 0</button>
+        </div>
+      `;
+      feedContainer.prepend(postDiv);
+      lucide.createIcons();
+      // add like functionality to new posts
+      const likeBtn = postDiv.querySelector('.social-icon');
+      if (likeBtn) {
+        likeBtn.addEventListener('click', () => {
+          const countSpan = likeBtn.querySelector('span');
+          if (countSpan) {
+            let count = parseInt(countSpan.textContent) || 0;
+            countSpan.textContent = ` ${count + 1}`;
+            showToast('❤️ Liked!');
+          }
+        });
+      }
+    }
+
+    sharePostBtn.addEventListener('click', () => {
+      const msg = shareMessageInput.value.trim();
+      if (!msg) {
+        showToast('Write something to share');
+        return;
+      }
+      addPost(msg);
+      shareMessageInput.value = '';
+      showToast('Posted to community!');
+    });
+
+    // copy share link
+    copyShareLinkBtn.addEventListener('click', async () => {
+      try {
+        await navigator.clipboard.writeText('https://pulsefit.app/community/alex');
+        copyFeedback.classList.remove('hidden');
+        setTimeout(() => copyFeedback.classList.add('hidden'), 2000);
+        showToast('🔗 Link copied');
+      } catch (err) {
+        showToast('Clipboard blocked, copy manually');
+      }
+    });
+
+    // ========== INITIALIZE ==========
+    // render custom workouts (empty initially)
+    renderCustomWorkouts();
+    // render weight history
+    renderWeightHistory();
+    // init chart
+    initChart();
+    // activate workouts tab by default
+    activateTab('workouts');
+    // lucide icons
+    lucide.createIcons();
+
+    // ========== LIKE BUTTONS (static) ==========
+    document.querySelectorAll('.social-icon').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const likeBtn = e.currentTarget;
+        const icon = likeBtn.querySelector('i');
+        if (icon && icon.getAttribute('data-lucide') === 'heart') {
+          const countSpan = likeBtn.querySelector('span');
+          if (countSpan) {
+            let count = parseInt(countSpan.textContent) || 0;
+            countSpan.textContent = ` ${count + 1}`;
+            showToast('❤️ Liked!');
+          }
+        }
+      });
+    });
+
+    // refresh lucide after dynamic changes
+    const observer = new MutationObserver(() => lucide.createIcons());
+    observer.observe(document.body, { childList: true, subtree: true });
+  </script>
+</body>
+</html>

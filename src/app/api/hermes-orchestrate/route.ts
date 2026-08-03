@@ -1,18 +1,74 @@
 import { NextRequest, NextResponse } from "next/server";
+import fs from "fs/promises";
+import path from "path";
 import { db } from "@/lib/db";
-import { projects, projectFiles, conversations, wikiPages } from "@/lib/db/schema";
+import { projects, projectFiles, conversations } from "@/lib/db/schema";
 import { generateShortName } from "@/lib/project-name-generator";
 import { eq } from "drizzle-orm";
 
-const HERMES_URL = "http://127.0.0.1:8642/v1/chat/completions";
-const HERMES_API_KEY = "820a8890e58dfd3dadd4166cb2be9b8c4db1afce6514110039374ea1da7b84cc";
+const HERMES_URL = "https://api.deepseek.com/v1/chat/completions";
+const HERMES_API_KEY = process.env.DEEPSEEK_API_KEY || "";
 const HERMES_MODEL = "deepseek-chat";
+const PROJECTS_DIR = "/data/projects";
 
-// Fetch with timeout helper
+// Tool definitions that Kelly can use
+const KELLY_TOOLS = `
+You are Kelly, an expert software architect and developer for BuildAny (base66.cloud).
+You help users build apps by chatting with them, understanding their needs, and generating code.
+
+## Your Flow
+1. Chat with the user to understand what they want to build
+2. Propose a plan with features and file structure
+3. When user approves (says "build it", "yes", "go ahead", etc.), use the tools to create the project
+4. Generate code files using your expertise
+5. Ask if they want to preview/deploy
+
+## Available Tools
+
+When you need to use a tool, output ONLY a JSON block like this:
+
+### create_project
+Creates a new project and returns a projectId.
+\`\`\`json
+{"tool": "create_project", "params": {"name": "MyApp", "description": "A fitness tracking app"}}
+\`\`\`
+
+### save_file
+Saves a code file to the project.
+\`\`\`json
+{"tool": "save_file", "params": {"projectId": "...", "filePath": "src/app/page.tsx", "content": "..."}}
+\`\`\`
+
+### get_files
+Gets all files in a project.
+\`\`\`json
+{"tool": "get_files", "params": {"projectId": "..."}}
+\`\`\`
+
+### build_project
+Builds the project (npm install + next build).
+\`\`\`json
+{"tool": "build_project", "params": {"projectId": "..."}}
+\`\`\`
+
+### deploy_project
+Deploys to Cloudflare Pages.
+\`\`\`json
+{"tool": "deploy_project", "params": {"projectId": "..."}}
+\`\`\`
+
+## Rules
+- ALWAYS use tools for project operations (create, save, build, deploy)
+- Generate COMPLETE, working code - not placeholders
+- Use TypeScript, React, Next.js App Router, Tailwind CSS
+- Save files to src/app/ and src/components/ directories
+- After saving all files, offer to build and deploy
+- Be conversational and helpful!
+`;
+
 async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: number = 30000): Promise<Response> {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
-  
   try {
     const response = await fetch(url, { ...options, signal: controller.signal });
     clearTimeout(timeoutId);
@@ -26,450 +82,246 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: nu
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { prompt, type = "web", appType, userId } = body;
-    const projectType = appType || type;
+    const { prompt, projectId, messages = [], type = "web", appType } = body;
 
     if (!prompt?.trim()) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
     }
 
-    // 1. CREATE PROJECT IMMEDIATELY (fast response)
-    const newId = crypto.randomUUID();
-    const shortName = generateShortName(prompt);
+    // DIRECT_CREATION_MODE: If no chat history, do the old full creation+generation flow
+    // This is what Workspace3Col expects
+    const isDirectCreation = !messages || messages.length === 0;
+    
+    if (isDirectCreation) {
+      console.log("[Hermes Orchestrate] DIRECT_CREATION_MODE for:", prompt.slice(0, 50));
+      return await handleDirectCreation(prompt, type || appType || "web");
+    }
 
-    await db.insert(projects).values({
-      id: newId,
-      userId: userId || "guest-" + crypto.randomUUID(),
-      name: shortName,
-      description: prompt,
-      type: projectType as "web" | "mobile" | "dashboard",
-      status: "creating",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    });
+    // CHAT_TOOL_MODE: New multi-tool chat flow
+    // Build conversation history
+    const conversationHistory = messages.map((m: any) => ({
+      role: m.role,
+      content: m.content,
+    }));
 
-    // 2. Log user prompt immediately
-    await db.insert(conversations).values({
-      id: crypto.randomUUID(),
-      projectId: newId,
-      role: "user",
-      content: prompt,
-      model: "user",
-      createdAt: new Date(),
-    });
+    // Call Kelly with tool-aware system prompt
+    const response = await fetchWithTimeout(HERMES_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${HERMES_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: HERMES_MODEL,
+        messages: [
+          { role: "system", content: KELLY_TOOLS },
+          ...conversationHistory,
+          { role: "user", content: prompt },
+        ],
+        temperature: 0.3,
+        max_tokens: 4000,
+      }),
+    }, 60000);
 
-    // 3. Log "creating" status
-    await db.insert(conversations).values({
-      id: crypto.randomUUID(),
-      projectId: newId,
-      role: "system",
-      content: "🚀 Project creation started. Kelly is generating your app...",
-      model: "hermes/status",
-      createdAt: new Date(),
-    });
+    if (!response.ok) {
+      console.error("[Kelly Chat] API error:", response.status);
+      return NextResponse.json({ error: "Kelly API error" }, { status: 500 });
+    }
 
-    console.log("[Kelly Orchestrate] Project created:", newId, "- Starting background generation");
+    const data = await response.json();
+    const kellyResponse = data.choices?.[0]?.message?.content || "";
 
-    // 4. RETURN IMMEDIATELY - Don't wait for Kelly!
-    // Fire off background generation without awaiting
-    generateProjectInBackground(newId, prompt, projectType, shortName);
+    // Check if Kelly wants to use tools
+    const toolCalls = parseToolCalls(kellyResponse);
+    
+    if (toolCalls.length > 0) {
+      console.log(`[Kelly Chat] ${toolCalls.length} tool call(s) detected`);
+      const results = [];
+      
+      for (const toolCall of toolCalls) {
+        console.log("[Kelly Chat] Executing:", toolCall.tool);
+        const result = await executeTool(toolCall.tool, toolCall.params);
+        results.push({
+          tool: toolCall.tool,
+          params: toolCall.params,
+          result,
+        });
+      }
+      
+      return NextResponse.json({
+        success: true,
+        role: "assistant",
+        content: kellyResponse,
+        toolCalls: results,
+      });
+    }
 
     return NextResponse.json({
       success: true,
-      projectId: newId,
-      projectName: shortName,
-      status: "creating",
-      message: `🚀 Project "${shortName}" creation started! Kelly is generating your app in the background.`,
+      role: "assistant",
+      content: kellyResponse,
     });
 
   } catch (error: any) {
-    console.error("[Kelly Orchestrate] Error:", error);
+    console.error("[Kelly Chat] Error:", error);
     return NextResponse.json(
-      { error: "Kelly orchestration failed", message: error.message },
+      { error: "Kelly chat failed", message: error.message },
       { status: 500 }
     );
   }
 }
 
-// BACKGROUND GENERATION - Runs after response is sent
-async function generateProjectInBackground(
-  projectId: string,
-  prompt: string,
-  type: string,
-  projectName: string
-) {
+// Old direct-creation flow for backward compatibility with Workspace3Col
+async function handleDirectCreation(prompt: string, type: string): Promise<NextResponse> {
   try {
-    console.log("[Kelly BG] Starting generation for project:", projectId);
-
-    // Step 1: Generate research + specs + plan (fast - 30s timeout)
-    const planResult = await generatePlan(projectId, prompt, type);
-    if (!planResult) {
-      await markFailed(projectId, "Failed to generate project plan (timeout or API error)");
-      return;
-    }
-
-    // Update project name if Kelly generated a better one
-    if (planResult.projectName) {
-      await db.update(projects)
-        .set({ name: planResult.projectName, updatedAt: new Date() })
-        .where(eq(projects.id, projectId));
-    }
-
-    // Save research
-    if (planResult.research) {
-      await db.insert(conversations).values({
-        id: crypto.randomUUID(),
-        projectId,
-        role: "system",
-        content: `RESEARCH:\n${JSON.stringify(planResult.research, null, 2)}`,
-        model: "hermes/research",
-        createdAt: new Date(),
-      });
-    }
-
-    // Save specs
-    if (planResult.specs) {
-      await db.insert(conversations).values({
-        id: crypto.randomUUID(),
-        projectId,
-        role: "system",
-        content: `SPECS:\n${JSON.stringify(planResult.specs, null, 2)}`,
-        model: "hermes/specs",
-        createdAt: new Date(),
-      });
-    }
-
-    console.log("[Kelly BG] Plan saved. Generating files...");
-
-    // Step 2: Generate code files (60s timeout for larger payload)
-    const filesResult = await generateFiles(projectId, prompt, type, planResult);
-    if (filesResult?.files?.length > 0) {
-      for (const file of filesResult.files) {
-        await db.insert(projectFiles).values({
-          id: crypto.randomUUID(),
-          projectId,
-          path: file.path,
-          content: file.content,
-          createdAt: new Date(),
-        });
-      }
-      console.log("[Kelly BG] Files saved:", filesResult.files.length);
-    } else {
-      console.log("[Kelly BG] No files generated (timeout or empty response)");
-    }
-
-    // Step 3: Generate tests (30s timeout)
-    const testsResult = await generateTests(projectId, prompt, type, planResult);
-    if (testsResult?.tests?.length > 0) {
-      await db.insert(conversations).values({
-        id: crypto.randomUUID(),
-        projectId,
-        role: "system",
-        content: `TESTS:\n${JSON.stringify(testsResult.tests, null, 2)}`,
-        model: "hermes/tests",
-        createdAt: new Date(),
-      });
-    }
-
-    // Step 4: Generate wiki (30s timeout)
-    const wikiResult = await generateWiki(projectId, prompt, type, planResult);
-    if (wikiResult?.wiki?.length > 0) {
-      for (const page of wikiResult.wiki) {
-        await db.insert(wikiPages).values({
-          id: crypto.randomUUID(),
-          projectId,
-          title: page.title,
-          content: page.content,
-          createdAt: new Date(),
-      pageType: "page",
-        });
-      }
-    }
-
-    // Step 5: Mark project as ready
-    await db.update(projects)
-      .set({ status: "ready", updatedAt: new Date() })
-      .where(eq(projects.id, projectId));
-
-    // Log completion
-    await db.insert(conversations).values({
-      id: crypto.randomUUID(),
-      projectId,
-      role: "system",
-      content: `✅ Project generation complete! ${filesResult?.files?.length || 0} files, ${testsResult?.tests?.length || 0} tests, ${wikiResult?.wiki?.length || 0} wiki pages created.`,
-      model: "hermes/status",
-      createdAt: new Date(),
+    // Step 1: Create project via tools API
+    const shortName = generateShortName(prompt);
+    const createRes = await fetch("http://localhost:3000/api/tools/create-project", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: shortName, description: prompt }),
     });
-
-    console.log("[Kelly BG] Project complete:", projectId);
-
+    const createData = await createRes.json();
+    
+    if (!createData.success || !createData.projectId) {
+      return NextResponse.json({ error: createData.error || "Project creation failed" }, { status: 500 });
+    }
+    
+    const projectId = createData.projectId;
+    console.log("[Direct Creation] Project created:", projectId);
+    
+    // Step 2: Generate code via /api/generate
+    const genRes = await fetch("http://localhost:3000/api/generate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        projectId,
+        prompt,
+        type,
+        provider: "deepseek",
+        skipResearch: true,
+      }),
+    });
+    const genData = await genRes.json();
+    console.log("[Direct Creation] Generate response:", genData.success, genData.projectId || genData.error);
+    
+    if (!genData.success && !genData.projectId) {
+      return NextResponse.json({
+        success: true,
+        projectId,
+        projectName: shortName,
+        error: genData.error || "Code generation may have issues",
+        files: [],
+      });
+    }
+    
+    // Step 3: Get files from disk
+    const filesRes = await fetch(`http://localhost:3000/api/project-files?projectId=${projectId}`);
+    const filesData = await filesRes.json();
+    const files = filesData.files || [];
+    
+    return NextResponse.json({
+      success: true,
+      projectId,
+      projectName: shortName,
+      files,
+      message: `Project created with ${files.length} files`,
+    });
+    
   } catch (error: any) {
-    console.error("[Kelly BG] Background generation failed:", error);
-    await markFailed(projectId, `Generation failed: ${error.message}`);
+    console.error("[Direct Creation] Error:", error);
+    return NextResponse.json(
+      { error: "Direct creation failed", message: error.message },
+      { status: 500 }
+    );
   }
 }
 
-// Generate plan (research + specs) - FAST call with 30s timeout
-async function generatePlan(projectId: string, prompt: string, type: string): Promise<any> {
-  const planPrompt = `You are Kelly, an expert software architect. Create a detailed plan for this app idea.
-
-App idea: "${prompt}"
-Type: ${type}
-
-Return ONLY valid JSON with this structure:
-{
-  "projectName": "Short catchy name (2-3 words)",
-  "description": "One sentence",
-  "research": {
-    "targetAudience": "...",
-    "painPoints": ["..."],
-    "competitors": [{"name": "...", "features": ["..."]}],
-    "marketGaps": ["..."],
-    "coreFeatures": ["..."]
-  },
-  "specs": {
-    "userStories": ["As a user..."],
-    "dataModels": [{"name": "...", "fields": ["..."]}],
-    "apiEndpoints": [{"method": "GET", "path": "...", "description": "..."}],
-    "uiComponents": ["..."]
-  }
-}
-
-Keep it concise but complete. Return ONLY the JSON.`;
-
-  try {
-    console.log("[Kelly BG] Calling plan generation...");
-    const response = await fetchWithTimeout(HERMES_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${HERMES_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: HERMES_MODEL,
-        messages: [
-          { role: "system", content: "Return ONLY valid JSON." },
-          { role: "user", content: planPrompt },
-        ],
-        temperature: 0.2,
-        max_tokens: 4000,
-      }),
-    }, 30000); // 30 second timeout
-
-    if (!response.ok) {
-      console.error("[Kelly BG] Plan API error:", response.status);
-      return null;
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
-    console.log("[Kelly BG] Plan response length:", content.length);
-    return parseHermesResponse(content);
-  } catch (err: any) {
-    if (err.name === "AbortError") {
-      console.error("[Kelly BG] Plan generation timed out (30s)");
-    } else {
-      console.error("[Kelly BG] Plan generation failed:", err.message);
-    }
-    return null;
-  }
-}
-
-// Generate code files - 90s timeout, fewer files for reliability
-async function generateFiles(projectId: string, prompt: string, type: string, plan: any): Promise<any> {
-  const filesPrompt = `You are Kelly, an expert React/Next.js developer. Generate the MOST IMPORTANT code files only.
-
-Project: "${plan.projectName || prompt}"
-Type: ${type}
-
-Specs: ${JSON.stringify(plan.specs, null, 2)}
-
-Return ONLY valid JSON with 3 KEY files:
-{
-  "files": [
-    {
-      "path": "src/app/page.tsx",
-      "content": "..."
-    }
-  ]
-}
-
-Generate ONLY 3 essential files:
-1. Main page (src/app/page.tsx)
-2. Layout (src/app/layout.tsx)  
-3. One key component (src/components/MainComponent.tsx)
-
-Use TypeScript, React, Next.js App Router, Tailwind CSS. Keep code concise but complete. Return ONLY the JSON.`;
-
-  try {
-    console.log("[Kelly BG] Calling file generation...");
-    const response = await fetchWithTimeout(HERMES_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${HERMES_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: HERMES_MODEL,
-        messages: [
-          { role: "system", content: "Return ONLY valid JSON." },
-          { role: "user", content: filesPrompt },
-        ],
-        temperature: 0.2,
-        max_tokens: 6000,
-      }),
-    }, 120000); // 120 second timeout for file generation
-
-    if (!response.ok) {
-      console.error("[Kelly BG] Files API error:", response.status);
-      return null;
-    }
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
-    console.log("[Kelly BG] Files response length:", content.length);
-    return parseHermesResponse(content);
-  } catch (err: any) {
-    if (err.name === "AbortError") {
-      console.error("[Kelly BG] File generation timed out (120s)");
-    } else {
-      console.error("[Kelly BG] Files generation failed:", err.message);
-    }
-    return null;
-  }
-}
-
-// Generate tests
-async function generateTests(projectId: string, prompt: string, type: string, plan: any): Promise<any> {
-  const testsPrompt = `Generate tests for this app: "${plan.projectName || prompt}"
-
-Return ONLY valid JSON:
-{
-  "tests": [
-    {
-      "name": "...",
-      "content": "..."
-    }
-  ]
-}
-
-Use Jest + React Testing Library. Return ONLY the JSON.`;
-
-  try {
-    const response = await fetchWithTimeout(HERMES_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${HERMES_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: HERMES_MODEL,
-        messages: [
-          { role: "system", content: "Return ONLY valid JSON." },
-          { role: "user", content: testsPrompt },
-        ],
-        temperature: 0.2,
-        max_tokens: 4000,
-      }),
-    }, 30000);
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
-    return parseHermesResponse(content);
-  } catch (err: any) {
-    console.error("[Kelly BG] Tests generation failed:", err.message);
-    return null;
-  }
-}
-
-// Generate wiki
-async function generateWiki(projectId: string, prompt: string, type: string, plan: any): Promise<any> {
-  const wikiPrompt = `Create wiki documentation for this app: "${plan.projectName || prompt}"
-
-Return ONLY valid JSON:
-{
-  "wiki": [
-    {
-      "title": "Architecture",
-      "content": "..."
-    }
-  ]
-}
-
-Include pages: Architecture, Features, API Reference, Deployment Guide. Return ONLY the JSON.`;
-
-  try {
-    const response = await fetchWithTimeout(HERMES_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${HERMES_API_KEY}`,
-      },
-      body: JSON.stringify({
-        model: HERMES_MODEL,
-        messages: [
-          { role: "system", content: "Return ONLY valid JSON." },
-          { role: "user", content: wikiPrompt },
-        ],
-        temperature: 0.2,
-        max_tokens: 4000,
-      }),
-    }, 30000);
-
-    if (!response.ok) return null;
-
-    const data = await response.json();
-    const content = data.choices?.[0]?.message?.content || "";
-    return parseHermesResponse(content);
-  } catch (err: any) {
-    console.error("[Kelly BG] Wiki generation failed:", err.message);
-    return null;
-  }
-}
-
-// Mark project as failed
-async function markFailed(projectId: string, reason: string) {
-  try {
-    await db.update(projects)
-      .set({ status: "failed", updatedAt: new Date() })
-      .where(eq(projects.id, projectId));
-
-    await db.insert(conversations).values({
-      id: crypto.randomUUID(),
-      projectId,
-      role: "system",
-      content: `❌ ${reason}`,
-      model: "hermes/status",
-      createdAt: new Date(),
-    });
-  } catch (err) {
-    console.error("[Kelly BG] Failed to mark project as failed:", err);
-  }
-}
-
-// Parse JSON from Kelly response
-function parseHermesResponse(content: string): any {
-  try {
-    let jsonContent = content;
-
-    // Try to find JSON between code blocks
-    const codeBlockMatch = content.match(/```json\s*([\s\S]*?)\s*```/);
-    if (codeBlockMatch) {
-      jsonContent = codeBlockMatch[1];
-    } else {
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        jsonContent = jsonMatch[0];
+// Parse ALL tool calls from Kelly's response
+function parseToolCalls(content: string): Array<{ tool: string; params: any }> {
+  const toolCalls: Array<{ tool: string; params: any }> = [];
+  
+  // Find all JSON code blocks with tool calls
+  const codeBlockRegex = /```json\s*([\s\S]*?)\s*```/g;
+  let match;
+  
+  while ((match = codeBlockRegex.exec(content)) !== null) {
+    try {
+      const parsed = JSON.parse(match[1].trim());
+      if (parsed.tool && parsed.params) {
+        toolCalls.push({ tool: parsed.tool, params: parsed.params });
+      }
+    } catch {
+      // Try regex extraction for nested JSON
+      const toolMatch = match[1].match(/"tool"\s*:\s*"(\w+)"/);
+      const paramsMatch = match[1].match(/"params"\s*:\s*(\{[\s\S]*\})/);
+      if (toolMatch && paramsMatch) {
+        try {
+          const params = JSON.parse(paramsMatch[1]);
+          toolCalls.push({ tool: toolMatch[1], params });
+        } catch {}
       }
     }
+  }
+  
+  return toolCalls;
+}
 
-    jsonContent = jsonContent.trim();
-    return JSON.parse(jsonContent);
-  } catch (err) {
-    console.error("[Kelly BG] JSON parse error:", err);
-    console.log("[Kelly BG] Content attempted:", content.substring(0, 500));
-    return null;
+// Execute a tool call
+async function executeTool(tool: string, params: any): Promise<any> {
+  const baseUrl = "http://localhost:3000/api/tools";
+  
+  try {
+    switch (tool) {
+      case "create_project": {
+        const res = await fetch(`${baseUrl}/create-project`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(params),
+        });
+        return await res.json();
+      }
+      
+      case "save_file": {
+        const res = await fetch(`${baseUrl}/save-file`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(params),
+        });
+        return await res.json();
+      }
+      
+      case "get_files": {
+        const res = await fetch(`${baseUrl}/get-files`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(params),
+        });
+        return await res.json();
+      }
+      
+      case "build_project": {
+        const res = await fetch(`${baseUrl}/build`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(params),
+        });
+        return await res.json();
+      }
+      
+      case "deploy_project": {
+        const res = await fetch(`${baseUrl}/deploy`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(params),
+        });
+        return await res.json();
+      }
+      
+      default:
+        return { error: `Unknown tool: ${tool}` };
+    }
+  } catch (error: any) {
+    return { error: error.message };
   }
 }

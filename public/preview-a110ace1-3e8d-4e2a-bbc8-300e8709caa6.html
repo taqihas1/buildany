@@ -1,0 +1,966 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitTrack Pro - Your Fitness Companion</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { font-family: 'Inter', sans-serif; }
+        .gradient-text {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #ec4899 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .nav-active {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            color: white !important;
+            box-shadow: 0 4px 15px rgba(99, 102, 241, 0.4);
+        }
+        .card-hover {
+            transition: all 0.3s ease;
+        }
+        .card-hover:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+        }
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .progress-ring {
+            transition: stroke-dashoffset 0.5s ease;
+        }
+        .toast {
+            transition: all 0.3s ease;
+            transform: translateY(100px);
+            opacity: 0;
+        }
+        .toast.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Sidebar Navigation -->
+    <aside class="fixed left-0 top-0 h-full w-64 bg-white border-r border-gray-200 shadow-sm z-50">
+        <div class="p-6">
+            <div class="flex items-center gap-3 mb-8">
+                <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <i data-lucide="dumbbell" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold gradient-text">FitTrack Pro</h1>
+                    <p class="text-xs text-gray-500">Your Fitness Companion</p>
+                </div>
+            </div>
+            
+            <nav class="space-y-2">
+                <button onclick="navigateTo('dashboard')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-all nav-active" id="nav-dashboard">
+                    <i data-lucide="home" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </button>
+                <button onclick="navigateTo('workouts')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-all" id="nav-workouts">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <span>Workouts</span>
+                </button>
+                <button onclick="navigateTo('plans')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-all" id="nav-plans">
+                    <i data-lucide="calendar" class="w-5 h-5"></i>
+                    <span>Workout Plans</span>
+                </button>
+                <button onclick="navigateTo('progress')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-all" id="nav-progress">
+                    <i data-lucide="trending-up" class="w-5 h-5"></i>
+                    <span>Progress</span>
+                </button>
+                <button onclick="navigateTo('social')" class="nav-btn w-full flex items-center gap-3 px-4 py-3 text-gray-600 hover:bg-gray-50 rounded-lg transition-all" id="nav-social">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>Community</span>
+                </button>
+            </nav>
+        </div>
+        
+        <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-200">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-gray-200 rounded-full flex items-center justify-center">
+                    <i data-lucide="user" class="w-5 h-5 text-gray-600"></i>
+                </div>
+                <div class="flex-1">
+                    <p class="text-sm font-semibold text-gray-800">Alex Johnson</p>
+                    <p class="text-xs text-gray-500">Premium Member</p>
+                </div>
+                <button onclick="logout()" class="p-2 hover:bg-gray-100 rounded-lg transition-colors" title="Logout">
+                    <i data-lucide="log-out" class="w-5 h-5 text-gray-500"></i>
+                </button>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="ml-64 p-8">
+        <!-- Dashboard Page -->
+        <div id="page-dashboard" class="page-content">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-800">Welcome back, Alex!</h2>
+                    <p class="text-gray-500 mt-1">Let's crush your fitness goals today!</p>
+                </div>
+                <button onclick="startQuickWorkout()" class="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all">
+                    <i data-lucide="play" class="w-5 h-5"></i>
+                    Quick Workout
+                </button>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
+                            <i data-lucide="flame" class="w-6 h-6 text-blue-600"></i>
+                        </div>
+                        <span class="text-sm text-gray-500">This Week</span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-800">2,450</p>
+                    <p class="text-sm text-gray-500">Calories Burned</p>
+                    <div class="mt-3 flex items-center gap-1 text-green-500 text-sm">
+                        <i data-lucide="trending-up" class="w-4 h-4"></i>
+                        <span>12% vs last week</span>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-green-100 rounded-lg flex items-center justify-center">
+                            <i data-lucide="timer" class="w-6 h-6 text-green-600"></i>
+                        </div>
+                        <span class="text-sm text-gray-500">This Week</span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-800">4h 30m</p>
+                    <p class="text-sm text-gray-500">Workout Time</p>
+                    <div class="mt-3 flex items-center gap-1 text-green-500 text-sm">
+                        <i data-lucide="trending-up" class="w-4 h-4"></i>
+                        <span>8% vs last week</span>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-purple-100 rounded-lg flex items-center justify-center">
+                            <i data-lucide="target" class="w-6 h-6 text-purple-600"></i>
+                        </div>
+                        <span class="text-sm text-gray-500">Goal</span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-800">85%</p>
+                    <p class="text-sm text-gray-500">Weekly Goal</p>
+                    <div class="mt-3 h-2 bg-gray-200 rounded-full overflow-hidden">
+                        <div class="h-full bg-gradient-to-r from-purple-500 to-pink-500 rounded-full" style="width: 85%"></div>
+                    </div>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-orange-100 rounded-lg flex items-center justify-center">
+                            <i data-lucide="dumbbell" class="w-6 h-6 text-orange-600"></i>
+                        </div>
+                        <span class="text-sm text-gray-500">This Month</span>
+                    </div>
+                    <p class="text-3xl font-bold text-gray-800">18</p>
+                    <p class="text-sm text-gray-500">Workouts Completed</p>
+                    <div class="mt-3 flex items-center gap-1 text-green-500 text-sm">
+                        <i data-lucide="trending-up" class="w-4 h-4"></i>
+                        <span>3 more than last month</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Today's Workout & Progress -->
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Today's Workout</h3>
+                        <span class="text-xs bg-blue-100 text-blue-600 px-3 py-1 rounded-full">Upper Body</span>
+                    </div>
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                                    <i data-lucide="activity" class="w-5 h-5 text-indigo-500"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800">Bench Press</p>
+                                    <p class="text-xs text-gray-500">4 sets × 8 reps</p>
+                                </div>
+                            </div>
+                            <span class="text-sm font-semibold text-green-500">✓</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                                    <i data-lucide="activity" class="w-5 h-5 text-indigo-500"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800">Shoulder Press</p>
+                                    <p class="text-xs text-gray-500">3 sets × 10 reps</p>
+                                </div>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-400">○</span>
+                        </div>
+                        <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                            <div class="flex items-center gap-3">
+                                <div class="w-10 h-10 bg-white rounded-lg flex items-center justify-center shadow-sm">
+                                    <i data-lucide="activity" class="w-5 h-5 text-indigo-500"></i>
+                                </div>
+                                <div>
+                                    <p class="font-medium text-gray-800">Tricep Dips</p>
+                                    <p class="text-xs text-gray-500">3 sets × 12 reps</p>
+                                </div>
+                            </div>
+                            <span class="text-sm font-semibold text-gray-400">○</span>
+                        </div>
+                    </div>
+                    <button onclick="startTodayWorkout()" class="mt-4 w-full bg-indigo-50 text-indigo-600 py-3 rounded-lg font-semibold hover:bg-indigo-100 transition-colors">
+                        Start Today's Workout
+                    </button>
+                </div>
+
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold text-gray-800">Weekly Progress</h3>
+                        <button onclick="viewFullProgress()" class="text-sm text-indigo-600 hover:text-indigo-700 font-medium">View Full →</button>
+                    </div>
+                    <div class="flex items-end gap-4 h-48">
+                        <div class="flex-1 flex items-end gap-2">
+                            <div class="w-8 bg-blue-200 rounded-t-lg" style="height: 40%" title="Mon"></div>
+                            <div class="w-8 bg-blue-200 rounded-t-lg" style="height: 60%" title="Tue"></div>
+                            <div class="w-8 bg-blue-300 rounded-t-lg" style="height: 45%" title="Wed"></div>
+                            <div class="w-8 bg-blue-400 rounded-t-lg" style="height: 75%" title="Thu"></div>
+                            <div class="w-8 bg-blue-500 rounded-t-lg" style="height: 55%" title="Fri"></div>
+                            <div class="w-8 bg-indigo-500 rounded-t-lg" style="height: 90%" title="Sat"></div>
+                            <div class="w-8 bg-purple-500 rounded-t-lg" style="height: 70%" title="Sun"></div>
+                        </div>
+                    </div>
+                    <div class="flex justify-between mt-2 text-xs text-gray-500">
+                        <span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span><span>Sat</span><span>Sun</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Workouts Page -->
+        <div id="page-workouts" class="page-content hidden">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-800">Workout Library</h2>
+                    <p class="text-gray-500 mt-1">Browse and track your exercises</p>
+                </div>
+                <button onclick="showAddWorkoutModal()" class="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                    Add Workout
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="workouts-grid">
+                <!-- Workout cards will be populated here -->
+            </div>
+        </div>
+
+        <!-- Plans Page -->
+        <div id="page-plans" class="page-content hidden">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-800">Workout Plans</h2>
+                    <p class="text-gray-500 mt-1">Structured programs for your goals</p>
+                </div>
+                <button onclick="showCreatePlanModal()" class="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all">
+                    <i data-lucide="plus" class="w-5 h-5"></i>
+                    Create Plan
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="plans-grid">
+                <!-- Plan cards will be populated here -->
+            </div>
+        </div>
+
+        <!-- Progress Page -->
+        <div id="page-progress" class="page-content hidden">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-800">Your Progress</h2>
+                    <p class="text-gray-500 mt-1">Track your fitness journey</p>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="exportProgress()" class="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-lg font-medium border border-gray-200 hover:bg-gray-50 transition-colors">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                        Export
+                    </button>
+                    <button onclick="shareProgress()" class="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-4 py-2 rounded-lg font-medium hover:shadow-lg transition-all">
+                        <i data-lucide="share-2" class="w-4 h-4"></i>
+                        Share
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Weight Progress</h3>
+                    <canvas id="weightChart" class="w-full h-64"></canvas>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-4">Strength Progress</h3>
+                    <canvas id="strengthChart" class="w-full h-64"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                <h3 class="text-lg font-semibold text-gray-800 mb-4">Personal Records</h3>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4" id="pr-grid">
+                    <!-- PR cards will be populated here -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Social Page -->
+        <div id="page-social" class="page-content hidden">
+            <div class="flex justify-between items-center mb-8">
+                <div>
+                    <h2 class="text-3xl font-bold text-gray-800">Community</h2>
+                    <p class="text-gray-500 mt-1">Connect, share, and get inspired</p>
+                </div>
+                <button onclick="showShareModal()" class="flex items-center gap-2 bg-gradient-to-r from-indigo-500 to-purple-600 text-white px-6 py-3 rounded-lg font-semibold hover:shadow-lg transition-all">
+                    <i data-lucide="camera" class="w-5 h-5"></i>
+                    Share Post
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-6" id="social-feed">
+                    <!-- Social posts will be populated here -->
+                </div>
+                <div class="space-y-6">
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Leaderboard</h3>
+                        <div class="space-y-4" id="leaderboard">
+                            <!-- Leaderboard will be populated here -->
+                        </div>
+                    </div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">Following</h3>
+                        <div class="space-y-4" id="following-list">
+                            <!-- Following list will be populated here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Container -->
+    <div id="toast-container" class="fixed bottom-4 right-4 space-y-2 z-[100]"></div>
+
+    <!-- Add Workout Modal -->
+    <div id="add-workout-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[90]">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Add New Workout</h3>
+            <form id="add-workout-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Workout Name</label>
+                    <input type="text" id="workout-name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
+                    <select id="workout-category" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option>Upper Body</option>
+                        <option>Lower Body</option>
+                        <option>Core</option>
+                        <option>Cardio</option>
+                        <option>Full Body</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Calories Burned</label>
+                    <input type="number" id="workout-calories" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
+                    <input type="number" id="workout-duration" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" onclick="closeModal('add-workout-modal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Add Workout</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Create Plan Modal -->
+    <div id="create-plan-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[90]">
+        <div class="bg-white rounded-xl p-6 w-full max-w-md">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Create Workout Plan</h3>
+            <form id="create-plan-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Plan Name</label>
+                    <input type="text" id="plan-name" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Goal</label>
+                    <select id="plan-goal" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option>Muscle Gain</option>
+                        <option>Weight Loss</option>
+                        <option>Endurance</option>
+                        <option>General Fitness</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Days per Week</label>
+                    <input type="number" id="plan-days" min="1" max="7" required class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="plan-description" rows="3" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" onclick="closeModal('create-plan-modal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Create Plan</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="share-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-[90]">
+        <div class="bg-white rounded-xl p-6 w-full max-w-lg">
+            <h3 class="text-xl font-bold text-gray-800 mb-4">Share Your Progress</h3>
+            <form id="share-form" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Post Content</label>
+                    <textarea id="share-content" rows="3" required placeholder="Share your workout achievement..." class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Workout Type</label>
+                    <select id="share-workout" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <option>Strength Training</option>
+                        <option>Cardio</option>
+                        <option>HIIT</option>
+                        <option>Yoga</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Achievement</label>
+                    <input type="text" id="share-achievement" placeholder="e.g., New PR on bench press!" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                </div>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" onclick="closeModal('share-modal')" class="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
+                    <button type="submit" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Share Post</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Global state
+        let currentPage = 'dashboard';
+        let workouts = [
+            { id: 1, name: 'Push Day', category: 'Upper Body', calories: 350, duration: 45, icon: 'dumbbell' },
+            { id: 2, name: 'Pull Day', category: 'Upper Body', calories: 320, duration: 50, icon: 'activity' },
+            { id: 3, name: 'Leg Day', category: 'Lower Body', calories: 400, duration: 55, icon: 'bike' },
+            { id: 4, name: 'Core Blast', category: 'Core', calories: 250, duration: 30, icon: 'zap' },
+            { id: 5, name: 'HIIT Cardio', category: 'Cardio', calories: 450, duration: 40, icon: 'heart' },
+            { id: 6, name: 'Full Body Burn', category: 'Full Body', calories: 500, duration: 60, icon: 'flame' }
+        ];
+        let plans = [
+            { id: 1, name: 'Muscle Builder', goal: 'Muscle Gain', days: 5, description: 'Progressive overload program for maximum muscle growth', progress: 60 },
+            { id: 2, name: 'Fat Burner', goal: 'Weight Loss', days: 4, description: 'High-intensity interval training for fat loss', progress: 35 }
+        ];
+        let socialPosts = [
+            { id: 1, user: 'Sarah M.', avatar: 'SM', content: 'Just hit a new PR on deadlifts! 315lbs for 3 reps! 💪', workout: 'Strength Training', achievement: 'New PR', likes: 24, comments: 8, time: '2h ago' },
+            { id: 2, user: 'Mike T.', avatar: 'MT', content: 'Completed 30 days of consistent workouts! Feeling amazing!', workout: 'HIIT', achievement: '30 Day Streak', likes: 45, comments: 12, time: '4h ago' },
+            { id: 3, user: 'Emma W.', avatar: 'EW', content: 'Morning yoga session to start the day right. Namaste! 🧘‍♀️', workout: 'Yoga', achievement: 'Flexibility', likes: 18, comments: 5, time: '6h ago' }
+        ];
+        let leaderboard = [
+            { rank: 1, name: 'Mike T.', points: 2500, avatar: 'MT' },
+            { rank: 2, name: 'Sarah M.', points: 2350, avatar: 'SM' },
+            { rank: 3, name: 'Alex J.', points: 2100, avatar: 'AJ' },
+            { rank: 4, name: 'Emma W.', points: 1950, avatar: 'EW' },
+            { rank: 5, name: 'John D.', points: 1800, avatar: 'JD' }
+        ];
+        let following = [
+            { name: 'Sarah M.', avatar: 'SM', status: 'online' },
+            { name: 'Mike T.', avatar: 'MT', status: 'online' },
+            { name: 'Emma W.', avatar: 'EW', status: 'offline' }
+        ];
+
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // Navigation
+        function navigateTo(page) {
+            // Hide all pages
+            document.querySelectorAll('.page-content').forEach(el => el.classList.add('hidden'));
+            // Show selected page
+            document.getElementById(`page-${page}`).classList.remove('hidden');
+            // Update nav
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('nav-active'));
+            document.getElementById(`nav-${page}`).classList.add('nav-active');
+            currentPage = page;
+            
+            // Re-render page content
+            if (page === 'workouts') renderWorkouts();
+            if (page === 'plans') renderPlans();
+            if (page === 'social') renderSocial();
+            if (page === 'progress') renderProgress();
+        }
+
+        // Dashboard functions
+        function startQuickWorkout() {
+            showToast('Quick workout started!', 'info');
+            // Simulate starting a quick workout
+            setTimeout(() => {
+                showToast('Workout completed! Great job!', 'success');
+            }, 3000);
+        }
+
+        function startTodayWorkout() {
+            showToast('Starting today\'s workout...', 'info');
+            setTimeout(() => {
+                showToast('Workout completed! You earned 350 calories burned!', 'success');
+            }, 3000);
+        }
+
+        function viewFullProgress() {
+            navigateTo('progress');
+        }
+
+        // Workout functions
+        function renderWorkouts() {
+            const grid = document.getElementById('workouts-grid');
+            grid.innerHTML = workouts.map(workout => `
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-gradient-to-br from-indigo-100 to-purple-100 rounded-lg flex items-center justify-center">
+                            <i data-lucide="${workout.icon}" class="w-6 h-6 text-indigo-600"></i>
+                        </div>
+                        <span class="text-xs bg-gray-100 text-gray-600 px-3 py-1 rounded-full">${workout.category}</span>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-800 mb-2">${workout.name}</h3>
+                    <div class="flex items-center gap-4 text-sm text-gray-500 mb-4">
+                        <span class="flex items-center gap-1">
+                            <i data-lucide="flame" class="w-4 h-4 text-orange-500"></i>
+                            ${workout.calories} cal
+                        </span>
+                        <span class="flex items-center gap-1">
+                            <i data-lucide="timer" class="w-4 h-4 text-blue-500"></i>
+                            ${workout.duration} min
+                        </span>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="startWorkout(${workout.id})" class="flex-1 bg-indigo-50 text-indigo-600 py-2 rounded-lg font-medium hover:bg-indigo-100 transition-colors">Start</button>
+                        <button onclick="editWorkout(${workout.id})" class="p-2 text-gray-400 hover:text-gray-600 hover:bg-gray-50 rounded-lg transition-colors">
+                            <i data-lucide="edit-2" class="w-4 h-4"></i>
+                        </button>
+                        <button onclick="deleteWorkout(${workout.id})" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function startWorkout(id) {
+            const workout = workouts.find(w => w.id === id);
+            showToast(`Starting ${workout.name}!`, 'info');
+            setTimeout(() => {
+                showToast(`${workout.name} completed! ${workout.calories} calories burned!`, 'success');
+            }, 3000);
+        }
+
+        function editWorkout(id) {
+            const workout = workouts.find(w => w.id === id);
+            // Pre-fill the modal
+            document.getElementById('workout-name').value = workout.name;
+            document.getElementById('workout-category').value = workout.category;
+            document.getElementById('workout-calories').value = workout.calories;
+            document.getElementById('workout-duration').value = workout.duration;
+            showModal('add-workout-modal');
+        }
+
+        function deleteWorkout(id) {
+            workouts = workouts.filter(w => w.id !== id);
+            renderWorkouts();
+            showToast('Workout deleted', 'success');
+        }
+
+        function showAddWorkoutModal() {
+            // Reset form
+            document.getElementById('add-workout-form').reset();
+            showModal('add-workout-modal');
+        }
+
+        // Plan functions
+        function renderPlans() {
+            const grid = document.getElementById('plans-grid');
+            grid.innerHTML = plans.map(plan => `
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 card-hover">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-3">
+                            <div class="w-12 h-12 bg-gradient-to-br from-green-100 to-teal-100 rounded-lg flex items-center justify-center">
+                                <i data-lucide="calendar" class="w-6 h-6 text-green-600"></i>
+                            </div>
+                            <div>
+                                <h3 class="text-lg font-semibold text-gray-800">${plan.name}</h3>
+                                <span class="text-xs text-gray-500">${plan.goal}</span>
+                            </div>
+                        </div>
+                        <span class="text-xs bg-blue-100 text-blue-600 px-3 py-1 rounded-full">${plan.days} days/week</span>
+                    </div>
+                    <p class="text-sm text-gray-600 mb-4">${plan.description}</p>
+                    <div class="mb-4">
+                        <div class="flex justify-between text-sm mb-2">
+                            <span class="text-gray-500">Progress</span>
+                            <span class="font-semibold text-gray-700">${plan.progress}%</span>
+                        </div>
+                        <div class="h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div class="h-full bg-gradient-to-r from-green-500 to-teal-500 rounded-full transition-all duration-500" style="width: ${plan.progress}%"></div>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="viewPlan(${plan.id})" class="flex-1 bg-indigo-50 text-indigo-600 py-2 rounded-lg font-medium hover:bg-indigo-100 transition-colors">View Plan</button>
+                        <button onclick="deletePlan(${plan.id})" class="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function viewPlan(id) {
+            const plan = plans.find(p => p.id === id);
+            showToast(`Viewing ${plan.name} plan details`, 'info');
+            // Could open a detailed view modal here
+        }
+
+        function deletePlan(id) {
+            plans = plans.filter(p => p.id !== id);
+            renderPlans();
+            showToast('Plan deleted', 'success');
+        }
+
+        function showCreatePlanModal() {
+            document.getElementById('create-plan-form').reset();
+            showModal('create-plan-modal');
+        }
+
+        // Progress functions
+        function renderProgress() {
+            renderPRs();
+            renderCharts();
+        }
+
+        function renderPRs() {
+            const grid = document.getElementById('pr-grid');
+            const prs = [
+                { exercise: 'Bench Press', weight: '225 lbs', date: 'Jan 15' },
+                { exercise: 'Squat', weight: '315 lbs', date: 'Jan 10' },
+                { exercise: 'Deadlift', weight: '405 lbs', date: 'Jan 8' }
+            ];
+            grid.innerHTML = prs.map(pr => `
+                <div class="bg-gray-50 p-4 rounded-lg">
+                    <p class="text-sm text-gray-500">${pr.exercise}</p>
+                    <p class="text-xl font-bold text-gray-800 mt-1">${pr.weight}</p>
+                    <p class="text-xs text-gray-400 mt-1">${pr.date}</p>
+                </div>
+            `).join('');
+        }
+
+        function renderCharts() {
+            // Simple canvas charts without external libraries
+            const weightCtx = document.getElementById('weightChart');
+            const strengthCtx = document.getElementById('strengthChart');
+            
+            // Draw simple line charts
+            drawSimpleChart(weightCtx, [185, 182, 180, 178, 175, 173, 170], '#6366f1');
+            drawSimpleChart(strengthCtx, [200, 215, 225, 240, 255, 270, 285], '#8b5cf6');
+        }
+
+        function drawSimpleChart(canvas, data, color) {
+            const ctx = canvas.getContext('2d');
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const width = canvas.width;
+            const height = canvas.height;
+            const padding = 30;
+            const max = Math.max(...data);
+            const min = Math.min(...data);
+            const range = max - min || 1;
+            
+            // Draw grid lines
+            ctx.strokeStyle = '#e5e7eb';
+            ctx.lineWidth = 1;
+            for (let i = 0; i < 5; i++) {
+                const y = padding + (height - 2 * padding) * (i / 4);
+                ctx.beginPath();
+                ctx.moveTo(padding, y);
+                ctx.lineTo(width - padding, y);
+                ctx.stroke();
+            }
+            
+            // Draw data line
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 3;
+            ctx.beginPath();
+            data.forEach((value, index) => {
+                const x = padding + (width - 2 * padding) * (index / (data.length - 1));
+                const y = height - padding - ((value - min) / range) * (height - 2 * padding);
+                if (index === 0) ctx.moveTo(x, y);
+                else ctx.lineTo(x, y);
+            });
+            ctx.stroke();
+            
+            // Draw fill
+            ctx.lineTo(width - padding, height - padding);
+            ctx.lineTo(padding, height - padding);
+            ctx.closePath();
+            ctx.fillStyle = color + '20';
+            ctx.fill();
+            
+            // Draw data points
+            data.forEach((value, index) => {
+                const x = padding + (width - 2 * padding) * (index / (data.length - 1));
+                const y = height - padding - ((value - min) / range) * (height - 2 * padding);
+                ctx.beginPath();
+                ctx.arc(x, y, 4, 0, Math.PI * 2);
+                ctx.fillStyle = color;
+                ctx.fill();
+                ctx.strokeStyle = 'white';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+            });
+        }
+
+        function exportProgress() {
+            showToast('Progress data exported!', 'success');
+            // Create a downloadable CSV
+            const csv = 'Date,Weight,Strength\nJan 1,185,200\nJan 5,182,215\nJan 10,180,225\nJan 15,178,240\nJan 20,175,255\nJan 25,173,270\nJan 30,170,285';
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'fitness-progress.csv';
+            a.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function shareProgress() {
+            showShareModal();
+        }
+
+        // Social functions
+        function renderSocial() {
+            renderFeed();
+            renderLeaderboard();
+            renderFollowing();
+        }
+
+        function renderFeed() {
+            const feed = document.getElementById('social-feed');
+            feed.innerHTML = socialPosts.map(post => `
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 animate-fade-in">
+                    <div class="flex items-center gap-3 mb-4">
+                        <div class="w-10 h-10 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
+                            ${post.avatar}
+                        </div>
+                        <div class="flex-1">
+                            <p class="font-semibold text-gray-800">${post.user}</p>
+                            <p class="text-xs text-gray-500">${post.time}</p>
+                        </div>
+                        <span class="text-xs bg-indigo-50 text-indigo-600 px-3 py-1 rounded-full">${post.workout}</span>
+                    </div>
+                    <p class="text-gray-700 mb-3">${post.content}</p>
+                    <div class="flex items-center gap-4 text-sm">
+                        <button onclick="likePost(${post.id})" class="flex items-center gap-1 text-gray-500 hover:text-pink-500 transition-colors">
+                            <i data-lucide="heart" class="w-4 h-4"></i>
+                            <span id="likes-${post.id}">${post.likes}</span>
+                        </button>
+                        <button onclick="commentOnPost(${post.id})" class="flex items-center gap-1 text-gray-500 hover:text-indigo-500 transition-colors">
+                            <i data-lucide="message-circle" class="w-4 h-4"></i>
+                            <span>${post.comments}</span>
+                        </button>
+                        <button onclick="sharePost(${post.id})" class="flex items-center gap-1 text-gray-500 hover:text-green-500 transition-colors">
+                            <i data-lucide="share-2" class="w-4 h-4"></i>
+                            <span>Share</span>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function likePost(id) {
+            const post = socialPosts.find(p => p.id === id);
+            post.likes++;
+            document.getElementById(`likes-${id}`).textContent = post.likes;
+            showToast('Post liked!', 'success');
+        }
+
+        function commentOnPost(id) {
+            const comment = prompt('Write a comment:');
+            if (comment) {
+                showToast('Comment added!', 'success');
+            }
+        }
+
+        function sharePost(id) {
+            const post = socialPosts.find(p => p.id === id);
+            showToast(`Shared ${post.user}'s post!`, 'success');
+        }
+
+        function renderLeaderboard() {
+            const board = document.getElementById('leaderboard');
+            board.innerHTML = leaderboard.map(user => `
+                <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <span class="w-6 text-center font-bold text-gray-500">${user.rank}</span>
+                    <div class="w-8 h-8 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                        ${user.avatar}
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-800">${user.name}</p>
+                        <p class="text-xs text-gray-500">${user.points} points</p>
+                    </div>
+                    ${user.rank <= 3 ? `<i data-lucide="trophy" class="w-4 h-4 text-yellow-500"></i>` : ''}
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function renderFollowing() {
+            const list = document.getElementById('following-list');
+            list.innerHTML = following.map(user => `
+                <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                    <div class="relative">
+                        <div class="w-8 h-8 bg-gradient-to-br from-green-500 to-teal-600 rounded-full flex items-center justify-center text-white text-xs font-semibold">
+                            ${user.avatar}
+                        </div>
+                        <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 ${user.status === 'online' ? 'bg-green-500' : 'bg-gray-400'} rounded-full border-2 border-white"></div>
+                    </div>
+                    <div class="flex-1">
+                        <p class="text-sm font-medium text-gray-800">${user.name}</p>
+                        <p class="text-xs ${user.status === 'online' ? 'text-green-500' : 'text-gray-400'}">${user.status}</p>
+                    </div>
+                    <button onclick="unfollow('${user.name}')" class="text-xs text-gray-400 hover:text-red-500 transition-colors">Unfollow</button>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        function unfollow(name) {
+            following = following.filter(u => u.name !== name);
+            renderFollowing();
+            showToast(`Unfollowed ${name}`, 'info');
+        }
+
+        function showShareModal() {
+            document.getElementById('share-form').reset();
+            showModal('share-modal');
+        }
+
+        // Modal functions
+        function showModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeModal(id) {
+            const modal = document.getElementById(id);
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        // Form submissions
+        document.getElementById('add-workout-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('workout-name').value;
+            const category = document.getElementById('workout-category').value;
+            const calories = parseInt(document.getElementById('workout-calories').value);
+            const duration = parseInt(document.getElementById('workout-duration').value);
+            
+            workouts.push({
+                id: workouts.length + 1,
+                name: name,
+                category: category,
+                calories: calories,
+                duration: duration,
+                icon: getWorkoutIcon(category)
+            });
+            
+            closeModal('add-workout-modal');
+            renderWorkouts();
+            showToast('Workout added successfully!', 'success');
+        });
+
+        document.getElementById('create-plan-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const name = document.getElementById('plan-name').value;
+            const goal = document.getElementById('plan-goal').value;
+            const days = parseInt(document.getElementById('plan-days').value);
+            const description = document.getElementById('plan-description').value;
+            
+            plans.push({
+                id: plans.length + 1,
+                name: name,
+                goal: goal,
+                days: days,
+                description: description,
+                progress: 0
+            });
+            
+            closeModal('create-plan-modal');
+            renderPlans();
+            showToast('Plan created successfully!', 'success');
+        });
+
+        document.getElementById('share-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const content = document.getElementById('share-content').value;
+            const workout = document.getElementById('share-workout').value;
+            const achievement = document.getElementById('share-achievement').value;
+            
+            socialPosts.unshift({
+                id: socialPosts.length + 1,
+                user: 'Alex J.',
+                avatar: 'AJ',
+                content: content,
+                workout: workout,
+                achievement: achievement || 'Workout Complete',
+                likes: 0,
+                comments: 0,
+                time: 'Just now'
+            });
+            
+            closeModal('share-modal');
+            renderSocial();
+            showToast('Post shared to community!', 'success');
+        });
+
+        // Utility functions
+        function getWorkoutIcon(category) {
+            const icons = {
+                'Upper Body': 'dumbbell',
+                'Lower Body': 'bike',
+                'Core': 'zap',
+                'Cardio': 'heart',
+                'Full Body': 'flame'
+            };
+            return icons[category] || 'activity';
+        }
+
+        function showToast

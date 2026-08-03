@@ -1,0 +1,504 @@
+import { db } from "@/lib/db";
+import { apiKeys } from "@/lib/db/schema";
+import { eq } from "drizzle-orm";
+
+export type LLMProvider = "deepseek" | "kimi" | "openai" | "gemma";
+
+interface LLMConfig {
+  baseUrl: string;
+  model: string;
+  apiKey: string;
+}
+
+interface GenerateOptions {
+  prompt: string;
+  systemPrompt?: string;
+  provider?: string;
+  temperature?: number;
+  maxTokens?: number;
+  stream?: boolean;
+}
+
+interface GenerateResult {
+  success: boolean;
+  content?: string;
+  error?: string;
+  tokensUsed?: number;
+  provider: string;
+  model: string;
+}
+
+export interface StreamChunk {
+  content: string;
+  done: boolean;
+  error?: string;
+}
+
+// ─── System Prompts ───
+
+export const SYSTEM_PROMPTS = {
+  web: `You are an expert frontend developer. Generate a COMPLETE, FULLY FUNCTIONAL vanilla HTML/CSS/JS website that runs directly in the browser.
+
+CRITICAL RULES FOR FUNCTIONALITY:
+- EVERY button MUST have a working onclick handler with REAL functionality
+- NEVER create placeholder/stub functions - every feature must actually work
+- Use addEventListener or inline onclick for ALL interactive elements
+- If the app needs screenshots, implement html2canvas or use navigator.mediaDevices.getDisplayMedia
+- If the app needs clipboard, use navigator.clipboard API with proper error handling
+- ALL features in the UI must be implemented - no "coming soon" or placeholder text
+- Test your code mentally: click every button, does something happen?
+
+STYLING RULES:
+- Use vanilla HTML5, CSS3, and JavaScript (NO frameworks like React, Next.js, Vue, etc.)
+- Use a single HTML file with embedded CSS and JS, OR separate .html, .css, and .js files
+- Use Tailwind CSS via CDN: <script src="https://cdn.tailwindcss.com"></script>
+- Use Lucide icons via CDN: <script src="https://unpkg.com/lucide@latest"></script>
+- Make it visually stunning with modern CSS (gradients, shadows, animations, transitions)
+- Use semantic HTML5 tags (header, nav, main, section, footer)
+- Ensure responsive design with CSS media queries or Tailwind classes
+- NEVER use emojis in the UI — use Lucide icons or SVG instead
+- Use modern CSS features: flexbox, grid, custom properties, transitions
+- Add smooth animations and hover effects for a polished feel
+- The code MUST run directly in a browser iframe without any build step or server
+
+OUTPUT FORMAT - VERY IMPORTANT:
+You MUST output files using markdown code blocks with the file path in the format shown below.
+Use three backticks, then the language, then a colon, then the file path.
+For example, for an HTML file named index.html, write:
+BACKTICKBACKTICKBACKTICKhtml:index.html
+Your HTML code here
+BACKTICKBACKTICKBACKTICK
+
+Replace BACKTICK with the actual backtick character.
+Provide COMPLETE, runnable files. Never use "..." or "// rest of code" placeholders.`,
+
+  mobile: `You are an expert React Native + Expo SDK 54 developer. Generate production-ready mobile apps.
+
+Rules:
+- Use React Native with TypeScript
+- Use Expo Router for navigation (file-based routing)
+- Use NativeWind (Tailwind for RN) for styling
+- Use Lucide React Native for icons (NEVER emojis in UI)
+- Use functional components with hooks
+- Follow mobile UX patterns (touch targets, safe areas, etc.)
+- Add loading states and error handling
+- Use Expo SDK 54 APIs (expo-camera, expo-location, etc. when needed)
+
+Output format: Return code as markdown code blocks with file paths.
+Use BACKTICKBACKTICKBACKTICKtsx:app/index.tsx format.
+Replace BACKTICK with actual backtick character.
+IMPORTANT: Always provide COMPLETE, runnable files. Never use "..." or "// rest of code" placeholders.`,
+
+  dashboard: `You are an expert React + Tailwind CSS developer specializing in data visualization dashboards.
+
+Rules:
+- Use React with TypeScript
+- Use Tailwind CSS for all styling
+- Use Recharts for charts and graphs
+- Use Lucide React for icons (NEVER emojis in UI)
+- Use shadcn/ui patterns for cards, tables, and forms
+- Make layouts responsive (grid, flex)
+- Add loading states and empty states
+- Use proper TypeScript types for data structures
+
+Output format: Return code as markdown code blocks with file paths.
+Use BACKTICKBACKTICKBACKTICKtsx:app/page.tsx format.
+Replace BACKTICK with actual backtick character.
+IMPORTANT: Always provide COMPLETE, runnable files. Never use "..." or "// rest of code" placeholders.`,
+};
+
+// ─── LLM Router ───
+
+export class LLMRouter {
+  private configs: Map<LLMProvider, LLMConfig> = new Map();
+
+  async loadConfigs() {
+    // ─── 1. Load from process.env FIRST (source of truth) ───
+    if (process.env.DEEPSEEK_API_KEY) {
+      this.configs.set("deepseek", {
+        baseUrl: "https://api.deepseek.com/v1",
+        model: "deepseek-chat",
+        apiKey: process.env.DEEPSEEK_API_KEY,
+      });
+    }
+    if (process.env.KIMI_API_KEY) {
+      this.configs.set("kimi", {
+        baseUrl: "https://api.moonshot.cn/v1",
+        model: "moonshot-v1-8k",
+        apiKey: process.env.KIMI_API_KEY,
+      });
+    }
+    if (process.env.OPENAI_API_KEY) {
+      this.configs.set("openai", {
+        baseUrl: "https://api.openai.com/v1",
+        model: "gpt-4o",
+        apiKey: process.env.OPENAI_API_KEY,
+      });
+    }
+    if (process.env.GEMMA_API_KEY) {
+      this.configs.set("gemma", {
+        baseUrl: "http://localhost:1234/v1",
+        model: "gemma-4-e2b",
+        apiKey: process.env.GEMMA_API_KEY,
+      });
+    }
+
+    // ─── 2. Only if .env is empty, fall back to DB ───
+    if (this.configs.size === 0) {
+      console.log('[LLM Router] No API keys in .env, falling back to database...');
+      const keys = await db
+        .select()
+        .from(apiKeys)
+        .where(eq(apiKeys.isActive, true));
+
+      for (const key of keys) {
+        const provider = key.provider as LLMProvider;
+        if (provider === "deepseek") {
+          this.configs.set(provider, {
+            baseUrl: "https://api.deepseek.com/v1",
+            model: "deepseek-chat",
+            apiKey: key.keyValue,
+          });
+        } else if (provider === "kimi") {
+          this.configs.set(provider, {
+            baseUrl: "https://api.moonshot.cn/v1",
+            model: "moonshot-v1-8k",
+            apiKey: key.keyValue,
+          });
+        } else if (provider === "openai") {
+          this.configs.set(provider, {
+            baseUrl: "https://api.openai.com/v1",
+            model: "gpt-4o",
+            apiKey: key.keyValue,
+          });
+        } else if (provider === "gemma") {
+          this.configs.set(provider, {
+            baseUrl: "http://localhost:1234/v1",
+            model: "gemma-4-e2b",
+            apiKey: key.keyValue || "not-needed",
+          });
+        }
+      }
+    }
+  }
+
+  getConfig(provider: LLMProvider): LLMConfig | undefined {
+    return this.configs.get(provider);
+  }
+
+  selectProvider(prompt: string, preferred?: string): LLMProvider {
+    // Map model IDs to provider names
+    const modelToProvider: Record<string, LLMProvider> = {
+      'deepseek-v4-pro': 'deepseek',
+      'kimi-k2p6': 'kimi',
+      'gpt-4o': 'openai',
+      'gemma-4': 'gemma',
+      'kimi': 'kimi',
+      'deepseek': 'deepseek',
+      'openai': 'openai',
+      'gemma': 'gemma',
+    };
+    
+    const normalizedPreferred = preferred ? modelToProvider[preferred] || (preferred as LLMProvider) : undefined;
+
+    // If preferred provider is available, use it
+    if (normalizedPreferred && this.configs.has(normalizedPreferred)) {
+      return normalizedPreferred;
+    }
+
+    // Check for Chinese language - prefer Kimi
+    const hasChinese = /[\u4e00-\u9fa5]/.test(prompt);
+    if (hasChinese && this.configs.has("kimi")) {
+      return "kimi";
+    }
+
+    // Check for complex coding tasks - prefer DeepSeek
+    const codingKeywords = ["algorithm", "database", "api", "backend", "complex", "advanced"];
+    const isCoding = codingKeywords.some((kw) => prompt.toLowerCase().includes(kw));
+    if (isCoding && this.configs.has("deepseek")) {
+      return "deepseek";
+    }
+
+    // Default to available provider: Kimi first, then DeepSeek, then OpenAI
+    if (this.configs.has("kimi")) return "kimi";
+    if (this.configs.has("deepseek")) return "deepseek";
+    if (this.configs.has("openai")) return "openai";
+
+    throw new Error("No LLM providers configured. Add API keys in admin panel.");
+  }
+
+  async generate(options: GenerateOptions): Promise<GenerateResult> {
+    await this.loadConfigs();
+
+    const provider = this.selectProvider(options.prompt, options.provider);
+    const config = this.configs.get(provider)!;
+
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
+
+    try {
+      const response = await fetch(`${config.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [
+            {
+              role: "system",
+              content: options.systemPrompt || SYSTEM_PROMPTS.web,
+            },
+            { role: "user", content: options.prompt },
+          ],
+          temperature: options.temperature ?? 0.7,
+          max_tokens: options.maxTokens ?? 4000,
+          stream: options.stream ?? false,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.text();
+        return {
+          success: false,
+          error: `API error (${response.status}): ${error}`,
+          provider,
+          model: config.model,
+        };
+      }
+
+      const data = await response.json();
+      const content = data.choices?.[0]?.message?.content;
+      const tokensUsed = data.usage?.total_tokens;
+
+      return {
+        success: true,
+        content,
+        tokensUsed,
+        provider,
+        model: config.model,
+      };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        return {
+          success: false,
+          error: 'LLM request timed out after 120 seconds. The API may be slow or unavailable.',
+          provider,
+          model: config.model,
+        };
+      }
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : String(error),
+        provider,
+        model: config.model,
+      };
+    }
+  }
+
+  async *stream(options: GenerateOptions): AsyncGenerator<StreamChunk> {
+    await this.loadConfigs();
+
+    const provider = this.selectProvider(options.prompt, options.provider);
+    const config = this.configs.get(provider)!;
+
+    // Add timeout to prevent hanging
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 120000); // 120 second timeout
+
+    try {
+      const response = await fetch(`${config.baseUrl}/chat/completions`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${config.apiKey}`,
+        },
+        body: JSON.stringify({
+          model: config.model,
+          messages: [
+            {
+              role: "system",
+              content: options.systemPrompt || SYSTEM_PROMPTS.web,
+            },
+            { role: "user", content: options.prompt },
+          ],
+          temperature: options.temperature ?? 0.7,
+          max_tokens: options.maxTokens ?? 4000,
+          stream: true,
+        }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        const error = await response.text();
+        yield { content: "", done: true, error: `API error (${response.status}): ${error}` };
+        return;
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) {
+        yield { content: "", done: true, error: "No response body" };
+        return;
+      }
+
+      const decoder = new TextDecoder();
+      let buffer = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.trim() === "" || line.startsWith(":")) continue;
+          if (line.startsWith("data: ")) {
+            const data = line.slice(6);
+            if (data === "[DONE]") {
+              yield { content: "", done: true };
+              return;
+            }
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta?.content || "";
+              yield { content: delta, done: false };
+            } catch {
+              // Ignore parse errors
+            }
+          }
+        }
+      }
+
+      yield { content: "", done: true };
+    } catch (error) {
+      clearTimeout(timeoutId);
+      if (error instanceof Error && error.name === 'AbortError') {
+        yield { content: "", done: true, error: 'LLM stream timed out after 120 seconds. The API may be slow or unavailable.' };
+        return;
+      }
+      yield {
+        content: "",
+        done: true,
+        error: error instanceof Error ? error.message : String(error),
+      };
+    }
+  }
+}
+
+// ─── File Parser ───
+
+export interface ParsedFile {
+  path: string;
+  content: string;
+  language: string;
+}
+
+export function parseGeneratedCode(content: string): ParsedFile[] {
+  const files: ParsedFile[] = [];
+  
+  // ─── Strategy 1: ```language:path format ───
+  const formatWithPath = /```(?:(\w+):)?([^\n]+)\n([\s\S]*?)```/g;
+  let match;
+  while ((match = formatWithPath.exec(content)) !== null) {
+    const language = match[1] || "html";
+    const path = match[2].trim();
+    const fileContent = match[3].trim();
+    // Skip if path looks like a language name only (e.g., just "json", "html")
+    const looksLikePath = path.includes('.') || path.includes('/') || path.startsWith('src/');
+    if (looksLikePath && fileContent && !files.find(f => f.path === path)) {
+      files.push({ path, content: fileContent, language });
+    }
+  }
+  
+  // ─── Strategy 2: Look for "File: path" or "// path" markers ───
+  if (files.length === 0) {
+    const fileMarkerPattern = /(?:^|\n)(?:File:|file:|\/\/|#)\s*([\w\/\-.]+\.(?:html|css|js|tsx|jsx|ts|json|md|py))\s*(?:\n|$)/gi;
+    let markerMatch;
+    const markers: {path: string, index: number}[] = [];
+    while ((markerMatch = fileMarkerPattern.exec(content)) !== null) {
+      markers.push({path: markerMatch[1], index: markerMatch.index});
+    }
+    
+    for (let i = 0; i < markers.length; i++) {
+      const start = markers[i].index + markers[i].path.length + 10; // rough offset
+      const end = i < markers.length - 1 ? markers[i + 1].index : content.length;
+      const fileContent = content.slice(start, end).trim();
+      // Strip leading code block markers if present
+      const cleanContent = fileContent.replace(/^```\w*\n?/, '').replace(/\n?```$/, '').trim();
+      if (cleanContent && !files.find(f => f.path === markers[i].path)) {
+        files.push({ 
+          path: markers[i].path, 
+          content: cleanContent, 
+          language: markers[i].path.split('.').pop() || 'html'
+        });
+      }
+    }
+  }
+  
+  // ─── Strategy 3: Parse markdown code blocks without paths ───
+  if (files.length === 0) {
+    const codeBlockPattern = /```(\w+)?\n([\s\S]*?)```/g;
+    let blockIndex = 0;
+    while ((match = codeBlockPattern.exec(content)) !== null) {
+      const lang = match[1] || 'html';
+      const code = match[2].trim();
+      // Try to detect if this is HTML/JS/React
+      let path: string;
+      if (code.includes('<!DOCTYPE html>') || code.includes('<html')) {
+        path = 'index.html';
+      } else if (lang === 'css') {
+        path = 'styles.css';
+      } else if (lang === 'js' || lang === 'javascript') {
+        path = 'app.js';
+      } else if (lang === 'tsx' || lang === 'ts') {
+        path = 'app.tsx';
+      } else {
+        path = `file${blockIndex}.${lang}`;
+      }
+      if (code && !files.find(f => f.path === path)) {
+        files.push({ path, content: code, language: lang });
+      }
+      blockIndex++;
+    }
+  }
+  
+  // ─── Strategy 4: If content looks like HTML but no blocks found ───
+  if (files.length === 0 && (content.includes('<!DOCTYPE html>') || content.includes('<html'))) {
+    files.push({ path: 'index.html', content, language: 'html' });
+  }
+  
+  // ─── Strategy 5: If content looks like JSON (schema/data) ───
+  if (files.length === 0 && content.trim().startsWith('{')) {
+    try {
+      JSON.parse(content);
+      files.push({ path: 'data.json', content, language: 'json' });
+    } catch {
+      // Not valid JSON
+    }
+  }
+  
+  return files;
+}
+export function getSystemPromptForType(type: string): string {
+  switch (type) {
+    case "mobile":
+      return SYSTEM_PROMPTS.mobile;
+    case "dashboard":
+      return SYSTEM_PROMPTS.dashboard;
+    case "web":
+    default:
+      return SYSTEM_PROMPTS.web;
+  }
+}
+
+export const llmRouter = new LLMRouter();

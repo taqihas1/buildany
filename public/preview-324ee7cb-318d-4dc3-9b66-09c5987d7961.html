@@ -1,0 +1,1180 @@
+I'll build a complete fitness tracking app with workout plans, progress charts, and social sharing features. Let me implement this incrementally with all the functionality working.
+
+```html:index.html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitTrack - Fitness Tracking App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+        
+        * { font-family: 'Inter', sans-serif; }
+        
+        :root {
+            --primary: #8B5CF6;
+            --primary-dark: #7C3AED;
+            --secondary: #06B6D4;
+            --accent: #F59E0B;
+            --bg-dark: #0F172A;
+            --bg-card: #1E293B;
+            --bg-surface: #334155;
+            --text-primary: #F1F5F9;
+            --text-secondary: #94A3B8;
+            --text-muted: #64748B;
+            --border: #334155;
+            --success: #10B981;
+            --danger: #EF4444;
+            --warning: #F59E0B;
+        }
+
+        body {
+            background: var(--bg-dark);
+            color: var(--text-primary);
+            min-height: 100vh;
+        }
+
+        .glass-card {
+            background: rgba(30, 41, 59, 0.8);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 16px;
+            transition: all 0.3s ease;
+        }
+
+        .glass-card:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+            box-shadow: 0 8px 32px rgba(139, 92, 246, 0.1);
+        }
+
+        .gradient-primary {
+            background: linear-gradient(135deg, #8B5CF6, #06B6D4);
+        }
+
+        .gradient-accent {
+            background: linear-gradient(135deg, #F59E0B, #EF4444);
+        }
+
+        .gradient-success {
+            background: linear-gradient(135deg, #10B981, #059669);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(139, 92, 246, 0.4);
+        }
+
+        .btn-secondary {
+            background: var(--bg-surface);
+            color: var(--text-primary);
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: 1px solid var(--border);
+            cursor: pointer;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(139, 92, 246, 0.1);
+            border-color: rgba(139, 92, 246, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #EF4444, #DC2626);
+            color: white;
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border: none;
+            cursor: pointer;
+        }
+
+        .btn-danger:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 25px rgba(239, 68, 68, 0.4);
+        }
+
+        .input-field {
+            background: var(--bg-surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: var(--text-primary);
+            width: 100%;
+            transition: all 0.3s ease;
+            outline: none;
+        }
+
+        .input-field:focus {
+            border-color: var(--primary);
+            box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.2);
+        }
+
+        .input-field::placeholder {
+            color: var(--text-muted);
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 20px;
+            transition: all 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .workout-item {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .workout-item:hover {
+            border-color: rgba(139, 92, 246, 0.3);
+            transform: translateX(4px);
+        }
+
+        .workout-item.active {
+            border-color: var(--primary);
+            background: rgba(139, 92, 246, 0.1);
+        }
+
+        .progress-bar {
+            height: 8px;
+            background: var(--bg-surface);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 32px;
+            max-width: 500px;
+            width: 90%;
+            transform: scale(0.9);
+            transition: all 0.3s ease;
+        }
+
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            z-index: 100;
+            transform: translateX(120%);
+            transition: all 0.4s ease;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+
+        .toast.show {
+            transform: translateX(0);
+        }
+
+        .toast.success { border-color: var(--success); }
+        .toast.error { border-color: var(--danger); }
+        .toast.info { border-color: var(--secondary); }
+
+        .nav-link {
+            padding: 10px 20px;
+            border-radius: 12px;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            color: var(--text-secondary);
+        }
+
+        .nav-link:hover {
+            background: rgba(139, 92, 246, 0.1);
+            color: var(--text-primary);
+        }
+
+        .nav-link.active {
+            background: rgba(139, 92, 246, 0.15);
+            color: var(--primary);
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-slide-up {
+            animation: slideUp 0.4s ease forwards;
+        }
+
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                z-index: 40;
+                background: var(--bg-card);
+                border-top: 1px solid var(--border);
+                padding: 8px 0;
+                flex-direction: row !important;
+                justify-content: space-around;
+            }
+            .sidebar .nav-link span {
+                display: none;
+            }
+            .main-content {
+                padding-bottom: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="flex min-h-screen">
+        <!-- Sidebar -->
+        <aside class="sidebar fixed left-0 top-0 h-full w-64 bg-[#0F172A] border-r border-[#334155] p-6 flex flex-col gap-6 z-40" style="width: 260px;">
+            <div class="flex items-center gap-3 px-3">
+                <div class="w-10 h-10 rounded-xl gradient-primary flex items-center justify-center">
+                    <i data-lucide="dumbbell" class="w-6 h-6 text-white"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold text-white">FitTrack</h1>
+                    <p class="text-xs text-[#64748B]">Fitness Tracker</p>
+                </div>
+            </div>
+
+            <nav class="flex flex-col gap-2 flex-1">
+                <div class="nav-link active" data-tab="dashboard" onclick="switchTab('dashboard')">
+                    <i data-lucide="layout-dashboard" class="w-5 h-5"></i>
+                    <span>Dashboard</span>
+                </div>
+                <div class="nav-link" data-tab="workouts" onclick="switchTab('workouts')">
+                    <i data-lucide="activity" class="w-5 h-5"></i>
+                    <span>Workouts</span>
+                </div>
+                <div class="nav-link" data-tab="plans" onclick="switchTab('plans')">
+                    <i data-lucide="calendar-check" class="w-5 h-5"></i>
+                    <span>Plans</span>
+                </div>
+                <div class="nav-link" data-tab="progress" onclick="switchTab('progress')">
+                    <i data-lucide="trending-up" class="w-5 h-5"></i>
+                    <span>Progress</span>
+                </div>
+                <div class="nav-link" data-tab="social" onclick="switchTab('social')">
+                    <i data-lucide="users" class="w-5 h-5"></i>
+                    <span>Social</span>
+                </div>
+            </nav>
+
+            <div class="border-t border-[#334155] pt-4">
+                <div class="flex items-center gap-3 px-3">
+                    <div class="w-10 h-10 rounded-full gradient-accent flex items-center justify-center text-white font-bold">
+                        JD
+                    </div>
+                    <div>
+                        <p class="text-sm font-medium text-white">John Doe</p>
+                        <p class="text-xs text-[#64748B]">john@fitrack.app</p>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content flex-1 ml-0 md:ml-[260px] p-6 md:p-8">
+            <!-- Dashboard Tab -->
+            <div id="dashboard-tab" class="tab-content active">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold">Dashboard</h2>
+                        <p class="text-[#94A3B8] mt-1">Welcome back, John! Let's crush today's goals.</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button class="btn-secondary" onclick="shareProgress()">
+                            <i data-lucide="share-2" class="w-4 h-4"></i>
+                            Share
+                        </button>
+                        <button class="btn-primary" onclick="openModal('workout')">
+                            <i data-lucide="plus" class="w-4 h-4"></i>
+                            Log Workout
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Stats Grid -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+                    <div class="stat-card animate-slide-up" style="animation-delay: 0.1s">
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-[#94A3B8] text-sm">Today's Calories</p>
+                            <div class="w-10 h-10 rounded-lg bg-[#8B5CF6]/20 flex items-center justify-center">
+                                <i data-lucide="flame" class="w-5 h-5 text-[#8B5CF6]"></i>
+                            </div>
+                        </div>
+                        <p class="text-3xl font-bold" id="todayCalories">0</p>
+                        <p class="text-xs text-[#64748B] mt-1">kcal burned today</p>
+                    </div>
+
+                    <div class="stat-card animate-slide-up" style="animation-delay: 0.2s">
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-[#94A3B8] text-sm">Workouts This Week</p>
+                            <div class="w-10 h-10 rounded-lg bg-[#06B6D4]/20 flex items-center justify-center">
+                                <i data-lucide="activity" class="w-5 h-5 text-[#06B6D4]"></i>
+                            </div>
+                        </div>
+                        <p class="text-3xl font-bold" id="weeklyWorkouts">0</p>
+                        <p class="text-xs text-[#64748B] mt-1">sessions completed</p>
+                    </div>
+
+                    <div class="stat-card animate-slide-up" style="animation-delay: 0.3s">
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-[#94A3B8] text-sm">Total Minutes</p>
+                            <div class="w-10 h-10 rounded-lg bg-[#10B981]/20 flex items-center justify-center">
+                                <i data-lucide="clock" class="w-5 h-5 text-[#10B981]"></i>
+                            </div>
+                        </div>
+                        <p class="text-3xl font-bold" id="totalMinutes">0</p>
+                        <p class="text-xs text-[#64748B] mt-1">minutes this week</p>
+                    </div>
+
+                    <div class="stat-card animate-slide-up" style="animation-delay: 0.4s">
+                        <div class="flex items-center justify-between mb-3">
+                            <p class="text-[#94A3B8] text-sm">Streak</p>
+                            <div class="w-10 h-10 rounded-lg bg-[#F59E0B]/20 flex items-center justify-center">
+                                <i data-lucide="zap" class="w-5 h-5 text-[#F59E0B]"></i>
+                            </div>
+                        </div>
+                        <p class="text-3xl font-bold" id="streakCount">0</p>
+                        <p class="text-xs text-[#64748B] mt-1">day streak 🔥</p>
+                    </div>
+                </div>
+
+                <!-- Charts Row -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="glass-card p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">Weekly Progress</h3>
+                            <select class="input-field w-auto text-sm py-2" onchange="updateWeeklyChart(this.value)">
+                                <option value="7">Last 7 days</option>
+                                <option value="30">Last 30 days</option>
+                            </select>
+                        </div>
+                        <canvas id="weeklyChart" height="250"></canvas>
+                    </div>
+
+                    <div class="glass-card p-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-lg font-semibold">Workout Distribution</h3>
+                            <span class="text-sm text-[#64748B]">By type</span>
+                        </div>
+                        <canvas id="distributionChart" height="250"></canvas>
+                    </div>
+                </div>
+
+                <!-- Recent Workouts -->
+                <div class="glass-card p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-lg font-semibold">Recent Workouts</h3>
+                        <button class="btn-secondary text-sm py-2" onclick="switchTab('workouts')">
+                            View All
+                        </button>
+                    </div>
+                    <div id="recentWorkoutsList" class="space-y-3">
+                        <p class="text-[#64748B] text-center py-8">No workouts logged yet. Start your journey!</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Workouts Tab -->
+            <div id="workouts-tab" class="tab-content">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold">Workouts</h2>
+                        <p class="text-[#94A3B8] mt-1">Track and manage your exercise sessions.</p>
+                    </div>
+                    <button class="btn-primary" onclick="openModal('workout')">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        Log Workout
+                    </button>
+                </div>
+
+                <!-- Filters -->
+                <div class="flex flex-wrap gap-3 mb-6">
+                    <button class="btn-secondary text-sm py-2 active-filter" data-filter="all" onclick="filterWorkouts('all', this)">
+                        All
+                    </button>
+                    <button class="btn-secondary text-sm py-2" data-filter="strength" onclick="filterWorkouts('strength', this)">
+                        <i data-lucide="dumbbell" class="w-4 h-4"></i>
+                        Strength
+                    </button>
+                    <button class="btn-secondary text-sm py-2" data-filter="cardio" onclick="filterWorkouts('cardio', this)">
+                        <i data-lucide="heart" class="w-4 h-4"></i>
+                        Cardio
+                    </button>
+                    <button class="btn-secondary text-sm py-2" data-filter="yoga" onclick="filterWorkouts('yoga', this)">
+                        <i data-lucide="leaf" class="w-4 h-4"></i>
+                        Yoga
+                    </button>
+                    <button class="btn-secondary text-sm py-2" data-filter="hiit" onclick="filterWorkouts('hiit', this)">
+                        <i data-lucide="zap" class="w-4 h-4"></i>
+                        HIIT
+                    </button>
+                </div>
+
+                <!-- Workout List -->
+                <div class="space-y-4" id="workoutList">
+                    <p class="text-[#64748B] text-center py-12">No workouts found. Log your first workout!</p>
+                </div>
+            </div>
+
+            <!-- Plans Tab -->
+            <div id="plans-tab" class="tab-content">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold">Workout Plans</h2>
+                        <p class="text-[#94A3B8] mt-1">Follow structured plans to reach your goals.</p>
+                    </div>
+                    <button class="btn-primary" onclick="openModal('plan')">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        Create Plan
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" id="plansGrid">
+                    <!-- Plans will be rendered here -->
+                    <p class="text-[#64748B] col-span-full text-center py-12">No plans created yet. Create your first plan!</p>
+                </div>
+            </div>
+
+            <!-- Progress Tab -->
+            <div id="progress-tab" class="tab-content">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold">Progress</h2>
+                        <p class="text-[#94A3B8] mt-1">Visualize your fitness journey over time.</p>
+                    </div>
+                    <div class="flex gap-3">
+                        <button class="btn-secondary" onclick="exportProgress()">
+                            <i data-lucide="download" class="w-4 h-4"></i>
+                            Export
+                        </button>
+                        <button class="btn-primary" onclick="shareProgress()">
+                            <i data-lucide="share-2" class="w-4 h-4"></i>
+                            Share Progress
+                        </button>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <div class="glass-card p-6">
+                        <h3 class="text-lg font-semibold mb-4">Weight Trend</h3>
+                        <canvas id="weightChart" height="250"></canvas>
+                    </div>
+                    <div class="glass-card p-6">
+                        <h3 class="text-lg font-semibold mb-4">Calories Burned</h3>
+                        <canvas id="caloriesChart" height="250"></canvas>
+                    </div>
+                </div>
+
+                <div class="glass-card p-6 mb-8">
+                    <h3 class="text-lg font-semibold mb-4">Achievements</h3>
+                    <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4" id="achievementsGrid">
+                        <!-- Achievements rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Social Tab -->
+            <div id="social-tab" class="tab-content">
+                <div class="flex items-center justify-between mb-8">
+                    <div>
+                        <h2 class="text-3xl font-bold">Social</h2>
+                        <p class="text-[#94A3B8] mt-1">Connect and share with the fitness community.</p>
+                    </div>
+                    <button class="btn-primary" onclick="shareProgress()">
+                        <i data-lucide="share-2" class="w-4 h-4"></i>
+                        Share Update
+                    </button>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <div class="lg:col-span-2 space-y-6" id="socialFeed">
+                        <!-- Social posts rendered here -->
+                        <div class="glass-card p-8 text-center">
+                            <i data-lucide="users" class="w-12 h-12 text-[#64748B] mx-auto mb-4"></i>
+                            <h3 class="text-lg font-semibold mb-2">Welcome to the Community!</h3>
+                            <p class="text-[#94A3B8] mb-4">Share your progress and inspire others on their fitness journey.</p>
+                            <button class="btn-primary" onclick="shareProgress()">
+                                <i data-lucide="share-2" class="w-4 h-4"></i>
+                                Share Your Progress
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="space-y-6">
+                        <div class="glass-card p-6">
+                            <h3 class="text-lg font-semibold mb-4">Leaderboard</h3>
+                            <div class="space-y-3" id="leaderboard">
+                                <div class="flex items-center gap-3 p-3 rounded-lg bg-[#1E293B]">
+                                    <span class="w-8 h-8 rounded-full gradient-primary flex items-center justify-center text-sm font-bold">1</span>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium">Sarah M.</p>
+                                        <p class="text-xs text-[#64748B]">12,450 pts</p>
+                                    </div>
+                                    <i data-lucide="trophy" class="w-5 h-5 text-[#F59E0B]"></i>
+                                </div>
+                                <div class="flex items-center gap-3 p-3 rounded-lg bg-[#1E293B]">
+                                    <span class="w-8 h-8 rounded-full bg-[#64748B] flex items-center justify-center text-sm font-bold">2</span>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium">Mike R.</p>
+                                        <p class="text-xs text-[#64748B]">10,230 pts</p>
+                                    </div>
+                                    <i data-lucide="medal" class="w-5 h-5 text-[#94A3B8]"></i>
+                                </div>
+                                <div class="flex items-center gap-3 p-3 rounded-lg bg-[#1E293B]">
+                                    <span class="w-8 h-8 rounded-full bg-[#64748B] flex items-center justify-center text-sm font-bold">3</span>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium">Alex K.</p>
+                                        <p class="text-xs text-[#64748B]">8,900 pts</p>
+                                    </div>
+                                    <i data-lucide="medal" class="w-5 h-5 text-[#CD7F32]"></i>
+                                </div>
+                                <div class="flex items-center gap-3 p-3 rounded-lg bg-[#1E293B] opacity-60">
+                                    <span class="w-8 h-8 rounded-full bg-[#1E293B] border border-[#334155] flex items-center justify-center text-sm font-bold">4</span>
+                                    <div class="flex-1">
+                                        <p class="text-sm font-medium">You</p>
+                                        <p class="text-xs text-[#64748B]" id="userPoints">0 pts</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="glass-card p-6">
+                            <h3 class="text-lg font-semibold mb-4">Active Friends</h3>
+                            <div class="space-y-3" id="activeFriends">
+                                <div class="flex items-center gap-3">
+                                    <div class="relative">
+                                        <div class="w-10 h-10 rounded-full bg-[#06B6D4]/20 flex items-center justify-center text-sm font-bold text-[#06B6D4]">SM</div>
+                                        <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#10B981] rounded-full border-2 border-[#0F172A]"></div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium">Sarah M.</p>
+                                        <p class="text-xs text-[#64748B]">Just finished a workout</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="relative">
+                                        <div class="w-10 h-10 rounded-full bg-[#F59E0B]/20 flex items-center justify-center text-sm font-bold text-[#F59E0B]">MR</div>
+                                        <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#10B981] rounded-full border-2 border-[#0F172A]"></div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium">Mike R.</p>
+                                        <p class="text-xs text-[#64748B]">Online now</p>
+                                    </div>
+                                </div>
+                                <div class="flex items-center gap-3">
+                                    <div class="relative">
+                                        <div class="w-10 h-10 rounded-full bg-[#8B5CF6]/20 flex items-center justify-center text-sm font-bold text-[#8B5CF6]">AK</div>
+                                        <div class="absolute -bottom-0.5 -right-0.5 w-3 h-3 bg-[#64748B] rounded-full border-2 border-[#0F172A]"></div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-medium">Alex K.</p>
+                                        <p class="text-xs text-[#64748B]">Last seen 2h ago</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Overlay -->
+    <div id="modalOverlay" class="modal-overlay" onclick="if(event.target===this) closeModal()">
+        <div class="modal-content" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="text-xl font-bold" id="modalTitle">Log Workout</h3>
+                <button onclick="closeModal()" class="text-[#64748B] hover:text-white transition-colors">
+                    <i data-lucide="x" class="w-6 h-6"></i>
+                </button>
+            </div>
+            <div id="modalBody">
+                <!-- Dynamic content -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="toast">
+        <i id="toastIcon" data-lucide="check-circle" class="w-5 h-5 text-[#10B981]"></i>
+        <span id="toastMessage" class="text-sm"></span>
+    </div>
+
+    <script>
+        // ==================== STATE MANAGEMENT ====================
+        const AppState = {
+            workouts: [],
+            plans: [],
+            achievements: [],
+            socialPosts: [],
+            user: {
+                name: 'John Doe',
+                points: 450,
+                streak: 5,
+                weight: 185,
+                weightHistory: [185, 184, 183, 182, 182, 181, 180],
+                caloriesHistory: [320, 450, 280, 500, 350, 420, 380]
+            },
+            currentFilter: 'all',
+            charts: {}
+        };
+
+        // ==================== INITIALIZATION ====================
+        document.addEventListener('DOMContentLoaded', function() {
+            loadFromStorage();
+            initCharts();
+            renderDashboard();
+            renderWorkouts();
+            renderPlans();
+            renderAchievements();
+            updateStats();
+            lucide.createIcons();
+        });
+
+        // ==================== LOCAL STORAGE ====================
+        function saveToStorage() {
+            try {
+                localStorage.setItem('fittrack_workouts', JSON.stringify(AppState.workouts));
+                localStorage.setItem('fittrack_plans', JSON.stringify(AppState.plans));
+                localStorage.setItem('fittrack_achievements', JSON.stringify(AppState.achievements));
+                localStorage.setItem('fittrack_social', JSON.stringify(AppState.socialPosts));
+                localStorage.setItem('fittrack_user', JSON.stringify(AppState.user));
+            } catch (e) {
+                console.error('Save failed:', e);
+            }
+        }
+
+        function loadFromStorage() {
+            try {
+                const workouts = localStorage.getItem('fittrack_workouts');
+                const plans = localStorage.getItem('fittrack_plans');
+                const achievements = localStorage.getItem('fittrack_achievements');
+                const social = localStorage.getItem('fittrack_social');
+                const user = localStorage.getItem('fittrack_user');
+
+                if (workouts) AppState.workouts = JSON.parse(workouts);
+                if (plans) AppState.plans = JSON.parse(plans);
+                if (achievements) AppState.achievements = JSON.parse(achievements);
+                if (social) AppState.socialPosts = JSON.parse(social);
+                if (user) AppState.user = JSON.parse(user);
+
+                // Ensure achievements exist
+                if (AppState.achievements.length === 0) {
+                    AppState.achievements = [
+                        { id: 1, name: 'First Workout', description: 'Complete your first workout', icon: 'dumbbell', unlocked: false },
+                        { id: 2, name: 'Week Warrior', description: '7 days streak', icon: 'zap', unlocked: false },
+                        { id: 3, name: 'Cardio King', description: 'Burn 1000 calories in a week', icon: 'heart', unlocked: false },
+                        { id: 4, name: 'Strength Builder', description: 'Complete 10 strength workouts', icon: 'dumbbell', unlocked: false },
+                        { id: 5, name: 'Social Butterfly', description: 'Share your first progress', icon: 'share-2', unlocked: false },
+                        { id: 6, name: 'Dedication', description: '30 day streak', icon: 'award', unlocked: false },
+                        { id: 7, name: 'HIIT Hero', description: 'Complete 5 HIIT sessions', icon: 'zap', unlocked: false },
+                        { id: 8, name: 'Yoga Master', description: 'Complete 10 yoga sessions', icon: 'leaf', unlocked: false }
+                    ];
+                }
+            } catch (e) {
+                console.error('Load failed:', e);
+            }
+        }
+
+        // ==================== TAB SWITCHING ====================
+        function switchTab(tabName) {
+            // Update nav
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            document.querySelector(`[data-tab="${tabName}"]`).classList.add('active');
+
+            // Update content
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById(`${tabName}-tab`).classList.add('active');
+
+            // Refresh charts if needed
+            if (tabName === 'progress') {
+                setTimeout(() => {
+                    updateWeightChart();
+                    updateCaloriesChart();
+                }, 100);
+            }
+
+            lucide.createIcons();
+        }
+
+        // ==================== MODAL MANAGEMENT ====================
+        function openModal(type) {
+            const overlay = document.getElementById('modalOverlay');
+            const title = document.getElementById('modalTitle');
+            const body = document.getElementById('modalBody');
+
+            if (type === 'workout') {
+                title.textContent = 'Log Workout';
+                body.innerHTML = `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Workout Type</label>
+                            <select id="workoutType" class="input-field">
+                                <option value="strength">Strength Training</option>
+                                <option value="cardio">Cardio</option>
+                                <option value="yoga">Yoga</option>
+                                <option value="hiit">HIIT</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Duration (minutes)</label>
+                            <input type="number" id="workoutDuration" class="input-field" placeholder="e.g., 45" min="1" max="600">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Calories Burned</label>
+                            <input type="number" id="workoutCalories" class="input-field" placeholder="e.g., 350" min="0" max="9999">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Notes (optional)</label>
+                            <textarea id="workoutNotes" class="input-field" rows="3" placeholder="How did it feel? Any PRs?"></textarea>
+                        </div>
+                        <button class="btn-primary w-full justify-center" onclick="logWorkout()">
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                            Log Workout
+                        </button>
+                    </div>
+                `;
+            } else if (type === 'plan') {
+                title.textContent = 'Create Workout Plan';
+                body.innerHTML = `
+                    <div class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Plan Name</label>
+                            <input type="text" id="planName" class="input-field" placeholder="e.g., 4-Week Strength Builder">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Goal</label>
+                            <select id="planGoal" class="input-field">
+                                <option value="strength">Build Strength</option>
+                                <option value="endurance">Improve Endurance</option>
+                                <option value="weight-loss">Weight Loss</option>
+                                <option value="flexibility">Flexibility</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Duration (weeks)</label>
+                            <input type="number" id="planDuration" class="input-field" placeholder="e.g., 4" min="1" max="52">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Workouts per Week</label>
+                            <input type="number" id="planFrequency" class="input-field" placeholder="e.g., 4" min="1" max="7">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium mb-2">Description</label>
+                            <textarea id="planDescription" class="input-field" rows="3" placeholder="Describe your plan..."></textarea>
+                        </div>
+                        <button class="btn-primary w-full justify-center" onclick="createPlan()">
+                            <i data-lucide="check" class="w-4 h-4"></i>
+                            Create Plan
+                        </button>
+                    </div>
+                `;
+            }
+
+            overlay.classList.add('active');
+            lucide.createIcons();
+        }
+
+        function closeModal() {
+            document.getElementById('modalOverlay').classList.remove('active');
+        }
+
+        // ==================== WORKOUT FUNCTIONS ====================
+        function logWorkout() {
+            const type = document.getElementById('workoutType').value;
+            const duration = parseInt(document.getElementById('workoutDuration').value);
+            const calories = parseInt(document.getElementById('workoutCalories').value);
+            const notes = document.getElementById('workoutNotes').value;
+
+            if (!duration || duration <= 0) {
+                showToast('Please enter a valid duration', 'error');
+                return;
+            }
+
+            if (!calories || calories < 0) {
+                showToast('Please enter valid calories', 'error');
+                return;
+            }
+
+            const workout = {
+                id: Date.now(),
+                type,
+                duration,
+                calories,
+                notes,
+                date: new Date().toISOString(),
+                completed: true
+            };
+
+            AppState.workouts.unshift(workout);
+            
+            // Update user stats
+            AppState.user.points += Math.floor(calories / 10);
+            AppState.user.streak += 1;
+            
+            // Check achievements
+            checkAchievements();
+            
+            saveToStorage();
+            closeModal();
+            
+            renderDashboard();
+            renderWorkouts();
+            updateStats();
+            updateCharts();
+            
+            showToast(`Workout logged! ${calories} calories burned.`, 'success');
+        }
+
+        function deleteWorkout(id) {
+            if (!confirm('Delete this workout?')) return;
+            
+            AppState.workouts = AppState.workouts.filter(w => w.id !== id);
+            saveToStorage();
+            renderWorkouts();
+            renderDashboard();
+            updateStats();
+            updateCharts();
+            showToast('Workout deleted', 'info');
+        }
+
+        function filterWorkouts(filter, btn) {
+            AppState.currentFilter = filter;
+            
+            document.querySelectorAll('[data-filter]').forEach(el => el.classList.remove('active-filter'));
+            if (btn) btn.classList.add('active-filter');
+            
+            renderWorkouts();
+        }
+
+        function renderWorkouts() {
+            const container = document.getElementById('workoutList');
+            let filtered = AppState.workouts;
+            
+            if (AppState.currentFilter !== 'all') {
+                filtered = AppState.workouts.filter(w => w.type === AppState.currentFilter);
+            }
+
+            if (filtered.length === 0) {
+                container.innerHTML = `<p class="text-[#64748B] text-center py-12">No workouts found. Log your first workout!</p>`;
+                return;
+            }
+
+            container.innerHTML = filtered.map(w => `
+                <div class="workout-item flex items-center justify-between">
+                    <div class="flex items-center gap-4">
+                        <div class="w-12 h-12 rounded-xl bg-[#8B5CF6]/20 flex items-center justify-center">
+                            <i data-lucide="${getWorkoutIcon(w.type)}" class="w-6 h-6 text-[#8B5CF6]"></i>
+                        </div>
+                        <div>
+                            <p class="font-semibold capitalize">${w.type}</p>
+                            <p class="text-sm text-[#64748B]">${w.duration} min • ${w.calories} kcal</p>
+                            <p class="text-xs text-[#64748B]">${formatDate(w.date)}</p>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                        <button onclick="deleteWorkout(${w.id})" class="text-[#64748B] hover:text-[#EF4444] transition-colors p-2">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function getWorkoutIcon(type) {
+            const icons = {
+                strength: 'dumbbell',
+                cardio: 'heart',
+                yoga: 'leaf',
+                hiit: 'zap'
+            };
+            return icons[type] || 'activity';
+        }
+
+        // ==================== PLAN FUNCTIONS ====================
+        function createPlan() {
+            const name = document.getElementById('planName').value;
+            const goal = document.getElementById('planGoal').value;
+            const duration = parseInt(document.getElementById('planDuration').value);
+            const frequency = parseInt(document.getElementById('planFrequency').value);
+            const description = document.getElementById('planDescription').value;
+
+            if (!name) {
+                showToast('Please enter a plan name', 'error');
+                return;
+            }
+
+            const plan = {
+                id: Date.now(),
+                name,
+                goal,
+                duration,
+                frequency,
+                description,
+                progress: 0,
+                createdAt: new Date().toISOString(),
+                exercises: generateExercises(goal, frequency)
+            };
+
+            AppState.plans.unshift(plan);
+            saveToStorage();
+            closeModal();
+            renderPlans();
+            showToast('Plan created successfully!', 'success');
+        }
+
+        function generateExercises(goal, frequency) {
+            const exercises = {
+                strength: ['Bench Press', 'Squats', 'Deadlifts', 'Overhead Press', 'Barbell Rows', 'Pull-ups', 'Dips'],
+                endurance: ['Running', 'Cycling', 'Swimming', 'Jump Rope', 'Burpees', 'Mountain Climbers'],
+                'weight-loss': ['HIIT Circuit', 'Rowing', 'Kettlebell Swings', 'Box Jumps', 'Battle Ropes'],
+                flexibility: ['Sun Salutation', 'Downward Dog', 'Warrior Pose', 'Tree Pose', 'Child\'s Pose']
+            };
+
+            const planExercises = exercises[goal] || exercises.strength;
+            return planExercises.slice(0, Math.min(frequency + 2, planExercises.length));
+        }
+
+        function renderPlans() {
+            const container = document.getElementById('plansGrid');
+
+            if (AppState.plans.length === 0) {
+                container.innerHTML = `<p class="text-[#64748B] col-span-full text-center py-12">No plans created yet. Create your first plan!</p>`;
+                return;
+            }
+
+            container.innerHTML = AppState.plans.map(p => `
+                <div class="glass-card p-6">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 rounded-xl bg-[#06B6D4]/20 flex items-center justify-center">
+                            <i data-lucide="calendar-check" class="w-6 h-6 text-[#06B6D4]"></i>
+                        </div>
+                        <span class="px-3 py-1 rounded-full bg-[#8B5CF6]/20 text-[#8B5CF6] text-xs font-medium capitalize">${p.goal}</span>
+                    </div>
+                    <h3 class="text-lg font-semibold mb-2">${p.name}</h3>
+                    <p class="text-sm text-[#94A3B8] mb-4">${p.description || 'No description'}</p>
+                    
+                    <div class="flex items-center justify-between text-sm text-[#64748B] mb-4">
+                        <span>${p.duration} weeks</span>
+                        <span>${p.frequency}x/week</span>
+                    </div>
+
+                    <div class="mb-4">
+                        <div class="flex items-center justify-between text-sm mb-2">
+                            <span>Progress</span>
+                            <span>${p.progress}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill gradient-primary" style="width: ${p.progress}%"></div>
+                        </div>
+                    </div>
+
+                    <div class="space-y-2 mb-4">
+                        <p class="text-xs font-medium text-[#64748B] uppercase tracking-wider">Exercises</p>
+                        <div class="flex flex-wrap gap-2">
+                            ${p.exercises.slice(0, 4).map(e => `
+                                <span class="px-2 py-1 rounded-md bg-[#1E293B] text-xs text-[#94A3B8]">${e}</span>
+                            `).join('')}
+                            ${p.exercises.length > 4 ? `<span class="px-2 py-1 rounded-md bg-[#1E293B] text-xs text-[#64748B]">+${p.exercises.length - 4}</span>` : ''}
+                        </div>
+                    </div>
+
+                    <div class="flex gap-2">
+                        <button class="btn-primary flex-1 justify-center text-sm py-2" onclick="startPlan(${p.id})">
+                            <i data-lucide="play" class="w-4 h-4"></i>
+                            Start Plan
+                        </button>
+                        <button class="btn-secondary text-sm py-2 px-3" onclick="deletePlan(${p.id})">
+                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function startPlan(id) {
+            const plan = AppState.plans.find(p => p.id === id);
+            if (!plan) return;
+
+            plan.progress = Math.min(100, plan.progress + Math.floor(100 / (plan.duration * plan.frequency)));
+            
+            if (plan.progress >= 100) {
+                showToast(`🎉 Congratulations! You completed "${plan.name}"!`, 'success');
+            } else {
+                showToast(`Continuing "${plan.name}". Keep going!`, 'info');
+            }
+
+            saveToStorage();
+            renderPlans();
+        }
+
+        function deletePlan(id) {
+            if (!confirm('Delete this plan?')) return;
+            AppState.plans = AppState.plans.filter(p => p.id !== id);
+            saveToStorage();
+            renderPlans();
+            showToast('Plan deleted', 'info');
+        }
+
+        // ==================== DASHBOARD FUNCTIONS ====================
+        function renderDashboard() {
+            const recentContainer = document.getElementById('recentWorkoutsList');
+            const recent = AppState.workouts.slice(0, 5);
+
+            if (recent.length === 0) {
+                recentContainer.innerHTML = `<p class="text-[#64748B] text-center py-8">No workouts logged yet. Start your journey!</p>`;
+                return;
+            }
+
+            recentContainer.innerHTML = recent.map(w => `
+                <div class="workout-item flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 rounded-lg bg-[#8B5CF6]/20 flex items-center justify-center">
+                            <i data-lucide="${getWorkoutIcon(w.type)}" class="w-5 h-5 text-[#8B5CF6]"></i>
+                        </div>
+                        <div>
+                            <p class="font-medium capitalize">${w.type}</p>
+                            <p class="text-xs text-[#64748B]">${w.duration} min • ${w.calories} kcal</p>
+                        </div>
+                    </div>
+                    <span class="text-xs text-[#64748B]">${formatDate(w.date)}</span>
+                </div>
+            `).join('');
+
+            lucide.createIcons();
+        }
+
+        function updateStats() {
+            const today = new Date().toDateString();
+            const weekStart = new Date();
+            weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+            
+            const todayWorkouts = AppState.workouts.filter(w => new Date(w.date).toDateString() === today);
+            const weekWorkouts = AppState.workouts.filter(w => new Date(w.date) >= weekStart);
+            
+            const todayCalories = todayWorkouts.reduce((sum, w) => sum + w.calories, 0);
+            const weekMinutes = weekWorkouts.reduce((sum, w) => sum + w.duration, 0);
+
+            document.getElementById('todayCalories').textContent = todayCalories;
+            document.getElementById('weeklyWorkouts').textContent = weekWorkouts.length;
+            document.getElementById('totalMinutes').textContent = weekMinutes;
+            document.getElementById('streakCount').textContent = AppState.user.streak;
+            document.getElementById('userPoints').textContent = `${AppState.user.points} pts`;
+        }
+
+        // ==================== ACHIEVEMENTS ====================
+        function checkAchievements() {
+            const totalWorkouts = AppState.workouts.length;
+            const strengthCount = AppState.workouts.filter(w => w.type === 'strength').length;
+            const hiitCount = AppState.workouts.filter(w => w.type === 'hiit').length;
+            const yogaCount = AppState.workouts.filter(w => w.type === 'yoga').length;
+            const weekCalories = AppState.workouts.slice(0, 7).reduce((sum, w) => sum + w.calories, 0);
+
+            AppState.achievements.forEach(a => {
+                if (a.unlocked) return;
+                
+                switch(a.id) {
+                    case 1: a.unlocked = totalWorkouts >= 1; break;
+                    case 2: a.unlocked = AppState.user.streak >= 7; break;
+                    case 3: a.unlocked = weekCalories >= 1000; break;
+                    case 4: a.unlocked = strengthCount >= 10; break;
+                    case 5: a.unlocked = AppState.socialPosts.length

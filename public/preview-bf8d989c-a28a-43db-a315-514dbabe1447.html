@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FitTrack - Fitness Tracking App</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="bg-gray-50 font-sans antialiased">
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16 items-center">
+                <div class="flex items-center gap-2">
+                    <i data-lucide="dumbbell" class="h-8 w-8 text-indigo-600"></i>
+                    <span class="text-xl font-bold text-gray-900">FitTrack</span>
+                </div>
+                <div class="flex items-center gap-4">
+                    <button onclick="showTab('workouts')" class="nav-btn text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors" data-tab="workouts">
+                        <i data-lucide="activity" class="h-5 w-5 inline-block mr-1"></i>Workouts
+                    </button>
+                    <button onclick="showTab('progress')" class="nav-btn text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors" data-tab="progress">
+                        <i data-lucide="trending-up" class="h-5 w-5 inline-block mr-1"></i>Progress
+                    </button>
+                    <button onclick="showTab('plans')" class="nav-btn text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors" data-tab="plans">
+                        <i data-lucide="clipboard-list" class="h-5 w-5 inline-block mr-1"></i>Plans
+                    </button>
+                    <button onclick="showTab('social')" class="nav-btn text-gray-600 hover:text-indigo-600 px-3 py-2 rounded-lg text-sm font-medium transition-colors" data-tab="social">
+                        <i data-lucide="users" class="h-5 w-5 inline-block mr-1"></i>Social
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Workouts Tab -->
+        <div id="workouts-tab" class="tab-content">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-900">Your Workouts</h1>
+                <button onclick="openWorkoutModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2">
+                    <i data-lucide="plus" class="h-5 w-5"></i>Log Workout
+                </button>
+            </div>
+            <div id="workout-list" class="space-y-4">
+                <!-- Workout cards will be rendered here -->
+            </div>
+        </div>
+
+        <!-- Progress Tab -->
+        <div id="progress-tab" class="tab-content hidden">
+            <h1 class="text-2xl font-bold text-gray-900 mb-6">Your Progress</h1>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Weight Over Time</h3>
+                    <canvas id="weightChart"></canvas>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                    <h3 class="text-lg font-semibold text-gray-900 mb-4">Workout Frequency</h3>
+                    <canvas id="frequencyChart"></canvas>
+                </div>
+            </div>
+            <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">Strength Progress</h3>
+                <canvas id="strengthChart"></canvas>
+            </div>
+        </div>
+
+        <!-- Plans Tab -->
+        <div id="plans-tab" class="tab-content hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-2xl font-bold text-gray-900">Workout Plans</h1>
+                <button onclick="openPlanModal()" class="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center gap-2">
+                    <i data-lucide="plus" class="h-5 w-5"></i>Create Plan
+                </button>
+            </div>
+            <div id="plan-list" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                <!-- Plan cards will be rendered here -->
+            </div>
+        </div>
+
+        <!-- Social Tab -->
+        <div id="social-tab" class="tab-content hidden">
+            <h1 class="text-2xl font-bold text-gray-900 mb-6">Social Feed</h1>
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2">
+                    <div id="social-feed" class="space-y-4">
+                        <!-- Social posts will be rendered here -->
+                    </div>
+                </div>
+                <div>
+                    <div class="bg-white p-6 rounded-xl shadow-sm border border-gray-200">
+                        <h3 class="text-lg font-semibold text-gray-900 mb-4">Leaderboard</h3>
+                        <div id="leaderboard" class="space-y-3">
+                            <!-- Leaderboard will be rendered here -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Workout Modal -->
+    <div id="workout-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-900">Log Workout</h2>
+                <button onclick="closeWorkoutModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="h-6 w-6"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Workout Name</label>
+                    <input id="workout-name" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Upper Body Push">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Date</label>
+                    <input id="workout-date" type="date" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Duration (minutes)</label>
+                    <input id="workout-duration" type="number" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="45">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Exercises</label>
+                    <div id="exercise-list" class="space-y-2">
+                        <!-- Exercise entries will be added here -->
+                    </div>
+                    <button onclick="addExercise()" class="mt-2 text-indigo-600 hover:text-indigo-800 text-sm font-medium flex items-center gap-1">
+                        <i data-lucide="plus-circle" class="h-4 w-4"></i>Add Exercise
+                    </button>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 flex justify-end gap-3">
+                <button onclick="closeWorkoutModal()" class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium">Cancel</button>
+                <button onclick="saveWorkout()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Save Workout</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Plan Modal -->
+    <div id="plan-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-900">Create Workout Plan</h2>
+                <button onclick="closePlanModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="h-6 w-6"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Plan Name</label>
+                    <input id="plan-name" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="e.g., Beginner Full Body">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                    <textarea id="plan-description" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" rows="3" placeholder="Describe your plan..."></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Days per Week</label>
+                    <input id="plan-days" type="number" min="1" max="7" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" placeholder="3">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Difficulty</label>
+                    <select id="plan-difficulty" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500">
+                        <option value="beginner">Beginner</option>
+                        <option value="intermediate">Intermediate</option>
+                        <option value="advanced">Advanced</option>
+                    </select>
+                </div>
+            </div>
+            <div class="p-6 border-t border-gray-200 flex justify-end gap-3">
+                <button onclick="closePlanModal()" class="px-4 py-2 text-gray-700 hover:text-gray-900 font-medium">Cancel</button>
+                <button onclick="savePlan()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 font-medium">Create Plan</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Share Modal -->
+    <div id="share-modal" class="fixed inset-0 bg-black bg-opacity-50 hidden z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full">
+            <div class="p-6 border-b border-gray-200 flex justify-between items-center">
+                <h2 class="text-xl font-bold text-gray-900">Share Workout</h2>
+                <button onclick="closeShareModal()" class="text-gray-400 hover:text-gray-600">
+                    <i data-lucide="x" class="h-6 w-6"></i>
+                </button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Add a caption</label>
+                    <textarea id="share-caption" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500" rows="3" placeholder="What did you accomplish today?"></textarea>
+                </div>
+                <button onclick="shareWorkout()" class="w-full bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
+                    <i data-lucide="share-2" class="h-5 w-5"></i>Share to Feed
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 bg-gray-900 text-white px-6 py-3 rounded-lg shadow-lg transform translate-y-20 opacity-0 transition-all duration-300 z-50">
+        <span id="toast-message"></span>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
