@@ -1,20 +1,21 @@
 module.exports = {
   apps: [{
-    name: buildany,
-    script: npm,
-    args: start,
-    cwd: /root/buildany,
+    name: 'buildany',
+    cwd: '/root/buildany',
+    script: 'node_modules/.bin/next',
+    args: 'start',
+    exec_mode: 'fork',
+    instances: 1,
+    autorestart: true,
+    watch: false,
+    max_memory_restart: '1G',
     env: {
-      NODE_ENV: production,
-      PORT: 3000,
-      CLOUDFLARE_API_TOKEN: ,
-      CLOUDFLARE_ACCOUNT_ID: ,
-      GITHUB_TOKEN: 
+      NODE_ENV: 'production',
+      PORT: 3000
     },
-    log_file: /root/.pm2/logs/buildany-combined.log,
-    out_file: /root/.pm2/logs/buildany-out.log,
-    error_file: /root/.pm2/logs/buildany-error.log,
-    merge_logs: true,
-    time: true
+    error_file: '/root/.pm2/logs/buildany-error.log',
+    out_file: '/root/.pm2/logs/buildany-out.log',
+    log_date_format: 'YYYY-MM-DD HH:mm:ss Z',
+    merge_logs: true
   }]
 };

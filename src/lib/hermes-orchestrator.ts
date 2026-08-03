@@ -3,8 +3,8 @@
 // Agent name: Kelly
 // Uses Hermes Gateway API (port 8642) instead of docker exec
 
-const HERMES_URL = "http://127.0.0.1:8642/v1/chat/completions";
-const HERMES_API_KEY = "820a8890e58dfd3dadd4166cb2be9b8c4db1afce6514110039374ea1da7b84cc";
+const HERMES_URL = process.env.HERMES_URL || "https://api.deepseek.com/v1/chat/completions";
+const HERMES_API_KEY = process.env.DEEPSEEK_API_KEY || "";
 const HERMES_MODEL = "deepseek-v4-pro";
 
 // Skills to load for orchestration

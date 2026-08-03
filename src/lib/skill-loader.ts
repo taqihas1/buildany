@@ -68,7 +68,7 @@ export function getSkillList(): string[] {
 export const PHASE_SKILL_MAP: Record<string, string[]> = {
   analyzing: ["spec-driven-development", "context-engineering"],
   design: ["spec-driven-development", "documentation-and-adrs", "api-and-interface-design"],
-  coding: ["incremental-implementation", "test-driven-development", "frontend-ui-engineering"],
+  coding: ["buildany-code-generation", "incremental-implementation", "frontend-ui-engineering"],
   testing: ["test-driven-development", "systematic-debugging", "browser-testing-with-devtools"],
   reviewing: ["code-review-and-quality", "receiving-code-review"],
   previewing: ["browser-testing-with-devtools"],

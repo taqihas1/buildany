@@ -5,7 +5,7 @@ import { DashboardHeader } from "@/components/DashboardHeader";
 import { ProjectGrid } from "@/components/ProjectGrid";
 import { db } from "@/lib/db";
 import { projects } from "@/lib/db/schema";
-import { eq } from "drizzle-orm";
+import { eq, desc } from "drizzle-orm";
 
 import { KellyWelcomePanel } from "@/components/KellyWelcomePanel";
 
@@ -13,10 +13,8 @@ export default async function Home() {
   const authData = await auth();
   const userId = authData.userId;
   
-  let userProjects: any[] = [];
-  if (userId) {
-    userProjects = await db.select().from(projects).where(eq(projects.userId, userId));
-  }
+  // Show all projects (not filtered by user) until auth sync is fixed
+  const userProjects = await db.select().from(projects).orderBy(desc(projects.updatedAt)).limit(50);
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white via-gray-50 to-white">

@@ -7,7 +7,7 @@ export const users = sqliteTable("users", {
   avatarUrl: text("avatar_url"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-  reviewData: text("review_data"),
+  reviewData: text('review_data'),
   plan: text("plan").default("free"),
   creditsUsed: integer("credits_used").default(0),
   creditsTotal: integer("credits_total").default(100),
@@ -21,7 +21,7 @@ export const apiKeys = sqliteTable("api_keys", {
   isActive: integer("is_active", { mode: "boolean" }).default(true),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-  reviewData: text("review_data"),
+  reviewData: text('review_data'),
 });
 
 export const projects = sqliteTable("projects", {
@@ -34,7 +34,7 @@ export const projects = sqliteTable("projects", {
   githubRepo: text("github_repo"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-  reviewData: text("review_data"),
+  reviewData: text('review_data'),
 });
 
 export const projectFiles = sqliteTable("project_files", (t) => ({
@@ -91,7 +91,7 @@ export const userMemory = sqliteTable("user_memory", {
   confidence: integer("confidence").default(50),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-  reviewData: text("review_data"),
+  reviewData: text('review_data'),
 });
 
 export const projectMemory = sqliteTable("project_memory", {
@@ -142,7 +142,7 @@ export const adrs = sqliteTable("adrs", {
   status: text("status").default("proposed"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-  reviewData: text("review_data"),
+  reviewData: text('review_data'),
 });
 
 // ─── Email Tracking ───
@@ -212,7 +212,7 @@ export const skills = sqliteTable("skills", {
   version: integer("version").default(1),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-  reviewData: text("review_data"),
+  reviewData: text('review_data'),
 });
 
 
@@ -226,6 +226,6 @@ export const codeReviews = sqliteTable("code_reviews", {
   errorMessage: text("error_message"),
   createdAt: integer("created_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
   updatedAt: integer("updated_at", { mode: "timestamp" }).$defaultFn(() => new Date()),
-  reviewData: text("review_data"),
+  reviewData: text('review_data'),
 });
 

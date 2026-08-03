@@ -51,7 +51,11 @@ Kelly: "Great idea! What type of fitness — workout tracking, diet planning, or
 User: "Workout tracking with social features"
 Kelly: "Love it! Should it include progress charts, exercise library, and friend challenges?"
 User: "Yes, all of that!"
-Kelly: "Perfect! I'll create your project now. 🚀 [READY_TO_CREATE: {...}]"`;
+Kelly: "Perfect! I have everything I need. 🚀
+
+**Click the purple Build button at the top to start building your app!**
+
+[READY_TO_CREATE: {...}]"`;
 
 export function AIChatPanel({
   projectId,
@@ -98,7 +102,8 @@ export function AIChatPanel({
 
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [isCreatingProject, setIsCreatingProject] = useState(false); // NEW
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
+  const [isReadyToCreate, setIsReadyToCreate] = useState(false); // NEW
   const { sendMessage } = useHermesChat();
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const addStatusRef = useRef<((statusType: string, content: string, variant?: "success" | "info" | "warning") => void) | null>(null);
@@ -116,6 +121,66 @@ export function AIChatPanel({
     }
   }, [initialPrompt]);
 
+  // Check if message is a feature request (when inside a project)
+  const isFeatureRequest = (msg: string): boolean => {
+    if (!projectId) return false;
+    const featureKeywords = ['add', 'implement', 'change', 'modify', 'update', 'fix', 'create', 'build', 'new feature'];
+    const lower = msg.toLowerCase();
+    return featureKeywords.some(kw => lower.includes(kw));
+  };
+
+  // NEW: Handle feature addition to existing project
+  const handleFeatureRequest = async (request: string) => {
+    if (!projectId) return false;
+    
+    const loadingId = getMessageId();
+    setMessages(prev => [...prev, {
+      id: loadingId,
+      role: "assistant",
+      content: "🔧 Adding feature...",
+      isLoading: true,
+    }]);
+
+    try {
+      const res = await fetch("/api/project-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId, request }),
+      });
+
+      const data = await res.json();
+      
+      setMessages(prev => {
+        const withoutLoading = prev.filter(m => m.id !== loadingId);
+        if (data.success) {
+          return [...withoutLoading, {
+            id: getMessageId(),
+            role: "assistant",
+            content: `✅ **Feature added!**\n\n${data.message}\n\n**Files updated:**\n${data.filesUpdated?.map((f: string) => `- ${f}`).join('\n') || 'N/A'}`,
+          }];
+        } else {
+          return [...withoutLoading, {
+            id: getMessageId(),
+            role: "assistant",
+            content: `❌ Failed to add feature: ${data.error}`,
+          }];
+        }
+      });
+      
+      return true;
+    } catch (error) {
+      setMessages(prev => {
+        const withoutLoading = prev.filter(m => m.id !== loadingId);
+        return [...withoutLoading, {
+          id: getMessageId(),
+          role: "assistant",
+          content: "❌ Error adding feature. Please try again.",
+        }];
+      });
+      return true;
+    }
+  };
+
   // NEW: Auto-submit handler for initial prompt
   const handleAutoSubmit = async (prompt: string) => {
     if (submitLockRef.current) return;
@@ -123,6 +188,16 @@ export function AIChatPanel({
     setIsLoading(true);
 
     try {
+      // If inside a project and message looks like a feature request, handle it
+      if (isFeatureRequest(prompt)) {
+        const handled = await handleFeatureRequest(prompt);
+        if (handled) {
+          setIsLoading(false);
+          submitLockRef.current = false;
+          return;
+        }
+      }
+
       const history = [{ role: "user" as const, content: prompt }];
       
       // Add loading message
@@ -144,6 +219,7 @@ export function AIChatPanel({
         const triggerMatch = data.response?.match(/\[READY_TO_CREATE:\s*(\{[\s\S]*?\})\s*\]/);
         if (triggerMatch) {
           // Extract specs and create project
+          setIsReadyToCreate(true);
           const specs = JSON.parse(triggerMatch[1]);
           createProject(specs);
           
@@ -171,7 +247,9 @@ export function AIChatPanel({
   // NEW: Create project from specs
   const createProject = async (specs: any) => {
     setIsCreatingProject(true);
+    let projectId = null;
     try {
+      // Step 1: Create project
       const res = await fetch("/api/hermes-orchestrate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -185,16 +263,76 @@ export function AIChatPanel({
 
       const data = await res.json();
       if (data.success && data.projectId) {
+        projectId = data.projectId;
         setMessages(prev => [...prev, {
           id: getStatusId("creating"),
           role: "system",
-          content: `🚀 Project "${data.projectName}" created successfully!`,
+          content: `🚀 Project "${data.projectName}" created! Starting code generation...`,
           statusType: "creating",
           variant: "success",
         }]);
 
         if (onProjectCreated) {
           onProjectCreated(data.projectId);
+        }
+        
+        // Step 2: Trigger code generation
+        setMessages(prev => [...prev, {
+          id: getStatusId("generating"),
+          role: "system",
+          content: "⚡ Generating code files... This may take a minute.",
+          statusType: "generating",
+          variant: "info",
+        }]);
+        
+        const genRes = await fetch("/api/generate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            projectId: data.projectId,
+            prompt: specs.description || "Create project",
+            type: specs.type || "web",
+            provider: "deepseek",
+            skipResearch: true,
+          }),
+        });
+        
+        const genData = await genRes.json();
+        console.log("[createProject] Generate response:", genData);
+        
+        // Step 3: Wait for code generation to complete (poll for files)
+        let attempts = 0;
+        const maxAttempts = 30; // 30 seconds max
+        let files = [];
+        
+        while (attempts < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, 1000));
+          const filesRes = await fetch(`/api/project-files?projectId=${data.projectId}`);
+          const filesData = await filesRes.json();
+          files = filesData.files || [];
+          
+          if (files.length > 0) {
+            break;
+          }
+          attempts++;
+        }
+        
+        if (files.length > 0) {
+          setMessages(prev => [...prev, {
+            id: getStatusId("ready"),
+            role: "system",
+            content: `✅ Code generation complete! ${files.length} files generated. Click the Deploy button to build and deploy to Cloudflare!`,
+            statusType: "ready",
+            variant: "success",
+          }]);
+        } else {
+          setMessages(prev => [...prev, {
+            id: getStatusId("ready"),
+            role: "system",
+            content: `⚠️ Code generation started but no files yet. Click Deploy to try building.`,
+            statusType: "ready",
+            variant: "warning",
+          }]);
         }
       }
     } catch (error) {
@@ -266,6 +404,16 @@ export function AIChatPanel({
     setInput("");
     setIsLoading(true);
 
+      // If inside a project and message looks like a feature request, handle it
+      if (isFeatureRequest(currentInput)) {
+        const handled = await handleFeatureRequest(currentInput);
+        if (handled) {
+          setIsLoading(false);
+          setTimeout(() => { submitLockRef.current = false; }, 100);
+          return;
+        }
+      }
+
     try {
       const currentMessages = messagesRef.current;
       const history = currentMessages
@@ -285,6 +433,8 @@ export function AIChatPanel({
         if (triggerMatch) {
           const specs = JSON.parse(triggerMatch[1]);
           createProject(specs);
+          
+          // Deploy reminder is now handled by createProject after code generation completes
           
           return [...withoutLoading, {
             id: getMessageId(),
@@ -455,6 +605,11 @@ export function AIChatPanel({
       </div>
 
       {/* Input */}
+      {isReadyToCreate && (
+        <div className="mx-3 mt-2 p-2 bg-purple-50 border border-purple-200 rounded-lg text-sm text-purple-700 text-center">
+          **Click the purple Build button above to start building your app!**
+        </div>
+      )}
       <form
         onSubmit={handleSubmit}
         className="p-3 border-t border-gray-200"
@@ -464,13 +619,13 @@ export function AIChatPanel({
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask Morgan anything..."
+            placeholder={isReadyToCreate ? "✨ Click the Build button to start building!" : "Ask Morgan anything..."}
             className="flex-1 bg-white border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 placeholder:text-gray-400 focus:outline-none focus:border-cyan-500"
-            disabled={isLoading || isCreatingProject}
+            disabled={isLoading || isCreatingProject || isReadyToCreate}
           />
           <button
             type="submit"
-            disabled={isLoading || isCreatingProject || !input.trim()}
+            disabled={isLoading || isCreatingProject || isReadyToCreate || !input.trim()}
             className="px-3 py-2 text-white rounded-lg hover:opacity-90 transition-opacity disabled:opacity-50 bg-gradient-to-r from-purple-500 to-pink-500 flex items-center gap-2"
           >
             {isLoading ? (
