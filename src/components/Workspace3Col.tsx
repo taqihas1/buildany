@@ -754,36 +754,42 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
 }
 
 function FileTree({ nodes, onSelect, selectedFile, depth = 0 }: { nodes: FileNode[]; onSelect: (path: string) => void; selectedFile: string | null; depth?: number }) {
+  if (!nodes || nodes.length === 0) return null;
   return (
     <div className="space-y-0.5">
-      {nodes.map((node) => (
-        <div key={node.path}>
-          {node.type === "directory" ? (
-            <div>
-              <div className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-400" style={{ paddingLeft: `${depth * 12 + 8}px` }}>
-                <Folder className="w-3 h-3" />
-                {node.name}
+      {nodes.map((node) => {
+        // Defensive: derive name from path if missing (handles DB-format data)
+        const displayName = node.name || node.path?.split("/").pop() || "unnamed";
+        const nodeType = node.type || (node.children ? "directory" : "file");
+        return (
+          <div key={node.path || displayName}>
+            {nodeType === "directory" ? (
+              <div>
+                <div className="flex items-center gap-1.5 px-2 py-1 text-xs text-gray-400" style={{ paddingLeft: `${depth * 12 + 8}px` }}>
+                  <Folder className="w-3 h-3 shrink-0" />
+                  <span className="truncate">{displayName}</span>
+                </div>
+                {node.children && (
+                  <FileTree nodes={node.children} onSelect={onSelect} selectedFile={selectedFile} depth={depth + 1} />
+                )}
               </div>
-              {node.children && (
-                <FileTree nodes={node.children} onSelect={onSelect} selectedFile={selectedFile} depth={depth + 1} />
-              )}
-            </div>
-          ) : (
-            <button
-              onClick={() => onSelect(node.path)}
-              className={`w-full flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors text-left ${
-                selectedFile === node.path
-                  ? "bg-purple-600/20 text-purple-400"
-                  : "text-gray-500 hover:text-gray-300 hover:bg-gray-800"
-              }`}
-              style={{ paddingLeft: `${depth * 12 + 8}px` }}
-            >
-              <FileCode className="w-3 h-3" />
-              {node.name}
-            </button>
-          )}
-        </div>
-      ))}
+            ) : (
+              <button
+                onClick={() => onSelect(node.path)}
+                className={`w-full flex items-center gap-1.5 px-2 py-1 text-xs rounded transition-colors text-left ${
+                  selectedFile === node.path
+                    ? "bg-purple-600/20 text-purple-400"
+                    : "text-gray-500 hover:text-gray-300 hover:bg-gray-800"
+                }`}
+                style={{ paddingLeft: `${depth * 12 + 8}px` }}
+              >
+                <FileCode className="w-3 h-3 shrink-0" />
+                <span className="truncate">{displayName}</span>
+              </button>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
