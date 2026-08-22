@@ -24,7 +24,7 @@ export async function buildSkillRegistry(): Promise<SkillRegistry> {
 }
 
 export function buildARD(projectId: string, r: SkillRegistry): string {
-  return `# ARD: ${projectId}\n## Kelly Skills\n${r.hermesSkills.map(s => `- ${s}`).join("\n") || "- loading"}\n## Superpower Skills\n${r.superpowerSkills.map(s => `- ${s}: ${r.descriptions[s]||"skill"}`).join("\n")}\n## Ponytail Rules\n${r.ponytailSkills.map(s => `- ${s}: ${r.descriptions[s]||"minimalist"}`).join("\n")}\n## Morgan Tools\n${r.morganTools.map(t => `- ${t}: ${r.descriptions[t]||"tool"}`).join("\n")}\n## Stack\nNext.js 15, React 19, TypeScript, Tailwind, shadcn/ui, SQLite, Clerk, DeepSeek`;
+  return `# ARD: ${projectId}\n## Kelly Skills\n${r.hermesSkills.map(s => `- ${s}`).join("\n") || "- loading"}\n## Superpower Skills\n${r.superpowerSkills.map(s => `- ${s}: ${r.descriptions[s]||"skill"}`).join("\n")}\n## Ponytail Rules\n${r.ponytailSkills.map(s => `- ${s}: ${r.descriptions[s]||"minimalist"}`).join("\n")}\n## Morgan Tools\n${r.morganTools.map(t => `- ${t}: ${r.descriptions[t]||"tool"}`).join("\n")}\n## Stack\nNext.js 15, React 18, TypeScript, Tailwind, shadcn/ui, SQLite, Clerk, DeepSeek`;
 }
 
 export function buildOKF(projectId: string, learnings: string[], prev?: string): string {

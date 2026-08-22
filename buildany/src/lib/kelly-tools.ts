@@ -728,7 +728,7 @@ function buildGenerationPrompt(description: string, stack: string): string {
 """${description}"""
 
 Requirements:
-- Use ${stack === "nextjs" ? "Next.js 15 App Router, React 19, TypeScript, Tailwind CSS" : stack}
+- Use ${stack === "nextjs" ? "Next.js 15 App Router, React 18, TypeScript, Tailwind CSS" : stack}
 - CRITICAL: NEVER import <Html>, <Head>, <Main>, <NextScript> from 'next/document' in any page
 - CRITICAL: For App Router, use standard JSX (<div>, <main>, etc.) not next/document components
 - Include a package.json with all dependencies
