@@ -131,7 +131,7 @@ async function loadUserPreferences(): Promise<string> {
   // Fallback to known preferences from project history
   return `- Fonts: Playfair Display (headings) + Geist Sans (body)
 - Colors: Purple-pink gradients preferred
-- Stack: Next.js 15, React 18, Tailwind, shadcn/ui, SQLite
+- Stack: Next.js, React, TypeScript, Tailwind, shadcn/ui, SQLite
 - Style: Minimalist, clean, modern
 - Auth: Clerk (optional)`;
 }

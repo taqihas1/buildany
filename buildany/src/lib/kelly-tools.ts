@@ -728,9 +728,11 @@ function buildGenerationPrompt(description: string, stack: string): string {
 """${description}"""
 
 Requirements:
-- Use ${stack === "nextjs" ? "Next.js 15 App Router, React 18, TypeScript, Tailwind CSS" : stack}
+- Use ${stack === "nextjs" ? "Next.js App Router, React, TypeScript, Tailwind CSS" : stack}
 - CRITICAL: NEVER import <Html>, <Head>, <Main>, <NextScript> from 'next/document' in any page
 - CRITICAL: For App Router, use standard JSX (<div>, <main>, etc.) not next/document components
+- CRITICAL: Use caret (^) version ranges in package.json (e.g., "^18.3.1" not "18.3.1") — NEVER pin exact versions
+- CRITICAL: Include an .npmrc file with: legacy-peer-deps=true
 - Include a package.json with all dependencies
 - Include next.config.js with output: 'export'
 - Make it visually appealing with modern UI
@@ -743,7 +745,7 @@ Return each file in this format:
 file content here
 \`\`\`
 
-Start with package.json, then next.config.js, then layout, then pages.`;
+Start with package.json, then .npmrc, then next.config.js, then layout, then pages.`;
 }
 
 function parseGeneratedFiles(content: string): Record<string, string> {
