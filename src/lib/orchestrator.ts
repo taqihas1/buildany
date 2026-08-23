@@ -793,14 +793,30 @@ export class KellyOrchestrator {
       
       let hermesOutput = "";
       try {
+        // Copy prompt into container (host /tmp not mounted in container)
+        const containerPromptPath = `/tmp/hermes-prompt-${this.state.projectId}.txt`;
+        await execAsync(`docker cp ${promptFile} hermes-gateway:${containerPromptPath}`);
+        
+        // Run Hermes with skills and yolo mode (auto-approve for headless)
         const { stdout, stderr } = await execAsync(
-          `docker exec hermes-gateway hermes -s spec-driven-development -s frontend-ui-engineering -s incremental-implementation -s code-review-and-quality chat -f ${promptFile} -t hermes-cli`,
+          `docker exec hermes-gateway sh -c 'hermes -z "$(cat ${containerPromptPath})" -s spec-driven-development,frontend-ui-engineering,incremental-implementation,code-review-and-quality --yolo'`,
           { timeout: 300000, maxBuffer: 50 * 1024 * 1024 }
         );
         hermesOutput = stdout || "";
         if (stderr) console.log("[Hermes stderr]:", stderr);
       } catch (hermesErr: any) {
         console.error("[Hermes] CLI error:", hermesErr.message);
+        // Fallback: try direct docker exec with shorter prompt
+        try {
+          const shortPrompt = `Build a ${this.state.platform} app: ${this.state.prompt}. Use Next.js 15, Tailwind CSS, dark theme, demo data. Return all files as \`\`\`tsx:path\`\`\` blocks.`;
+          const { stdout } = await execAsync(
+            `docker exec hermes-gateway hermes -z "${shortPrompt.replace(/"/g, '\\"')}" -s frontend-ui-engineering --yolo`,
+            { timeout: 300000, maxBuffer: 50 * 1024 * 1024 }
+          );
+          hermesOutput = stdout || "";
+        } catch (fallbackErr: any) {
+          console.error("[Hermes] Fallback also failed:", fallbackErr.message);
+        }
       }
       
       const result = {
