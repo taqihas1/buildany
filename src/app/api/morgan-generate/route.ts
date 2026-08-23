@@ -192,6 +192,14 @@ RULES:
 - Return ONLY the file paths and code blocks, no extra commentary.
 - Make the app feel REAL and COMPLETE — not a template or placeholder.`;
 
+    // ── STEP 1: Generate Feature Spec ──
+    console.log("[Morgan] Step 1: Generating feature specification...");
+    const featureSpec = await generateFeatureSpec(prompt, projectTypeForPrompt);
+    console.log("[Morgan] Feature spec generated:", featureSpec.slice(0, 200) + "...");
+
+    // ── STEP 2: Generate Code with Feature Spec as context ──
+    const codeGenPrompt = `${morganPrompt}\n\n--- FEATURE SPECIFICATION (FOLLOW EXACTLY) ---\n${featureSpec}\n\n--- END SPEC ---\n\nNow generate ALL files listed in the spec above. Make sure page.tsx imports and uses EVERY component. Include all demo data in src/lib/data.ts.`;
+
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -200,7 +208,7 @@ RULES:
       },
       body: JSON.stringify({
         model: "deepseek-v4-pro",
-        messages: [{ role: "user", content: morganPrompt }],
+        messages: [{ role: "user", content: codeGenPrompt }],
         temperature: 0.7,
         max_tokens: 4000,
       }),
@@ -598,5 +606,97 @@ ${componentUsage.join("\n")}
     console.log("[Sanitize] Rebuilt page.tsx with", componentImports.length, "component imports");
   } catch (e) {
     console.error("[Sanitize] fixPlaceholderPage error:", e);
+  }
+}
+
+// ── Feature Specification Generator ───────────────────────────────────────
+
+/** Step 1: Call DeepSeek to generate a structured feature spec from user prompt */
+async function generateFeatureSpec(userPrompt: string, techStack: string): Promise<string> {
+  const specPrompt = `You are a senior product manager and UI/UX architect. Analyze this app request and output a detailed FEATURE SPECIFICATION.
+
+App Request: "${userPrompt}"
+Tech Stack: ${techStack}
+
+Output a structured feature spec in this exact format:
+
+# Feature Specification
+
+## App Overview
+- Name: [short catchy name]
+- Purpose: [one sentence]
+- Target user: [who uses this app]
+
+## Pages & Routes
+1. **Home (/)** — [what's on this page, what sections]
+2. **[Page Name] (/[route])** — [description]
+... (list ALL pages)
+
+## Component Inventory
+For EACH component, specify:
+- Name: [PascalCase name]
+- Props: [prop names and types]
+- Purpose: [what it renders]
+- File: src/components/ui/[name].tsx or src/components/[name].tsx
+
+## Color Theme
+- Primary: [exact Tailwind class, e.g. bg-blue-600]
+- Accent: [exact Tailwind class, e.g. bg-cyan-400]
+- Background: [exact Tailwind class, e.g. bg-slate-900]
+- Card background: [exact Tailwind class, e.g. bg-white]
+- Text primary: [exact Tailwind class, e.g. text-gray-900]
+- Text secondary: [exact Tailwind class, e.g. text-gray-600]
+
+## Demo Data
+Describe exactly what demo data should exist in src/lib/data.ts:
+- [Data type]: [number of items], [example fields]
+... (be specific, use REAL names and numbers, not "Item 1")
+
+## Layout Structure
+- Header: [yes/no, what's in it]
+- Sidebar: [yes/no]
+- Footer: [yes/no]
+- Main content: [grid/flex/stack, number of columns on desktop]
+
+## Key Features
+1. [Feature name] — [how it works in the UI]
+2. ...
+
+## Animations & Effects
+- [List specific animations: fade-in, slide-up, hover scale, etc.]
+- [Which elements get which animation]
+
+RULES:
+- Be SPECIFIC — exact Tailwind classes, exact component names
+- Do NOT write code, only write the spec
+- The code generator will read this spec and build the app from it
+- Make it detailed enough that a developer could build the app without asking questions`;
+
+  try {
+    const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${process.env.DEEPSEEK_API_KEY || ""}`,
+      },
+      body: JSON.stringify({
+        model: "deepseek-chat",
+        messages: [{ role: "user", content: specPrompt }],
+        temperature: 0.5,
+        max_tokens: 2000,
+      }),
+    });
+
+    if (!response.ok) {
+      console.error("[FeatureSpec] DeepSeek API error:", response.status);
+      return ""; // fallback: no spec, let Morgan freestyle
+    }
+
+    const data = await response.json();
+    const spec = data.choices?.[0]?.message?.content || "";
+    return spec;
+  } catch (e) {
+    console.error("[FeatureSpec] Error:", e);
+    return ""; // fallback
   }
 }
