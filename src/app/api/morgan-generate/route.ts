@@ -121,30 +121,46 @@ export async function POST(req: NextRequest) {
 
     const morganPrompt = `Build this app: "${prompt}"
 
-Tech: ${projectTypeForPrompt}, TypeScript, Tailwind CSS.
-Rules:
+Tech: ${projectTypeForPrompt}, TypeScript, Tailwind CSS, Lucide React icons.
+
+DESIGN REQUIREMENTS (MANDATORY):
+- MODERN and COLORFUL — use vibrant gradients, rich color palettes, NOT boring gray/white
+- Use rounded corners (rounded-xl, rounded-2xl), soft shadows (shadow-lg, shadow-xl)
+- Include hover effects, transitions, and smooth animations
+- Use a cohesive color theme: primary color + accent color + neutral backgrounds
+- Cards, pills, badges, and modern UI patterns everywhere
+- Proper spacing with padding and gap utilities
+- Demo data MUST be included — real-looking content, not "Item 1", "Item 2" placeholders
+- Use Lucide icons (import from 'lucide-react') for visual polish
+- Responsive design: stack on mobile, grid on desktop
+- If showing data, use charts or visual representations (progress bars, stat cards, etc.)
+
+FILE STRUCTURE — Generate these files:
+1. src/app/page.tsx (main page — can import components from ../components/)
+2. src/app/layout.tsx (root layout with proper fonts, metadata)
+3. src/app/globals.css (Tailwind directives + custom theme colors + animations)
+4. src/components/*.tsx (as MANY components as needed — cards, headers, stats, lists, charts, etc.)
+5. src/lib/data.ts (demo data — realistic mock data with proper names, values, images)
+6. src/lib/utils.ts (cn() utility — already provided)
+7. next.config.js
+8. package.json
+9. tsconfig.json
+10. tailwind.config.js (with custom colors, animations, and theme extensions)
+
+RULES:
 - Use the App Router (src/app).
-- ALL components must be INLINE in page files. DO NOT create separate component files.
-- DO NOT use @/components/ imports. Define all JSX directly in each page.
+- Export default page components.
 - Use client components ONLY when needed ('use client').
 - Keep server components async when possible.
-- Use Next.js built-in features: Image, Link, Script.
-- Export default page components.
+- Use Next.js built-in features: Image, Link.
 - CRITICAL: NEVER import <Html>, <Head>, <Main>, or <NextScript> from 'next/document' in any page.
 - CRITICAL: NEVER create pages/_error.js or pages/_document.js or pages/500.js or pages/404.js
-- Do NOT use <img>; always use next/image <Image>.
+- Do NOT use <img>; always use next/image <Image> with unoptimized={true}.
 - CRITICAL: NEVER put <link rel="stylesheet" /> in JSX.
-- CRITICAL: NEVER call hooks like useState() directly in JSX.
-- Do NOT create empty route files.
+- CRITICAL: NEVER call hooks like useState() directly in JSX return (always inside components).
+- The cn() utility is available at @/lib/utils — it supports clsx syntax: cn("base", condition && "class", "other")
 - Return ONLY the file paths and code blocks, no extra commentary.
-
-Generate these files ONLY:
-1. src/app/page.tsx (main page with ALL components inline)
-2. src/app/layout.tsx (root layout, NO external imports)
-3. src/app/globals.css (Tailwind directives + custom styles)
-4. next.config.js
-5. package.json
-6. tsconfig.json`;
+- Make the app feel REAL and COMPLETE — not a template or placeholder.`;
 
     const response = await fetch("https://api.deepseek.com/v1/chat/completions", {
       method: "POST",
@@ -206,8 +222,12 @@ Generate these files ONLY:
     await writeNextConfig(projectDir);
     await writeTsConfig(projectDir);
     await writeTailwindConfig(projectDir);
+    await writeUtilsFile(projectDir);
 
     sanitizeGeneratedFiles(projectDir);
+    
+    // Ensure utils.ts is always correct (overwrites any AI-generated broken version)
+    await writeUtilsFile(projectDir);
 
     try {
       execSync("git add -A", { cwd: projectDir, stdio: "ignore" });
@@ -255,7 +275,7 @@ async function writePackageJson(projectDir: string, type: string) {
     },
     dependencies: isMobile
       ? { react: "^18", "react-native": "^0.73", expo: "~50.0.0" }
-      : { next: "^15.0.0", react: "^19.0.0", "react-dom": "^19.0.0", tailwindcss: "^3.4.0", autoprefixer: "^10.4.0", postcss: "^8.4.0" },
+      : { next: "^15.0.0", react: "^19.0.0", "react-dom": "^19.0.0", tailwindcss: "^3.4.0", autoprefixer: "^10.4.0", postcss: "^8.4.0", clsx: "^2.1.0", "tailwind-merge": "^2.2.0", "lucide-react": "^0.400.0" },
     devDependencies: isMobile
       ? { "@types/react": "^18", typescript: "^5.3" }
       : { "@types/node": "^20", "@types/react": "^19", "@types/react-dom": "^19", typescript: "^5.3" },
@@ -311,10 +331,47 @@ module.exports = {
     './src/components/**/*.{js,ts,jsx,tsx,mdx}',
     './src/app/**/*.{js,ts,jsx,tsx,mdx}',
   ],
-  theme: { extend: {} },
+  theme: {
+    extend: {
+      colors: {
+        primary: {
+          50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 300: '#93c5fd',
+          400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8',
+          800: '#1e40af', 900: '#1e3a8a',
+        },
+        accent: {
+          50: '#fdf4ff', 100: '#fae8ff', 200: '#f5d0fe', 300: '#f0abfc',
+          400: '#e879f9', 500: '#d946ef', 600: '#c026d3', 700: '#a21caf',
+          800: '#86198f', 900: '#701a75',
+        },
+      },
+      animation: {
+        'fade-in': 'fadeIn 0.5s ease-out',
+        'slide-up': 'slideUp 0.5s ease-out',
+        'bounce-slow': 'bounce 2s infinite',
+      },
+      keyframes: {
+        fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+        slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
+      },
+    },
+  },
   plugins: [],
 };
 `;
   await fs.writeFile(path.join(projectDir, "tailwind.config.js"), config.trim());
   await fs.writeFile(path.join(projectDir, "postcss.config.js"), `module.exports = { plugins: { tailwindcss: {}, autoprefixer: {} } };`);
+}
+
+async function writeUtilsFile(projectDir: string) {
+  const utilsContent = `import { type ClassValue, clsx } from "clsx";
+import { twMerge } from "tailwind-merge";
+
+export function cn(...inputs: ClassValue[]) {
+  return twMerge(clsx(inputs));
+}
+`;
+  const libDir = path.join(projectDir, "src", "lib");
+  await fs.mkdir(libDir, { recursive: true });
+  await fs.writeFile(path.join(libDir, "utils.ts"), utilsContent.trim());
 }
