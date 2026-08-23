@@ -797,9 +797,9 @@ export class KellyOrchestrator {
         const containerPromptPath = `/tmp/hermes-prompt-${this.state.projectId}.txt`;
         await execAsync(`docker cp ${promptFile} hermes-gateway:${containerPromptPath}`);
         
-        // Run Hermes with prompt from file inside container
+        // Run Hermes with skills and yolo mode (auto-approve for headless)
         const { stdout, stderr } = await execAsync(
-          `docker exec hermes-gateway sh -c 'hermes -z "$(cat ${containerPromptPath})"'`,
+          `docker exec hermes-gateway sh -c 'hermes -z "$(cat ${containerPromptPath})" -s spec-driven-development,frontend-ui-engineering,incremental-implementation,code-review-and-quality --yolo'`,
           { timeout: 300000, maxBuffer: 50 * 1024 * 1024 }
         );
         hermesOutput = stdout || "";
@@ -810,7 +810,7 @@ export class KellyOrchestrator {
         try {
           const shortPrompt = `Build a ${this.state.platform} app: ${this.state.prompt}. Use Next.js 15, Tailwind CSS, dark theme, demo data. Return all files as \`\`\`tsx:path\`\`\` blocks.`;
           const { stdout } = await execAsync(
-            `docker exec hermes-gateway hermes -z "${shortPrompt.replace(/"/g, '\\"')}"`,
+            `docker exec hermes-gateway hermes -z "${shortPrompt.replace(/"/g, '\\"')}" -s frontend-ui-engineering --yolo`,
             { timeout: 300000, maxBuffer: 50 * 1024 * 1024 }
           );
           hermesOutput = stdout || "";
