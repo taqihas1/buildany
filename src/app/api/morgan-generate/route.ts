@@ -135,13 +135,21 @@ DESIGN REQUIREMENTS (MANDATORY):
 - Responsive design: stack on mobile, grid on desktop
 - If showing data, use charts or visual representations (progress bars, stat cards, etc.)
 
+PAGE.TSX — CRITICAL RULES:
+- page.tsx is the MAIN page — it MUST import and render ALL components you create
+- NEVER write a generic "Welcome to Your App" or "Your app is ready" placeholder
+- The page should be FULLY FUNCTIONAL and FEATURE-RICH on first render
+- Import components like: import { Card } from "@/components/ui/card" or "../components/ui/card"
+- Use demo data from src/lib/data.ts to populate the UI
+- The user should see a REAL app, not a template
+
 FILE STRUCTURE — Generate these files:
-1. src/app/page.tsx (main page — can import components from ../components/)
+1. src/app/page.tsx (MAIN page — imports and uses ALL components, fully functional)
 2. src/app/layout.tsx (root layout with proper fonts, metadata)
 3. src/app/globals.css (Tailwind directives + custom theme colors + animations)
 4. src/components/*.tsx (as MANY components as needed — cards, headers, stats, lists, charts, etc.)
 5. src/lib/data.ts (demo data — realistic mock data with proper names, values, images)
-6. src/lib/utils.ts (cn() utility — already provided)
+6. src/lib/utils.ts (cn() utility — already provided, DO NOT modify)
 7. next.config.js
 8. package.json
 9. tsconfig.json
@@ -158,7 +166,9 @@ RULES:
 - Do NOT use <img>; always use next/image <Image> with unoptimized={true}.
 - CRITICAL: NEVER put <link rel="stylesheet" /> in JSX.
 - CRITICAL: NEVER call hooks like useState() directly in JSX return (always inside components).
-- The cn() utility is available at @/lib/utils — it supports clsx syntax: cn("base", condition && "class", "other")
+- The cn() utility is at @/lib/utils — use with CONDITIONAL STRINGS only:
+  GOOD: cn("base", variant === "primary" && "bg-blue-500", size === "lg" && "px-4")
+  BAD:  cn({ "bg-blue-500": variant === "primary" })  ← NEVER use object syntax, TypeScript will fail
 - Return ONLY the file paths and code blocks, no extra commentary.
 - Make the app feel REAL and COMPLETE — not a template or placeholder.`;
 
