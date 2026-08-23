@@ -135,17 +135,37 @@ DESIGN REQUIREMENTS (MANDATORY):
 - Responsive design: stack on mobile, grid on desktop
 - If showing data, use charts or visual representations (progress bars, stat cards, etc.)
 
+COLOR PALETTE — Use these specific Tailwind classes (pick a theme and stick to it):
+- Blue theme: bg-gradient-to-br from-blue-500 to-cyan-400, text-blue-600, bg-blue-50
+- Purple theme: bg-gradient-to-br from-purple-500 to-pink-400, text-purple-600, bg-purple-50
+- Orange theme: bg-gradient-to-br from-orange-500 to-amber-400, text-orange-600, bg-orange-50
+- Emerald theme: bg-gradient-to-br from-emerald-500 to-teal-400, text-emerald-600, bg-emerald-50
+- Dark theme: bg-slate-900, text-slate-100, bg-slate-800 for cards
+- ALWAYS use bg-white or bg-slate-50 for card backgrounds (not transparent)
+- Use text-gray-900 for headings, text-gray-600 for body text
+
+EVERY ELEMENT MUST HAVE TAILWIND CLASSES:
+- Cards: className="bg-white rounded-2xl shadow-lg p-6 border border-gray-100"
+- Buttons: className="px-6 py-3 bg-blue-600 text-white rounded-xl font-semibold hover:bg-blue-700 transition-colors"
+- Headings: className="text-3xl font-bold text-gray-900"
+- Stats: className="text-4xl font-bold text-blue-600"
+- Navigation: className="bg-white border-b border-gray-200 px-6 py-4"
+- Layout containers: className="min-h-screen bg-gray-50" or "bg-slate-950" for dark
+- Grids: className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+- Flex: className="flex items-center justify-between gap-4"
+
 PAGE.TSX — CRITICAL RULES:
 - page.tsx is the MAIN page — it MUST import and render ALL components you create
 - NEVER write a generic "Welcome to Your App" or "Your app is ready" placeholder
 - The page should be FULLY FUNCTIONAL and FEATURE-RICH on first render
-- Import components like: import { Card } from "@/components/ui/card" or "../components/ui/card"
+- Import components like: import { Card } from "@/components/ui/card"
 - Use demo data from src/lib/data.ts to populate the UI
 - The user should see a REAL app, not a template
+- Wrap everything in a styled container: <main className="min-h-screen bg-gray-50 p-6">
 
 FILE STRUCTURE — Generate these files:
 1. src/app/page.tsx (MAIN page — imports and uses ALL components, fully functional)
-2. src/app/layout.tsx (root layout with proper fonts, metadata)
+2. src/app/layout.tsx (root layout with proper fonts, metadata, MUST import "./globals.css")
 3. src/app/globals.css (Tailwind directives + custom theme colors + animations)
 4. src/components/*.tsx (as MANY components as needed — cards, headers, stats, lists, charts, etc.)
 5. src/lib/data.ts (demo data — realistic mock data with proper names, values, images)
@@ -235,6 +255,11 @@ RULES:
     await writeUtilsFile(projectDir);
 
     sanitizeGeneratedFiles(projectDir);
+    
+    // Fix common Morgan mistakes
+    await fixLayoutImports(projectDir);
+    await fixPageComponentUsage(projectDir);
+    await fixCnObjectSyntax(projectDir);
     
     // Ensure utils.ts is always correct (overwrites any AI-generated broken version)
     await writeUtilsFile(projectDir);
@@ -384,4 +409,68 @@ export function cn(...inputs: ClassValue[]) {
   const libDir = path.join(projectDir, "src", "lib");
   await fs.mkdir(libDir, { recursive: true });
   await fs.writeFile(path.join(libDir, "utils.ts"), utilsContent.trim());
+}
+
+// ── Post-generation sanitizers ─────────────────────────────────────────────
+
+/** Ensure layout.tsx imports globals.css */
+async function fixLayoutImports(projectDir: string) {
+  const layoutPath = path.join(projectDir, "src", "app", "layout.tsx");
+  try {
+    let code = await fs.readFile(layoutPath, "utf8");
+    if (!code.includes("globals.css") && !code.includes("./globals.css")) {
+      // Add import at top
+      code = `import "./globals.css";\n` + code;
+      await fs.writeFile(layoutPath, code);
+      console.log("[Sanitize] Added globals.css import to layout.tsx");
+    }
+  } catch {
+    // layout.tsx may not exist
+  }
+}
+
+/** Fix page.tsx to use actual JSX components instead of text */
+async function fixPageComponentUsage(projectDir: string) {
+  const pagePath = path.join(projectDir, "src", "app", "page.tsx");
+  try {
+    let code = await fs.readFile(pagePath, "utf8");
+    // Fix "Component: X" or "{X}" rendered as text — replace with <X />
+    // Pattern: "Component: StatCard" → <StatCard />
+    code = code.replace(/Component:\s*(\w+)/g, '<$1 />');
+    // Fix standalone component names in JSX that aren't tags
+    // e.g. {StatCard} without < > around it
+    await fs.writeFile(pagePath, code);
+  } catch {
+    // page.tsx may not exist
+  }
+}
+
+/** Replace cn() object syntax with conditional strings to avoid TypeScript errors */
+async function fixCnObjectSyntax(projectDir: string) {
+  const srcDir = path.join(projectDir, "src");
+  try {
+    const entries = await fs.readdir(srcDir, { recursive: true });
+    for (const entry of entries) {
+      if (typeof entry === "string" && (entry.endsWith(".tsx") || entry.endsWith(".ts"))) {
+        const fp = path.join(srcDir, entry);
+        let code = await fs.readFile(fp, "utf8");
+        // Replace cn({ "class-name": condition }) with cn(condition && "class-name")
+        // This is a simple regex that catches most cases
+        code = code.replace(/cn\(\s*\{([^}]+)\}\s*\)/g, (match: string, content: string) => {
+          const pairs = content.split(",").map((p: string) => p.trim()).filter(Boolean);
+          const conditions = pairs.map((pair: string) => {
+            const colonIdx = pair.indexOf(":");
+            if (colonIdx === -1) return pair;
+            const className = pair.slice(0, colonIdx).trim().replace(/['"]/g, "");
+            const condition = pair.slice(colonIdx + 1).trim();
+            return `${condition} && "${className}"`;
+          });
+          return `cn(${conditions.join(", ")})`;
+        });
+        await fs.writeFile(fp, code);
+      }
+    }
+  } catch (e) {
+    console.error("[Sanitize] fixCnObjectSyntax error:", e);
+  }
 }
