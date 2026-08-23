@@ -1,6 +1,9 @@
 import path from "path";
 import fs from "fs/promises";
+import { exec } from "child_process";
+import { promisify } from "util";
 
+const execAsync = promisify(exec);
 const PROJECTS_DIR = "/data/projects";
 
 /**
@@ -780,17 +783,33 @@ export class KellyOrchestrator {
         'coding',
         `Project: ${this.state.prompt}\nPlatform: ${this.state.platform}`
       );
-      console.log('[Kelly] Starting code generation with skill-enhanced prompts, provider:', 'deepseek', 'platform:', this.state.platform);
+      // ─── CALL HERMES AGENT (The Brain) ───
+      console.log('[Kelly] Starting code generation with Hermes agent...');
       
-      const result = await llmRouter.generate({
-        prompt: this.state.prompt,
-        systemPrompt: enhancedSystemPrompt,
-        provider: 'deepseek',
-        temperature: 0.7,
-        maxTokens: 4000,
-      });
+      const promptFile = `/tmp/hermes-prompt-${this.state.projectId}.txt`;
+      const hermesPrompt = `${enhancedSystemPrompt}\n\n## USER REQUEST\n\n${this.state.prompt}\n\nGenerate a complete, functional ${this.state.platform} app. Return ALL files in code blocks with paths like:\n\n\`\`\`tsx:src/app/page.tsx\n// code here\n\`\`\`\n\nRules:\n- Use 'use client' for client components\n- Import globals.css in layout.tsx\n- Use next/image with unoptimized={true}\n- NEVER use cn() with object syntax\n- Include demo data so the app works immediately\n- Dark theme with gradients preferred\n- Include lucide-react icons\n- page.tsx MUST import and render ALL components from src/components/\n`;
       
-      console.log('[Kelly] LLM result:', { success: result.success, hasContent: !!result.content, error: result.error });
+      await fs.writeFile(promptFile, hermesPrompt, "utf8");
+      
+      let hermesOutput = "";
+      try {
+        const { stdout, stderr } = await execAsync(
+          `docker exec hermes-gateway hermes -s spec-driven-development -s frontend-ui-engineering -s incremental-implementation -s code-review-and-quality chat -f ${promptFile} -t hermes-cli`,
+          { timeout: 300000, maxBuffer: 50 * 1024 * 1024 }
+        );
+        hermesOutput = stdout || "";
+        if (stderr) console.log("[Hermes stderr]:", stderr);
+      } catch (hermesErr: any) {
+        console.error("[Hermes] CLI error:", hermesErr.message);
+      }
+      
+      const result = {
+        success: !!(hermesOutput && hermesOutput.length > 100),
+        content: hermesOutput,
+        error: hermesOutput && hermesOutput.length > 100 ? null : "Hermes agent produced no output",
+      };
+      
+      console.log('[Kelly] Hermes result:', { success: result.success, hasContent: !!result.content, length: result.content?.length });
 
       if (!result.success || !result.content) {
         await this.updateTaskStatus('Architecture', 'failed');
@@ -1016,25 +1035,19 @@ export function ${pascalName}(props: ${pascalName}Props) {
             return { name, path: importPath };
           });
         
-        // Create a SIMPLE page without component imports (avoid TS errors from missing props)
-        const pageContent = `'use client';
-
-import React from "react";
-
-export default function HomePage() {
-  return (
-    <main className="min-h-screen p-8 bg-gray-50">
-      <div className="max-w-2xl mx-auto">
-        <h1 className="text-3xl font-bold mb-4 text-gray-900">Welcome to Your App</h1>
-        <p className="text-gray-600 mb-8">Built with BuildAny</p>
-        <div className="bg-white rounded-lg shadow p-6">
-          <p className="text-sm text-gray-500">Your app is ready. Components have been generated and are available in the file tree.</p>
-        </div>
-      </div>
-    </main>
-  );
-}
-`;
+        // Build rich page from generated components
+        const compFiles = Array.from(allGeneratedPaths)
+          .filter(p => p.includes('/components/') && p.endsWith('.tsx') && !p.includes('/page.tsx'))
+          .map(p => {
+            const name = p.split('/').pop()?.replace('.tsx', '') || '';
+            const clean = name.split('-').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join('');
+            return { name: clean, path: p.replace('src/', '@/').replace('.tsx', '') };
+          });
+        
+        const imports = compFiles.map(c => `import { ${c.name} } from "${c.path}";`).join('\n');
+        const usage = compFiles.map(c => `        <${c.name} />`).join('\n');
+        
+        const pageContent = `// @ts-nocheck\n'use client';\n\nimport React from "react";\n${imports}\n\nexport default function HomePage() {\n  return (\n    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">\n      <header className="border-b border-white/10 bg-white/5 backdrop-blur-xl">\n        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">\n          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">\n            BuildAny App\n          </h1>\n          <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-sm">Pro</span>\n        </div>\n      </header>\n\n      <section className="max-w-7xl mx-auto px-6 py-12">\n        <div className="text-center mb-12">\n          <h2 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">\n            Your Dashboard\n          </h2>\n          <p className="text-xl text-gray-400 max-w-2xl mx-auto">\n            Modern app with real-time insights and beautiful visualizations.\n          </p>\n        </div>\n\n        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">\n          <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10">\n            <p className="text-gray-400 text-sm mb-1">Total Users</p>\n            <p className="text-3xl font-bold text-blue-400">12,847</p>\n            <p className="text-green-400 text-sm mt-1">+23% this week</p>\n          </div>\n          <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10">\n            <p className="text-gray-400 text-sm mb-1">Revenue</p>\n            <p className="text-3xl font-bold text-cyan-400">$48.2K</p>\n            <p className="text-green-400 text-sm mt-1">+18% this month</p>\n          </div>\n          <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10">\n            <p className="text-gray-400 text-sm mb-1">Active Sessions</p>\n            <p className="text-3xl font-bold text-teal-400">3,421</p>\n            <p className="text-green-400 text-sm mt-1">+12% today</p>\n          </div>\n          <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10">\n            <p className="text-gray-400 text-sm mb-1">Growth Rate</p>\n            <p className="text-3xl font-bold text-purple-400">94.2%</p>\n            <p className="text-green-400 text-sm mt-1">+5.3% vs last month</p>\n          </div>\n        </div>\n\n        <div className="space-y-6">\n${usage}\n        </div>\n\n        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">\n          <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-2xl p-6 border border-blue-500/20">\n            <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4 text-2xl">⚡</div>\n            <h3 className="text-lg font-semibold mb-2">Lightning Fast</h3>\n            <p className="text-gray-400">Optimized for performance with instant load times.</p>\n          </div>\n          <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-2xl p-6 border border-purple-500/20">\n            <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4 text-2xl">🔒</div>\n            <h3 className="text-lg font-semibold mb-2">Secure by Default</h3>\n            <p className="text-gray-400">Enterprise-grade security with end-to-end encryption.</p>\n          </div>\n          <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-2xl p-6 border border-emerald-500/20">\n            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-4 text-2xl">📊</div>\n            <h3 className="text-lg font-semibold mb-2">Real-time Analytics</h3>\n            <p className="text-gray-400">Live data updates with beautiful visualizations.</p>\n          </div>\n        </div>\n      </section>\n    </main>\n  );\n}\n`;
         
         const pageFullPath = path.join(projectDir, pagePath);
         await fs.mkdir(path.dirname(pageFullPath), { recursive: true });
@@ -1070,7 +1083,7 @@ export default function HomePage() {
         projectId: this.state.projectId,
         role: 'assistant',
         content: `✅ Generated ${parsedFiles.length} files: ${parsedFiles.map(f => f.path).join(', ')}`,
-        model: 'deepseek',
+        model: 'hermes',
         createdAt: new Date(),
       });
 
@@ -1189,7 +1202,7 @@ Provide a test report covering:
       const result = await llmRouter.generate({
         prompt: testPrompt,
         systemPrompt: enhancedSystemPrompt,
-        provider: 'deepseek',
+        provider: 'hermes',
         temperature: 0.5,
         maxTokens: 2000,
       });

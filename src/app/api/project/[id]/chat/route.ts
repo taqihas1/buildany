@@ -61,8 +61,18 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       maxTokens: 4000,
     });
 
+    // Save assistant response
+    const assistantContent = result.content || "Changes applied successfully";
+    await db.insert(conversations).values({
+      id: randomUUID(),
+      projectId: id,
+      role: "assistant",
+      content: assistantContent,
+      model: result.model || "default",
+    });
+
     return NextResponse.json({
-      response: result.content || "Changes applied successfully",
+      response: assistantContent,
       model: result.model || "default",
       provider: result.provider,
     });
