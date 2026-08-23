@@ -266,7 +266,7 @@ RULES:
     await fixLayoutImports(projectDir);
     await fixPageComponentUsage(projectDir);
     await fixCnObjectSyntax(projectDir);
-    await fixPlaceholderPage(projectDir, shortName);
+    await buildPageFromComponents(projectDir, shortName);
     
     // Ensure utils.ts is always correct (overwrites any AI-generated broken version)
     await writeUtilsFile(projectDir);
@@ -482,64 +482,68 @@ async function fixCnObjectSyntax(projectDir: string) {
   }
 }
 
-/** Detect placeholder page.tsx and rebuild it using actual generated components */
-async function fixPlaceholderPage(projectDir: string, appName: string) {
+/** ALWAYS rebuild page.tsx using all generated components */
+async function buildPageFromComponents(projectDir: string, appName: string) {
   const pagePath = path.join(projectDir, "src", "app", "page.tsx");
+
+  // Scan for ALL components recursively
+  const componentsDir = path.join(projectDir, "src", "components");
+  const componentImports: string[] = [];
+  const componentUsage: string[] = [];
+
   try {
-    let code = await fs.readFile(pagePath, "utf8");
-    const placeholderPatterns = [
-      "Welcome to Your App",
-      "Built with BuildAny",
-      "Your app is ready",
-      "Components have been generated",
-      "Hello from",
-    ];
-    const isPlaceholder = placeholderPatterns.some((p) => code.includes(p));
-    if (!isPlaceholder) return;
-
-    console.log("[Sanitize] Placeholder page detected — rebuilding with real components");
-
-    // Scan for generated components
-    const componentsDir = path.join(projectDir, "src", "components");
-    const componentImports: string[] = [];
-    const componentUsage: string[] = [];
-
-    try {
-      const entries = await fs.readdir(componentsDir, { recursive: true });
+    const walk = async (dir: string, prefix: string) => {
+      const entries = await fs.readdir(dir, { withFileTypes: true });
       for (const entry of entries) {
-        if (typeof entry === "string" && entry.endsWith(".tsx")) {
-          const baseName = path.basename(entry, ".tsx");
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          await walk(fullPath, path.join(prefix, entry.name));
+        } else if (entry.name.endsWith(".tsx") && entry.name !== "page.tsx") {
+          const baseName = path.basename(entry.name, ".tsx");
           const pascalName = baseName
             .split("-")
             .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
             .join("");
-          const relPath = entry.replace(/\\/g, "/");
-          componentImports.push(`import { ${pascalName} } from "@/components/${relPath.replace(/\.tsx$/, "")}";`);
+          const relPath = path.join(prefix, baseName).replace(/\\/g, "/");
+          componentImports.push(`import { ${pascalName} } from "@/components/${relPath}";`);
           componentUsage.push(`        <${pascalName} />`);
         }
       }
-    } catch {
-      // No components dir
-    }
+    };
+    await walk(componentsDir, "");
+  } catch {
+    // No components dir
+  }
 
-    const newPage = `// @ts-nocheck
+  // Check for demo data
+  const hasData = await fs.access(path.join(projectDir, "src", "lib", "data.ts"))
+    .then(() => true).catch(() => false);
+  const dataImport = hasData ? `import { demoData } from "@/lib/data";` : "";
+
+  // Build rich page — ALWAYS overwrite whatever AI generated
+  const pageContent = `// @ts-nocheck
 'use client';
 
 import React from "react";
+${dataImport}
 ${componentImports.join("\n")}
 
 export default function HomePage() {
   return (
     <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      {/* Header */}
       <header className="border-b border-white/10 bg-white/5 backdrop-blur-xl">
         <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
             ${appName}
           </h1>
-          <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-sm">Pro</span>
+          <div className="flex items-center gap-4">
+            <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-sm">Pro</span>
+          </div>
         </div>
       </header>
 
+      {/* Hero */}
       <section className="max-w-7xl mx-auto px-6 py-12">
         <div className="text-center mb-12">
           <h2 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
@@ -550,6 +554,7 @@ export default function HomePage() {
           </p>
         </div>
 
+        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
           <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10">
             <p className="text-gray-400 text-sm mb-1">Total Users</p>
@@ -573,10 +578,12 @@ export default function HomePage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Generated Components */}
+        <div className="space-y-6">
 ${componentUsage.join("\n")}
         </div>
 
+        {/* Feature Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
           <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-2xl p-6 border border-blue-500/20">
             <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4 text-2xl">⚡</div>
@@ -600,9 +607,7 @@ ${componentUsage.join("\n")}
 }
 `;
 
-    await fs.writeFile(pagePath, newPage);
-    console.log("[Sanitize] Rebuilt page.tsx with", componentImports.length, "component imports");
-  } catch (e) {
-    console.error("[Sanitize] fixPlaceholderPage error:", e);
-  }
+  await fs.mkdir(path.dirname(pagePath), { recursive: true });
+  await fs.writeFile(pagePath, pageContent);
+  console.log("[Morgan] Built page.tsx with", componentImports.length, "components");
 }
