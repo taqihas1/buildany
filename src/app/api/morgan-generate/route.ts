@@ -200,17 +200,25 @@ RULES:
     await fs.mkdir(path.dirname(promptFile), { recursive: true });
     await fs.writeFile(promptFile, hermesPrompt);
     
-    // Call Hermes CLI in Docker container
+    // Call Hermes CLI with SKILLS loaded
     const hermesContainer = process.env.HERMES_CONTAINER || "hermes-gateway";
     const containerPromptPath = `/opt/buildany-projects/.prompts/${projectId}.txt`;
-    const containerProjectDir = `/opt/buildany-projects/${projectId}`;
+    
+    // Load relevant skills for code generation
+    const skills = [
+      "spec-driven-development",
+      "frontend-ui-engineering", 
+      "incremental-implementation",
+      "code-review-and-quality"
+    ];
+    const skillsArgs = skills.map(s => `-s ${s}`).join(" ");
     
     try {
       execSync(
-        `docker exec ${hermesContainer} hermes chat -f ${containerPromptPath} -t hermes-cli`,
+        `docker exec ${hermesContainer} hermes ${skillsArgs} chat -f ${containerPromptPath} -t hermes-cli`,
         { timeout: 300000, stdio: "pipe" } // 5 min timeout
       );
-      console.log("[Morgan] Hermes generation complete");
+      console.log("[Morgan] Hermes generation complete with skills:", skills.join(", "));
     } catch (e: any) {
       console.error("[Morgan] Hermes error:", e.message);
       // Fallback: write a basic page so the project isn't empty
