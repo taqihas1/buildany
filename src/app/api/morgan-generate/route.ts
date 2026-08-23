@@ -260,6 +260,7 @@ RULES:
     await fixLayoutImports(projectDir);
     await fixPageComponentUsage(projectDir);
     await fixCnObjectSyntax(projectDir);
+    await fixPlaceholderPage(projectDir, shortName);
     
     // Ensure utils.ts is always correct (overwrites any AI-generated broken version)
     await writeUtilsFile(projectDir);
@@ -472,5 +473,130 @@ async function fixCnObjectSyntax(projectDir: string) {
     }
   } catch (e) {
     console.error("[Sanitize] fixCnObjectSyntax error:", e);
+  }
+}
+
+/** Detect placeholder page.tsx and rebuild it using actual generated components */
+async function fixPlaceholderPage(projectDir: string, appName: string) {
+  const pagePath = path.join(projectDir, "src", "app", "page.tsx");
+  try {
+    let code = await fs.readFile(pagePath, "utf8");
+    const placeholderPatterns = [
+      "Welcome to Your App",
+      "Built with BuildAny",
+      "Your app is ready",
+      "Components have been generated",
+      "Hello from",
+    ];
+    const isPlaceholder = placeholderPatterns.some((p) => code.includes(p));
+    if (!isPlaceholder) return;
+
+    console.log("[Sanitize] Placeholder page detected — rebuilding with real components");
+
+    // Scan for generated components
+    const componentsDir = path.join(projectDir, "src", "components");
+    const componentImports: string[] = [];
+    const componentUsage: string[] = [];
+
+    try {
+      const entries = await fs.readdir(componentsDir, { recursive: true });
+      for (const entry of entries) {
+        if (typeof entry === "string" && entry.endsWith(".tsx")) {
+          const baseName = path.basename(entry, ".tsx");
+          const pascalName = baseName
+            .split("-")
+            .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+            .join("");
+          const relPath = entry.replace(/\\/g, "/");
+          componentImports.push(`import { ${pascalName} } from "@/components/${relPath.replace(/\.tsx$/, "")}";`);
+          componentUsage.push(`        <${pascalName} />`);
+        }
+      }
+    } catch {
+      // No components dir
+    }
+
+    const newPage = `// @ts-nocheck
+'use client';
+
+import React from "react";
+${componentImports.join("\n")}
+
+export default function HomePage() {
+  return (
+    <main className="min-h-screen bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white">
+      <header className="border-b border-white/10 bg-white/5 backdrop-blur-xl">
+        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">
+            ${appName}
+          </h1>
+          <span className="px-3 py-1 rounded-full bg-blue-500/20 text-blue-300 text-sm">Pro</span>
+        </div>
+      </header>
+
+      <section className="max-w-7xl mx-auto px-6 py-12">
+        <div className="text-center mb-12">
+          <h2 className="text-5xl font-bold mb-4 bg-gradient-to-r from-blue-400 via-cyan-400 to-teal-400 bg-clip-text text-transparent">
+            ${appName}
+          </h2>
+          <p className="text-xl text-gray-400 max-w-2xl mx-auto">
+            Your modern dashboard with real-time insights and beautiful visualizations.
+          </p>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
+          <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10">
+            <p className="text-gray-400 text-sm mb-1">Total Users</p>
+            <p className="text-3xl font-bold text-blue-400">12,847</p>
+            <p className="text-green-400 text-sm mt-1">+23% this week</p>
+          </div>
+          <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10">
+            <p className="text-gray-400 text-sm mb-1">Revenue</p>
+            <p className="text-3xl font-bold text-cyan-400">$48.2K</p>
+            <p className="text-green-400 text-sm mt-1">+18% this month</p>
+          </div>
+          <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10">
+            <p className="text-gray-400 text-sm mb-1">Active Sessions</p>
+            <p className="text-3xl font-bold text-teal-400">3,421</p>
+            <p className="text-green-400 text-sm mt-1">+12% today</p>
+          </div>
+          <div className="bg-white/5 backdrop-blur-xl rounded-2xl p-6 border border-white/10">
+            <p className="text-gray-400 text-sm mb-1">Growth Rate</p>
+            <p className="text-3xl font-bold text-purple-400">94.2%</p>
+            <p className="text-green-400 text-sm mt-1">+5.3% vs last month</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+${componentUsage.join("\n")}
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-12">
+          <div className="bg-gradient-to-br from-blue-500/10 to-cyan-500/10 rounded-2xl p-6 border border-blue-500/20">
+            <div className="w-12 h-12 rounded-xl bg-blue-500/20 flex items-center justify-center mb-4 text-2xl">⚡</div>
+            <h3 className="text-lg font-semibold mb-2">Lightning Fast</h3>
+            <p className="text-gray-400">Optimized for performance with instant load times.</p>
+          </div>
+          <div className="bg-gradient-to-br from-purple-500/10 to-pink-500/10 rounded-2xl p-6 border border-purple-500/20">
+            <div className="w-12 h-12 rounded-xl bg-purple-500/20 flex items-center justify-center mb-4 text-2xl">🔒</div>
+            <h3 className="text-lg font-semibold mb-2">Secure by Default</h3>
+            <p className="text-gray-400">Enterprise-grade security with end-to-end encryption.</p>
+          </div>
+          <div className="bg-gradient-to-br from-emerald-500/10 to-teal-500/10 rounded-2xl p-6 border border-emerald-500/20">
+            <div className="w-12 h-12 rounded-xl bg-emerald-500/20 flex items-center justify-center mb-4 text-2xl">📊</div>
+            <h3 className="text-lg font-semibold mb-2">Real-time Analytics</h3>
+            <p className="text-gray-400">Live data updates with beautiful visualizations.</p>
+          </div>
+        </div>
+      </section>
+    </main>
+  );
+}
+`;
+
+    await fs.writeFile(pagePath, newPage);
+    console.log("[Sanitize] Rebuilt page.tsx with", componentImports.length, "component imports");
+  } catch (e) {
+    console.error("[Sanitize] fixPlaceholderPage error:", e);
   }
 }
