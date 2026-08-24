@@ -844,7 +844,7 @@ Generate the COMPLETE app now.`;
         
         // Run Hermes with chat -q (works with skills, needs time)
         const { stdout, stderr } = await execAsync(
-          `docker exec hermes-gateway sh -c 'hermes chat -q "$(cat ${containerPromptPath})" -s spec-driven-development,frontend-ui-engineering,incremental-implementation,code-review-and-quality --yolo'`,
+          `docker exec hermes-gateway sh -c 'hermes chat -q "$(cat ${containerPromptPath})" -s spec-driven-development,frontend-ui-engineering,incremental-implementation,code-review-and-quality --yolo --ignore-rules'`,
           { timeout: 600000, maxBuffer: 50 * 1024 * 1024 }
         );
         hermesOutput = stdout || "";
