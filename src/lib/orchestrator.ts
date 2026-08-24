@@ -811,15 +811,12 @@ Use your skills to plan and build this app:
 
 ## OUTPUT FORMAT
 
-Return EVERY file as a code block with the exact path:
-
+Return EVERY file as a code block. Use the file path as the language tag like this:
 \`\`\`tsx:src/app/page.tsx
-// full file content here
+// ACTUAL CODE GOES HERE — NOT placeholder text
 \`\`\`
 
-\`\`\`tsx:src/components/hero.tsx
-// full file content here
-\`\`\`
+Do NOT write "// full file content here" or any placeholder. Generate real, working code immediately. Every file must contain complete, functional code.
 
 ## RULES
 - page.tsx MUST import and render ALL components from src/components/
@@ -844,7 +841,7 @@ Generate the COMPLETE app now.`;
         
         // Run Hermes with chat -q (works with skills, needs time)
         const { stdout, stderr } = await execAsync(
-          `docker exec hermes-gateway sh -c 'hermes chat -q "$(cat ${containerPromptPath})" -s spec-driven-development,frontend-ui-engineering,incremental-implementation,code-review-and-quality --yolo'`,
+          `docker exec hermes-gateway sh -c 'hermes chat -q "$(cat ${containerPromptPath})" -s spec-driven-development,frontend-ui-engineering,incremental-implementation,code-review-and-quality --yolo --ignore-rules'`,
           { timeout: 600000, maxBuffer: 50 * 1024 * 1024 }
         );
         hermesOutput = stdout || "";
