@@ -795,11 +795,12 @@ ${this.state.prompt}
 
 ## YOUR TASK
 
-Use your skills to plan and build this app:
-1. **Plan** (spec-driven-development): What pages, components, and features are needed?
-2. **Design** (frontend-ui-engineering): Modern, colorful, accessible UI with Tailwind CSS
-3. **Build** (incremental-implementation): Generate all files step by step
-4. **Review** (code-review-and-quality): Ensure no placeholders, all imports resolve
+Generate a complete, production-ready app. DO NOT plan or write specs first — generate code DIRECTLY.
+
+Use these skills as you build:
+1. **Design** (frontend-ui-engineering): Modern, colorful, accessible UI with Tailwind CSS
+2. **Build** (incremental-implementation): Generate all files
+3. **Review** (code-review-and-quality): Ensure no placeholders, all imports resolve
 
 ## TECH STACK
 - Next.js 15 (App Router)
@@ -841,7 +842,7 @@ Generate the COMPLETE app now.`;
         
         // Run Hermes with chat -q (works with skills, needs time)
         const { stdout, stderr } = await execAsync(
-          `docker exec hermes-gateway sh -c 'hermes chat -q "$(cat ${containerPromptPath})" -s spec-driven-development,frontend-ui-engineering,incremental-implementation,code-review-and-quality --yolo --ignore-rules'`,
+          `docker exec hermes-gateway sh -c 'hermes chat -q "$(cat ${containerPromptPath})" -s frontend-ui-engineering,incremental-implementation,code-review-and-quality --yolo --ignore-rules'`,
           { timeout: 600000, maxBuffer: 50 * 1024 * 1024 }
         );
         hermesOutput = stdout || "";
