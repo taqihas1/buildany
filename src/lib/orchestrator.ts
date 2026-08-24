@@ -846,6 +846,49 @@ export class KellyOrchestrator {
       }
       parsedFiles = correctedFiles;
       
+      // ─── SANITIZE: Fix common runtime errors ───
+      for (const file of parsedFiles) {
+        let content = file.content;
+        
+        // Fix 1: .map() on undefined — add optional chaining or default
+        // Pattern: someVar.map(...) → someVar?.map(...) or (someVar || []).map(...)
+        // But be careful not to break existing optional chaining
+        content = content.replace(/(\w+)\.map\(/g, (match, varName) => {
+          // Skip if already has ?. or || [] before .map
+          if (content.includes(`${varName}?.map(`) || content.includes(`${varName} || []`)) {
+            return match;
+          }
+          return `(${varName} || []).map(`;
+        });
+        
+        // Fix 2: .filter() on undefined
+        content = content.replace(/(\w+)\.filter\(/g, (match, varName) => {
+          return `(${varName} || []).filter(`;
+        });
+        
+        // Fix 3: .forEach() on undefined
+        content = content.replace(/(\w+)\.forEach\(/g, (match, varName) => {
+          return `(${varName} || []).forEach(`;
+        });
+        
+        // Fix 4: Object.keys() on undefined
+        content = content.replace(/Object\.keys\((\w+)\)/g, 'Object.keys($1 || {})');
+        
+        // Fix 5: Object.values() on undefined  
+        content = content.replace(/Object\.values\((\w+)\)/g, 'Object.values($1 || {})');
+        
+        // Fix 6: .length on undefined
+        content = content.replace(/(\w+)\.length/g, (match, varName) => {
+          return `($1?.length || 0)`;
+        });
+        
+        // Fix 7: cn() with object syntax (common DeepSeek mistake)
+        content = content.replace(/cn\(\{["']?([^"']+)["']?\s*:\s*(\w+)\s*\}\)/g, 
+          'cn($2 && "$1")');
+        
+        file.content = content;
+      }
+      
       console.log('[Kelly] Code generation result:', { 
         hasContent: !!result.content, 
         contentLength: result.content?.length || 0,
