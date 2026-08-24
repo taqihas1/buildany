@@ -787,7 +787,52 @@ export class KellyOrchestrator {
       console.log('[Kelly] Starting code generation with Hermes agent...');
       
       const promptFile = `/tmp/hermes-prompt-${this.state.projectId}.txt`;
-      const hermesPrompt = `${enhancedSystemPrompt}\n\n## USER REQUEST\n\n${this.state.prompt}\n\nGenerate a complete, functional ${this.state.platform} app. Return ALL files in code blocks with paths like:\n\n\`\`\`tsx:src/app/page.tsx\n// code here\n\`\`\`\n\nRules:\n- Use 'use client' for client components\n- Import globals.css in layout.tsx\n- Use next/image with unoptimized={true}\n- NEVER use cn() with object syntax\n- Include demo data so the app works immediately\n- Dark theme with gradients preferred\n- Include lucide-react icons\n- page.tsx MUST import and render ALL components from src/components/\n`;
+      const hermesPrompt = `You are Kelly, the AI builder for BuildAny. Your job is to generate complete, production-ready apps.
+
+## USER REQUEST
+
+${this.state.prompt}
+
+## YOUR TASK
+
+Use your skills to plan and build this app:
+1. **Plan** (spec-driven-development): What pages, components, and features are needed?
+2. **Design** (frontend-ui-engineering): Modern, colorful, accessible UI with Tailwind CSS
+3. **Build** (incremental-implementation): Generate all files step by step
+4. **Review** (code-review-and-quality): Ensure no placeholders, all imports resolve
+
+## TECH STACK
+- Next.js 15 (App Router)
+- React 19 + TypeScript
+- Tailwind CSS 4
+- shadcn/ui components
+- lucide-react icons
+- Demo data pre-loaded (no empty states)
+
+## OUTPUT FORMAT
+
+Return EVERY file as a code block with the exact path:
+
+\`\`\`tsx:src/app/page.tsx
+// full file content here
+\`\`\`
+
+\`\`\`tsx:src/components/hero.tsx
+// full file content here
+\`\`\`
+
+## RULES
+- page.tsx MUST import and render ALL components from src/components/
+- Use 'use client' for client components
+- layout.tsx MUST import "./globals.css"
+- Use next/image with unoptimized={true}
+- NEVER use cn() with object syntax — use conditional strings only
+- Dark theme with gradients (slate-900, blue/cyan/teal accents)
+- All components must have demo data — no "Lorem ipsum", no placeholders
+- Use real metrics, real chart data, real user names
+- Include animations (fadeIn, slideUp keyframes in Tailwind config)
+
+Generate the COMPLETE app now.`;
       
       await fs.writeFile(promptFile, hermesPrompt, "utf8");
       
