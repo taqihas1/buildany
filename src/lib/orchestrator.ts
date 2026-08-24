@@ -1042,9 +1042,35 @@ export function ${pascalName}(props: ${pascalName}Props) {
         'pages/index.tsx',
       ];
       const hasPage = pagePaths.some(p => allGeneratedPaths.has(p));
+      let pageHasBrokenImports = false;
       
-      if (!hasPage) {
-        console.log('[Kelly] WARNING: No page.tsx found! Creating fallback...');
+      if (hasPage) {
+        // Check if page.tsx imports components that don't exist
+        const pageFile = parsedFiles.find(f => pagePaths.includes(f.path));
+        if (pageFile) {
+          const importRegex = /from\s+["']@\/components\/([^"']+)["']/g;
+          let match;
+          while ((match = importRegex.exec(pageFile.content || "")) !== null) {
+            const importPath = match[1];
+            const possiblePaths = [
+              `src/components/${importPath}.tsx`,
+              `src/components/${importPath}.ts`,
+            ];
+            const exists = possiblePaths.some(p => allGeneratedPaths.has(p));
+            if (!exists) {
+              pageHasBrokenImports = true;
+              console.log(`[Kelly] Page imports missing component: @/components/${importPath}`);
+            }
+          }
+        }
+      }
+      
+      if (!hasPage || pageHasBrokenImports) {
+        if (pageHasBrokenImports) {
+          console.log('[Kelly] WARNING: page.tsx has broken imports! Replacing with fallback...');
+        } else {
+          console.log('[Kelly] WARNING: No page.tsx found! Creating fallback...');
+        }
         
         // Check if this is App Router or Pages Router
         const hasAppDir = await fileExists(path.join(projectDir, 'src', 'app')) || await fileExists(path.join(projectDir, 'app'));
