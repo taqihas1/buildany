@@ -783,7 +783,7 @@ export class KellyOrchestrator {
         'coding',
         `Project: ${this.state.prompt}\nPlatform: ${this.state.platform}`
       );
-      // ─── CALL HERMES AGENT (The Brain) ───
+      // ─── CALL HERMES AGENT (The Brain) via chat -q ───
       console.log('[Kelly] Starting code generation with Hermes agent...');
       
       const promptFile = `/tmp/hermes-prompt-${this.state.projectId}.txt`;
@@ -797,31 +797,20 @@ export class KellyOrchestrator {
         const containerPromptPath = `/tmp/hermes-prompt-${this.state.projectId}.txt`;
         await execAsync(`docker cp ${promptFile} hermes-gateway:${containerPromptPath}`);
         
-        // Run Hermes with skills and yolo mode (auto-approve for headless)
+        // Run Hermes with chat -q (works with skills, needs time)
         const { stdout, stderr } = await execAsync(
-          `docker exec hermes-gateway sh -c 'hermes -z "$(cat ${containerPromptPath})" -s spec-driven-development,frontend-ui-engineering,incremental-implementation,code-review-and-quality --yolo'`,
-          { timeout: 300000, maxBuffer: 50 * 1024 * 1024 }
+          `docker exec hermes-gateway sh -c 'hermes chat -q "$(cat ${containerPromptPath})" -s spec-driven-development,frontend-ui-engineering,incremental-implementation,code-review-and-quality --yolo'`,
+          { timeout: 600000, maxBuffer: 50 * 1024 * 1024 }
         );
         hermesOutput = stdout || "";
         if (stderr) console.log("[Hermes stderr]:", stderr);
       } catch (hermesErr: any) {
         console.error("[Hermes] CLI error:", hermesErr.message);
-        // Fallback: try direct docker exec with shorter prompt
-        try {
-          const shortPrompt = `Build a ${this.state.platform} app: ${this.state.prompt}. Use Next.js 15, Tailwind CSS, dark theme, demo data. Return all files as \`\`\`tsx:path\`\`\` blocks.`;
-          const { stdout } = await execAsync(
-            `docker exec hermes-gateway hermes -z "${shortPrompt.replace(/"/g, '\\"')}" -s frontend-ui-engineering --yolo`,
-            { timeout: 300000, maxBuffer: 50 * 1024 * 1024 }
-          );
-          hermesOutput = stdout || "";
-        } catch (fallbackErr: any) {
-          console.error("[Hermes] Fallback also failed:", fallbackErr.message);
-        }
       }
       
       const result = {
         success: !!(hermesOutput && hermesOutput.length > 100),
-        content: hermesOutput,
+        content: hermesOutput.replace(/^Query:.*\n/, "").trim(),
         error: hermesOutput && hermesOutput.length > 100 ? null : "Hermes agent produced no output",
       };
       
