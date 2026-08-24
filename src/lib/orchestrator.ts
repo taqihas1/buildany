@@ -1,9 +1,5 @@
 import path from "path";
 import fs from "fs/promises";
-import { exec } from "child_process";
-import { promisify } from "util";
-
-const execAsync = promisify(exec);
 const PROJECTS_DIR = "/data/projects";
 
 /**
@@ -783,81 +779,18 @@ export class KellyOrchestrator {
         'coding',
         `Project: ${this.state.prompt}\nPlatform: ${this.state.platform}`
       );
-      // ─── CALL HERMES AGENT (The Brain) via chat -q ───
-      console.log('[Kelly] Starting code generation with Hermes agent...');
+      // ─── CALL LLM WITH SKILL-ENHANCED PROMPT (Fast MVP) ───
+      console.log('[Kelly] Starting code generation with skill-enhanced prompts, provider: deepseek, platform:', this.state.platform);
       
-      const promptFile = `/tmp/hermes-prompt-${this.state.projectId}.txt`;
-      const hermesPrompt = `You are Kelly, the AI builder for BuildAny. Your job is to generate complete, production-ready apps.
-
-## USER REQUEST
-
-${this.state.prompt}
-
-## YOUR TASK
-
-Generate a complete, production-ready app. DO NOT plan or write specs first — generate code DIRECTLY.
-
-Use these skills as you build:
-1. **Design** (frontend-ui-engineering): Modern, colorful, accessible UI with Tailwind CSS
-2. **Build** (incremental-implementation): Generate all files
-3. **Review** (code-review-and-quality): Ensure no placeholders, all imports resolve
-
-## TECH STACK
-- Next.js 15 (App Router)
-- React 19 + TypeScript
-- Tailwind CSS 4
-- shadcn/ui components
-- lucide-react icons
-- Demo data pre-loaded (no empty states)
-
-## OUTPUT FORMAT
-
-Return EVERY file as a code block. Use the file path as the language tag like this:
-\`\`\`tsx:src/app/page.tsx
-// ACTUAL CODE GOES HERE — NOT placeholder text
-\`\`\`
-
-Do NOT write "// full file content here" or any placeholder. Generate real, working code immediately. Every file must contain complete, functional code.
-
-## RULES
-- page.tsx MUST import and render ALL components from src/components/
-- Use 'use client' for client components
-- layout.tsx MUST import "./globals.css"
-- Use next/image with unoptimized={true}
-- NEVER use cn() with object syntax — use conditional strings only
-- Dark theme with gradients (slate-900, blue/cyan/teal accents)
-- All components must have demo data — no "Lorem ipsum", no placeholders
-- Use real metrics, real chart data, real user names
-- Include animations (fadeIn, slideUp keyframes in Tailwind config)
-
-Generate the COMPLETE app now.`;
+      const result = await llmRouter.generate({
+        prompt: this.state.prompt,
+        systemPrompt: enhancedSystemPrompt,
+        provider: 'deepseek',
+        temperature: 0.7,
+        maxTokens: 4000,
+      });
       
-      await fs.writeFile(promptFile, hermesPrompt, "utf8");
-      
-      let hermesOutput = "";
-      try {
-        // Copy prompt into container (host /tmp not mounted in container)
-        const containerPromptPath = `/tmp/hermes-prompt-${this.state.projectId}.txt`;
-        await execAsync(`docker cp ${promptFile} hermes-gateway:${containerPromptPath}`);
-        
-        // Run Hermes with chat -q (works with skills, needs time)
-        const { stdout, stderr } = await execAsync(
-          `docker exec hermes-gateway sh -c 'hermes chat -q "$(cat ${containerPromptPath})" -s frontend-ui-engineering,incremental-implementation,code-review-and-quality --yolo --ignore-rules'`,
-          { timeout: 600000, maxBuffer: 50 * 1024 * 1024 }
-        );
-        hermesOutput = stdout || "";
-        if (stderr) console.log("[Hermes stderr]:", stderr);
-      } catch (hermesErr: any) {
-        console.error("[Hermes] CLI error:", hermesErr.message);
-      }
-      
-      const result = {
-        success: !!(hermesOutput && hermesOutput.length > 100),
-        content: hermesOutput.replace(/^Query:.*\n/, "").trim(),
-        error: hermesOutput && hermesOutput.length > 100 ? null : "Hermes agent produced no output",
-      };
-      
-      console.log('[Kelly] Hermes result:', { success: result.success, hasContent: !!result.content, length: result.content?.length });
+      console.log('[Kelly] LLM result:', { success: result.success, hasContent: !!result.content, error: result.error });
 
       if (!result.success || !result.content) {
         await this.updateTaskStatus('Architecture', 'failed');
@@ -1131,7 +1064,7 @@ export function ${pascalName}(props: ${pascalName}Props) {
         projectId: this.state.projectId,
         role: 'assistant',
         content: `✅ Generated ${parsedFiles.length} files: ${parsedFiles.map(f => f.path).join(', ')}`,
-        model: 'hermes',
+        model: 'deepseek',
         createdAt: new Date(),
       });
 
@@ -1250,7 +1183,7 @@ Provide a test report covering:
       const result = await llmRouter.generate({
         prompt: testPrompt,
         systemPrompt: enhancedSystemPrompt,
-        provider: 'hermes',
+        provider: 'deepseek',
         temperature: 0.5,
         maxTokens: 2000,
       });
