@@ -1,9 +1,5 @@
 import path from "path";
 import fs from "fs/promises";
-import { exec } from "child_process";
-import { promisify } from "util";
-
-const execAsync = promisify(exec);
 const PROJECTS_DIR = "/data/projects";
 
 /**
@@ -783,49 +779,18 @@ export class KellyOrchestrator {
         'coding',
         `Project: ${this.state.prompt}\nPlatform: ${this.state.platform}`
       );
-      // ─── CALL HERMES AGENT (The Brain) ───
-      console.log('[Kelly] Starting code generation with Hermes agent...');
+      // ─── CALL LLM WITH SKILL-ENHANCED PROMPT ───
+      console.log('[Kelly] Starting code generation with skill-enhanced prompts, provider: deepseek, platform:', this.state.platform);
       
-      const promptFile = `/tmp/hermes-prompt-${this.state.projectId}.txt`;
-      const hermesPrompt = `${enhancedSystemPrompt}\n\n## USER REQUEST\n\n${this.state.prompt}\n\nGenerate a complete, functional ${this.state.platform} app. Return ALL files in code blocks with paths like:\n\n\`\`\`tsx:src/app/page.tsx\n// code here\n\`\`\`\n\nRules:\n- Use 'use client' for client components\n- Import globals.css in layout.tsx\n- Use next/image with unoptimized={true}\n- NEVER use cn() with object syntax\n- Include demo data so the app works immediately\n- Dark theme with gradients preferred\n- Include lucide-react icons\n- page.tsx MUST import and render ALL components from src/components/\n`;
+      const result = await llmRouter.generate({
+        prompt: this.state.prompt,
+        systemPrompt: enhancedSystemPrompt,
+        provider: 'deepseek',
+        temperature: 0.7,
+        maxTokens: 4000,
+      });
       
-      await fs.writeFile(promptFile, hermesPrompt, "utf8");
-      
-      let hermesOutput = "";
-      try {
-        // Copy prompt into container (host /tmp not mounted in container)
-        const containerPromptPath = `/tmp/hermes-prompt-${this.state.projectId}.txt`;
-        await execAsync(`docker cp ${promptFile} hermes-gateway:${containerPromptPath}`);
-        
-        // Run Hermes with skills and yolo mode (auto-approve for headless)
-        const { stdout, stderr } = await execAsync(
-          `docker exec hermes-gateway sh -c 'hermes -z "$(cat ${containerPromptPath})" -s spec-driven-development,frontend-ui-engineering,incremental-implementation,code-review-and-quality --yolo'`,
-          { timeout: 300000, maxBuffer: 50 * 1024 * 1024 }
-        );
-        hermesOutput = stdout || "";
-        if (stderr) console.log("[Hermes stderr]:", stderr);
-      } catch (hermesErr: any) {
-        console.error("[Hermes] CLI error:", hermesErr.message);
-        // Fallback: try direct docker exec with shorter prompt
-        try {
-          const shortPrompt = `Build a ${this.state.platform} app: ${this.state.prompt}. Use Next.js 15, Tailwind CSS, dark theme, demo data. Return all files as \`\`\`tsx:path\`\`\` blocks.`;
-          const { stdout } = await execAsync(
-            `docker exec hermes-gateway hermes -z "${shortPrompt.replace(/"/g, '\\"')}" -s frontend-ui-engineering --yolo`,
-            { timeout: 300000, maxBuffer: 50 * 1024 * 1024 }
-          );
-          hermesOutput = stdout || "";
-        } catch (fallbackErr: any) {
-          console.error("[Hermes] Fallback also failed:", fallbackErr.message);
-        }
-      }
-      
-      const result = {
-        success: !!(hermesOutput && hermesOutput.length > 100),
-        content: hermesOutput,
-        error: hermesOutput && hermesOutput.length > 100 ? null : "Hermes agent produced no output",
-      };
-      
-      console.log('[Kelly] Hermes result:', { success: result.success, hasContent: !!result.content, length: result.content?.length });
+      console.log('[Kelly] LLM result:', { success: result.success, hasContent: !!result.content, error: result.error });
 
       if (!result.success || !result.content) {
         await this.updateTaskStatus('Architecture', 'failed');
@@ -1099,7 +1064,7 @@ export function ${pascalName}(props: ${pascalName}Props) {
         projectId: this.state.projectId,
         role: 'assistant',
         content: `✅ Generated ${parsedFiles.length} files: ${parsedFiles.map(f => f.path).join(', ')}`,
-        model: 'hermes',
+        model: 'deepseek',
         createdAt: new Date(),
       });
 
@@ -1218,7 +1183,7 @@ Provide a test report covering:
       const result = await llmRouter.generate({
         prompt: testPrompt,
         systemPrompt: enhancedSystemPrompt,
-        provider: 'hermes',
+        provider: 'deepseek',
         temperature: 0.5,
         maxTokens: 2000,
       });
