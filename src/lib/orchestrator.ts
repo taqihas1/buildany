@@ -779,36 +779,130 @@ export class KellyOrchestrator {
         'coding',
         `Project: ${this.state.prompt}\nPlatform: ${this.state.platform}`
       );
-      // ─── CALL LLM WITH SKILL-ENHANCED PROMPT (Fast MVP) ───
-      console.log('[Kelly] Starting code generation with skill-enhanced prompts, provider: deepseek, platform:', this.state.platform);
+      // ─── MULTI-PHASE GENERATION ( ensures completeness ) ───
+      console.log('[Kelly] Starting multi-phase code generation...');
       
-      const result = await llmRouter.generate({
-        prompt: this.state.prompt,
+      const allGeneratedFiles: Array<{path: string, content: string, language: string}> = [];
+      
+      // Phase 1: Infrastructure files
+      console.log('[Kelly] Phase 1: Generating infrastructure...');
+      const infraPrompt = `Generate the infrastructure files for a Next.js 15 app. DO NOT generate page content yet.
+
+User wants: ${this.state.prompt}
+
+Generate ONLY these files:
+1. src/app/layout.tsx — Root layout with metadata, imports globals.css
+2. src/app/globals.css — @tailwind directives + dark theme base styles
+3. tailwind.config.js — Content paths, dark mode, animations
+4. src/lib/utils.ts — cn() utility using clsx + tailwind-merge
+
+Use the exact file paths. Return each file as a code block.`;
+
+      const infraResult = await llmRouter.generate({
+        prompt: infraPrompt,
         systemPrompt: enhancedSystemPrompt,
         provider: 'deepseek',
         temperature: 0.7,
         maxTokens: 4000,
       });
       
-      console.log('[Kelly] LLM result:', { success: result.success, hasContent: !!result.content, error: result.error });
+      if (infraResult.success && infraResult.content) {
+        const infraFiles = parseGeneratedCode(infraResult.content);
+        allGeneratedFiles.push(...infraFiles);
+        console.log(`[Kelly] Phase 1 complete: ${infraFiles.length} files`);
+      }
+      
+      // Phase 2: Main page with actual user requirements
+      console.log('[Kelly] Phase 2: Generating main page...');
+      const pagePrompt = `Generate the main page for: ${this.state.prompt}
 
-      if (!result.success || !result.content) {
+This MUST implement the user's actual requirements. NOT a generic welcome page.
+
+Generate ONLY:
+1. src/app/page.tsx — The main page with real features, demo data, and functionality
+
+Use 'use client' for interactive elements. Import components from @/components/ui/.
+Return as a code block.`;
+
+      const pageResult = await llmRouter.generate({
+        prompt: pagePrompt,
+        systemPrompt: enhancedSystemPrompt,
+        provider: 'deepseek',
+        temperature: 0.7,
+        maxTokens: 4000,
+      });
+      
+      if (pageResult.success && pageResult.content) {
+        const pageFiles = parseGeneratedCode(pageResult.content);
+        allGeneratedFiles.push(...pageFiles);
+        console.log(`[Kelly] Phase 2 complete: ${pageFiles.length} files`);
+      }
+      
+      // Phase 3: Components referenced in page.tsx
+      console.log('[Kelly] Phase 3: Generating components...');
+      
+      // Find all @/components/ imports in the generated page
+      const pageFile = allGeneratedFiles.find(f => f.path.includes('page.tsx'));
+      const componentImports: string[] = [];
+      if (pageFile) {
+        const importRegex = /from\s+["']@\/components\/([^"']+)["']/g;
+        let match;
+        while ((match = importRegex.exec(pageFile.content || "")) !== null) {
+          componentImports.push(match[1]);
+        }
+      }
+      
+      if (componentImports.length > 0) {
+        const compPrompt = `Generate these components for: ${this.state.prompt}
+
+Generate ONLY these files:
+${componentImports.map(c => `- src/components/${c}.tsx`).join('\n')}
+
+Each component must:
+- Use 'use client' if interactive
+- Have demo data (no empty states)
+- Use Tailwind classes
+- Export as named export
+
+Return each file as a code block.`;
+
+        const compResult = await llmRouter.generate({
+          prompt: compPrompt,
+          systemPrompt: enhancedSystemPrompt,
+          provider: 'deepseek',
+          temperature: 0.7,
+          maxTokens: 4000,
+        });
+        
+        if (compResult.success && compResult.content) {
+          const compFiles = parseGeneratedCode(compResult.content);
+          allGeneratedFiles.push(...compFiles);
+          console.log(`[Kelly] Phase 3 complete: ${compFiles.length} files`);
+        }
+      } else {
+        console.log('[Kelly] Phase 3: No components needed');
+      }
+      
+      console.log(`[Kelly] Total generated: ${allGeneratedFiles.length} files`);
+      
+      // Use combined files for rest of processing
+      let parsedFiles = allGeneratedFiles;
+      
+      // Check if anything was generated
+      if (parsedFiles.length === 0) {
         await this.updateTaskStatus('Architecture', 'failed');
         await this.updateTaskStatus('Page Components', 'failed');
         await this.updateTaskStatus('API Routes', 'failed');
         return {
           phase: 'coding',
           success: false,
-          message: result.error || 'Code generation failed',
+          message: 'All generation phases failed — no files produced',
           timestamp: Date.now(),
         };
       }
-
-      // Parse generated code into files
-      let parsedFiles = parseGeneratedCode(result.content);
       
       // ─── FIX: Correct common file path mistakes ───
-      const correctedFiles: typeof parsedFiles = [];
+      const correctedFiles: Array<{path: string, content: string, language: string}> = [];
       const hasNextJs = parsedFiles.some(f => f.path.includes('next.config') || f.path.includes('tsconfig.json') || f.content.includes('from "next"'));
       
       for (const file of parsedFiles) {
