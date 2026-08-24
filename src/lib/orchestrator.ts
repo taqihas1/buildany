@@ -811,15 +811,12 @@ Use your skills to plan and build this app:
 
 ## OUTPUT FORMAT
 
-Return EVERY file as a code block with the exact path:
-
+Return EVERY file as a code block. Use the file path as the language tag like this:
 \`\`\`tsx:src/app/page.tsx
-// full file content here
+// ACTUAL CODE GOES HERE — NOT placeholder text
 \`\`\`
 
-\`\`\`tsx:src/components/hero.tsx
-// full file content here
-\`\`\`
+Do NOT write "// full file content here" or any placeholder. Generate real, working code immediately. Every file must contain complete, functional code.
 
 ## RULES
 - page.tsx MUST import and render ALL components from src/components/
