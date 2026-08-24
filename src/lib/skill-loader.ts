@@ -9,37 +9,32 @@ const SKILL_DIRS = [
   "/root/.hermes/skills/superpowers/skills",
 ];
 
-// Skill name → file path cache
+// Skill name → file path cache (lazy-loaded)
 const skillPathCache: Map<string, string> = new Map();
 
-// Load all available skill paths on startup
-function discoverSkills(): void {
+// Lazy-load skill only when requested
+function getSkillPath(skillName: string): string | null {
+  // Check cache first
+  const cached = skillPathCache.get(skillName);
+  if (cached) return cached;
+
+  // Find skill in directories
   for (const dir of SKILL_DIRS) {
+    const skillPath = join(dir, skillName, "SKILL.md");
     try {
       const fs = require("fs");
-      const entries = fs.readdirSync(dir, { withFileTypes: true });
-      for (const entry of entries) {
-        if (entry.isDirectory()) {
-          const skillPath = join(dir, entry.name, "SKILL.md");
-          try {
-            fs.accessSync(skillPath, fs.constants.R_OK);
-            skillPathCache.set(entry.name, skillPath);
-          } catch {
-            // No SKILL.md in this directory
-          }
-        }
-      }
+      fs.accessSync(skillPath, fs.constants.R_OK);
+      skillPathCache.set(skillName, skillPath);
+      return skillPath;
     } catch {
-      // Directory doesn't exist or not readable
+      // Not found in this directory
     }
   }
+  return null;
 }
 
-// Initialize on first load
-discoverSkills();
-
 export function getSkillPrompt(skillName: string): string | null {
-  const path = skillPathCache.get(skillName);
+  const path = getSkillPath(skillName);
   if (!path) return null;
 
   try {
@@ -48,6 +43,7 @@ export function getSkillPrompt(skillName: string): string | null {
     // Return everything after the first ## heading as the prompt
     const lines = content.split("\n");
     let startIndex = 0;
+
     for (let i = 0; i < lines.length; i++) {
       if (lines[i].startsWith("## ") || lines[i].startsWith("# ")) {
         startIndex = i;
