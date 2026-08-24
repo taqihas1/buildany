@@ -879,7 +879,7 @@ export class KellyOrchestrator {
         
         // Fix 6: .length on undefined
         content = content.replace(/(\w+)\.length/g, (match, varName) => {
-          return `($1?.length || 0)`;
+          return `(${varName}?.length || 0)`;
         });
         
         // Fix 7: cn() with object syntax (common DeepSeek mistake)
