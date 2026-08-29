@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   try {
     const { projectId, projectName } = await req.json();
     if (!GITHUB_PAT) {
-      return NextResponse.json({ error: GITHUB_PAT not configured }, { status: 500 });
+      return NextResponse.json({ error: "GITHUB_PAT not configured" }, { status: 500 });
     }
     if (!projectId) {
       return NextResponse.json({ error: "projectId required" }, { status: 400 });

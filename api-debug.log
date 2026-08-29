@@ -1306,3 +1306,149 @@
 [2026-08-03T01:13:41.262Z] MODULE_LOADED: /api/generate/route.ts loaded
 [2026-08-03T01:13:52.158Z] MODULE_LOADED: /api/generate/route.ts loaded
 [2026-08-03T01:13:52.366Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:30:16.689Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:30:16.692Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:30:18.279Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:30:18.425Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:31:53.629Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"282","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-23T20:31:53.632Z] BODY: {"projectId":"92a70638-8699-4333-aa2e-d8496c0f10dc","prompt":"A modern fitness dashboard with workout stats, calorie burn charts, weekly progress bar charts, and a dark sidebar. Uses vibrant gradients and modern card designs.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-23T20:31:53.636Z] RESPONSE: {"success":true,"projectId":"92a70638-8699-4333-aa2e-d8496c0f10dc","hasResearch":false,"serverTime":"2026-08-23T20:31:53.636Z"}
+[2026-08-23T20:41:08.936Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:41:08.939Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:41:10.303Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:41:10.425Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:42:13.520Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"275","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-23T20:42:13.520Z] BODY: {"projectId":"deafbbe6-75b8-42c2-bc66-5767df5006e3","prompt":"A fitness dashboard with workout stats, calorie burn charts, weekly progress bar charts, and a dark sidebar. Uses vibrant gradients and modern card designs.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-23T20:42:13.525Z] RESPONSE: {"success":true,"projectId":"deafbbe6-75b8-42c2-bc66-5767df5006e3","hasResearch":false,"serverTime":"2026-08-23T20:42:13.525Z"}
+[2026-08-23T20:50:33.060Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:50:33.063Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:50:34.534Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:50:34.652Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:51:53.645Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"253","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-23T20:51:53.645Z] BODY: {"projectId":"16883654-367b-46f6-ac8b-03c10eb8d2d1","prompt":"A modern fitness dashboard with dark sidebar, vibrant gradient cards, and charts for workout stats, calorie burn, and weekly progress.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-23T20:51:53.651Z] RESPONSE: {"success":true,"projectId":"16883654-367b-46f6-ac8b-03c10eb8d2d1","hasResearch":false,"serverTime":"2026-08-23T20:51:53.651Z"}
+[2026-08-23T20:56:58.272Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:56:58.275Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T20:58:06.135Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"265","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-23T20:58:06.135Z] BODY: {"projectId":"2e7d86cc-c794-48db-862e-4f1b0782131f","prompt":"A modern fitness dashboard with workout stats, calorie burn charts, and weekly progress bars, featuring a dark sidebar and vibrant gradient cards.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-23T20:58:06.140Z] RESPONSE: {"success":true,"projectId":"2e7d86cc-c794-48db-862e-4f1b0782131f","hasResearch":false,"serverTime":"2026-08-23T20:58:06.140Z"}
+[2026-08-23T22:38:18.469Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T22:38:18.472Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T22:38:20.000Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T22:38:20.152Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T22:39:10.782Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"271","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-23T22:39:10.783Z] BODY: {"projectId":"9a0e250b-affe-4b4d-8e34-4ece560aac20","prompt":"A modern fitness dashboard with workout stats, calorie burn charts, weekly progress bar charts, dark sidebar, vibrant gradients and modern card designs.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-23T22:39:10.788Z] RESPONSE: {"success":true,"projectId":"9a0e250b-affe-4b4d-8e34-4ece560aac20","hasResearch":false,"serverTime":"2026-08-23T22:39:10.788Z"}
+[2026-08-23T22:58:52.821Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T22:58:52.824Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T22:58:54.229Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T22:58:54.351Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T23:00:27.468Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"295","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-23T23:00:27.469Z] BODY: {"projectId":"c691e3f2-21bb-4a54-a24f-b4d00f1eb0b1","prompt":"A modern fitness dashboard with workout stats, calorie burn charts, weekly progress bars, vibrant gradients, and a dark sidebar. Uses mock data and Recharts for visualizations.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-23T23:00:27.474Z] RESPONSE: {"success":true,"projectId":"c691e3f2-21bb-4a54-a24f-b4d00f1eb0b1","hasResearch":false,"serverTime":"2026-08-23T23:00:27.474Z"}
+[2026-08-23T23:11:15.578Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T23:11:15.581Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T23:11:17.031Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T23:11:17.148Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T23:12:07.576Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"279","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-23T23:12:07.576Z] BODY: {"projectId":"e7f23796-4de8-43b7-8822-1fce0b8b2085","prompt":"A fitness dashboard with workout stats, calorie burn charts, weekly progress bar charts, and a dark sidebar. Features vibrant gradients and modern card designs.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-23T23:12:07.582Z] RESPONSE: {"success":true,"projectId":"e7f23796-4de8-43b7-8822-1fce0b8b2085","hasResearch":false,"serverTime":"2026-08-23T23:12:07.582Z"}
+[2026-08-23T23:37:11.084Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T23:37:11.088Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T23:37:12.519Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T23:37:12.633Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T23:38:16.776Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"306","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-23T23:38:16.776Z] BODY: {"projectId":"63b37094-15ec-4747-8b9a-675faaf14e17","prompt":"A modern fitness dashboard with workout stats, calorie burn charts, weekly progress bar charts, and a dark sidebar. Features vibrant gradients, modern card designs, and responsive layout.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-23T23:38:16.783Z] RESPONSE: {"success":true,"projectId":"63b37094-15ec-4747-8b9a-675faaf14e17","hasResearch":false,"serverTime":"2026-08-23T23:38:16.783Z"}
+[2026-08-23T23:49:21.209Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T23:49:21.213Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T23:49:22.711Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T23:49:22.828Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-23T23:50:20.844Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"268","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-23T23:50:20.844Z] BODY: {"projectId":"4db1a6b2-d760-4b8e-b55f-9d550d9f62f0","prompt":"A modern fitness dashboard with workout stats, calorie burn charts, weekly progress bars, and a dark sidebar using vibrant gradients and sleek cards.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-23T23:50:20.848Z] RESPONSE: {"success":true,"projectId":"4db1a6b2-d760-4b8e-b55f-9d550d9f62f0","hasResearch":false,"serverTime":"2026-08-23T23:50:20.848Z"}
+[2026-08-24T00:07:59.579Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T00:07:59.582Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T00:08:01.499Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T00:08:01.650Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T00:08:47.796Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"229","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-24T00:08:47.796Z] BODY: {"projectId":"668c2402-bef6-44fb-a9a1-f9c31de2d663","prompt":"A modern fitness dashboard with vibrant gradients, dark sidebar, and comprehensive workout and health metrics.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-24T00:08:47.801Z] RESPONSE: {"success":true,"projectId":"668c2402-bef6-44fb-a9a1-f9c31de2d663","hasResearch":false,"serverTime":"2026-08-24T00:08:47.801Z"}
+[2026-08-24T00:10:49.893Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T00:10:49.895Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T00:10:51.389Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T00:10:51.519Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T00:12:30.422Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"256","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-24T00:12:30.422Z] BODY: {"projectId":"5ed8567c-4611-48b0-a7b5-e91287d65124","prompt":"A modern fitness dashboard with dark sidebar, vibrant gradient cards, workout stats, calorie burn charts, and weekly progress bar charts.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-24T00:12:30.427Z] RESPONSE: {"success":true,"projectId":"5ed8567c-4611-48b0-a7b5-e91287d65124","hasResearch":false,"serverTime":"2026-08-24T00:12:30.427Z"}
+[2026-08-24T00:49:21.331Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T00:49:21.334Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T00:49:22.915Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T00:49:23.039Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T00:50:15.487Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"266","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-24T00:50:15.487Z] BODY: {"projectId":"020777e9-0873-4a4c-9623-38be0e0ddd7c","prompt":"A modern fitness dashboard with workout stats, calorie burn charts, weekly progress bars, dark sidebar, vibrant gradients, and modern card designs.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-24T00:50:15.492Z] RESPONSE: {"success":true,"projectId":"020777e9-0873-4a4c-9623-38be0e0ddd7c","hasResearch":false,"serverTime":"2026-08-24T00:50:15.492Z"}
+[2026-08-24T01:05:26.812Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T01:05:26.815Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T01:05:28.333Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T01:05:28.453Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T01:06:15.853Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"275","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-24T01:06:15.853Z] BODY: {"projectId":"403db470-369f-42b4-926c-ad4552107ba2","prompt":"A fitness dashboard with workout stats, calorie burn charts, weekly progress bar charts, and a dark sidebar. Uses vibrant gradients and modern card designs.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-24T01:06:15.859Z] RESPONSE: {"success":true,"projectId":"403db470-369f-42b4-926c-ad4552107ba2","hasResearch":false,"serverTime":"2026-08-24T01:06:15.859Z"}
+[2026-08-24T01:24:19.938Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T01:24:19.941Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T01:24:21.486Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T01:24:21.611Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T01:25:23.970Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"277","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-24T01:25:23.970Z] BODY: {"projectId":"9476624c-7cee-4f0e-971a-d493cf05cdb8","prompt":"A modern fitness dashboard with workout stats, calorie burn charts, weekly progress bar charts, and a dark sidebar. Vibrant gradients and modern card designs.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-24T01:25:23.976Z] RESPONSE: {"success":true,"projectId":"9476624c-7cee-4f0e-971a-d493cf05cdb8","hasResearch":false,"serverTime":"2026-08-24T01:25:23.976Z"}
+[2026-08-24T01:46:04.983Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T01:46:04.986Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T01:46:06.495Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T01:46:06.608Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T01:46:55.128Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"234","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-24T01:46:55.129Z] BODY: {"projectId":"af15c0e6-4714-49b4-adb5-e21678ba8c2e","prompt":"A modern fitness dashboard with workout stats, calorie burn charts, weekly progress bar charts, and a dark sidebar.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-24T01:46:55.134Z] RESPONSE: {"success":true,"projectId":"af15c0e6-4714-49b4-adb5-e21678ba8c2e","hasResearch":false,"serverTime":"2026-08-24T01:46:55.134Z"}
+[2026-08-24T02:00:42.135Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T02:00:42.138Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T02:00:43.594Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T02:00:43.723Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T02:01:29.724Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"265","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-24T02:01:29.724Z] BODY: {"projectId":"a50f559a-1ee7-4538-b8fb-6490eba11810","prompt":"A modern fitness dashboard with workout stats, calorie burn charts, weekly progress bar charts, dark sidebar, vibrant gradients, and card designs.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-24T02:01:29.728Z] RESPONSE: {"success":true,"projectId":"a50f559a-1ee7-4538-b8fb-6490eba11810","hasResearch":false,"serverTime":"2026-08-24T02:01:29.728Z"}
+[2026-08-24T02:07:04.168Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T02:07:04.171Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T02:07:05.738Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T02:07:05.870Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T02:09:04.186Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"223","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-24T02:09:04.186Z] BODY: {"projectId":"51e82660-81a7-4468-bfcc-fe3695916881","prompt":"A modern fitness dashboard with workout stats, calorie burn charts, weekly progress, and a dark sidebar.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-24T02:09:04.193Z] RESPONSE: {"success":true,"projectId":"51e82660-81a7-4468-bfcc-fe3695916881","hasResearch":false,"serverTime":"2026-08-24T02:09:04.193Z"}
+[2026-08-24T02:18:34.416Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T02:18:34.419Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T02:18:35.877Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T02:18:35.991Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T02:20:18.290Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"282","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-24T02:20:18.290Z] BODY: {"projectId":"7f77b11f-e141-4e9a-8373-ef8eeeeeef30","prompt":"A modern fitness dashboard with workout stats, calorie burn charts, weekly progress bar charts, and a dark sidebar. Uses vibrant gradients and modern card designs.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-24T02:20:18.294Z] RESPONSE: {"success":true,"projectId":"7f77b11f-e141-4e9a-8373-ef8eeeeeef30","hasResearch":false,"serverTime":"2026-08-24T02:20:18.294Z"}
+[2026-08-24T11:21:19.932Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T11:21:19.934Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T11:21:21.435Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T11:21:21.594Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-24T11:23:11.972Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"270","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-24T11:23:11.972Z] BODY: {"projectId":"c1a15b93-b2cd-4d3f-ba06-8fb76e957736","prompt":"Modern fitness dashboard with workout stats, calorie burn charts, weekly progress bar charts, dark sidebar, vibrant gradients, and modern card designs.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-24T11:23:11.980Z] RESPONSE: {"success":true,"projectId":"c1a15b93-b2cd-4d3f-ba06-8fb76e957736","hasResearch":false,"serverTime":"2026-08-24T11:23:11.980Z"}
+[2026-08-24T11:30:16.909Z] REQUEST_START: {"url":"http://localhost:3000/api/generate","method":"POST","headers":{"accept":"*/*","accept-encoding":"gzip, deflate","accept-language":"*","connection":"keep-alive","content-length":"301","content-type":"application/json","host":"localhost:3000","sec-fetch-mode":"cors","user-agent":"node","x-forwarded-for":"::1","x-forwarded-host":"localhost:3000","x-forwarded-port":"3000","x-forwarded-proto":"http"}}
+[2026-08-24T11:30:16.909Z] BODY: {"projectId":"3413f59f-ab1e-43bc-a775-7cb2a34fc709","prompt":"A modern fitness dashboard with workout stats, calorie burn charts, weekly progress bar charts, dark sidebar, vibrant gradients, and modern card designs using mock data and Recharts.","type":"web","provider":"deepseek","skipResearch":true}
+[2026-08-24T11:30:16.916Z] RESPONSE: {"success":true,"projectId":"3413f59f-ab1e-43bc-a775-7cb2a34fc709","hasResearch":false,"serverTime":"2026-08-24T11:30:16.916Z"}
+[2026-08-29T13:59:32.547Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-29T13:59:32.551Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-29T14:01:14.842Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-29T14:01:15.029Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-29T14:10:36.409Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-29T14:10:36.412Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-29T14:10:37.977Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-29T14:10:38.132Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-29T14:46:57.412Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-29T14:46:57.416Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-29T14:46:58.992Z] MODULE_LOADED: /api/generate/route.ts loaded
+[2026-08-29T14:46:59.123Z] MODULE_LOADED: /api/generate/route.ts loaded

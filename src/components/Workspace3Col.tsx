@@ -175,7 +175,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
             (async () => {
               try {
                 // Use Morgan for code generation
-                const res = await fetch("/api/hermes-orchestrate", {
+                const res = await fetch("/api/harness/build", {
                   method: "POST",
                   headers: { "Content-Type": "application/json" },
                   body: JSON.stringify({
@@ -189,7 +189,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
                   setMessages((prev) => [...prev, {
                     id: Date.now().toString(),
                     role: "system",
-                    content: `✅ App generated! ${createData.files?.length || 0} files created.`,
+                    content: `✅ App generated via Harness!.`,
                   }]);
                   router.push("/project/" + createData.projectId);
                 } else {
@@ -200,7 +200,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
                   }]);
                 }
               } catch (err) {
-                console.error("[Workspace3Col] Morgan generation failed:", err);
+                console.error("[Workspace3Col] Harness generation failed:", err);
                 setMessages((prev) => [...prev, {
                   id: Date.now().toString(),
                   role: "assistant",
