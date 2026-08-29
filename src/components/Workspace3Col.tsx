@@ -128,6 +128,12 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
     }
   }, []);
 
+  const isBuildPrompt = (text: string): boolean => {
+    const buildKeywords = ['build', 'create', 'make', 'generate', 'app', 'website', 'dashboard', 'tracker', 'portfolio', 'landing page', 'ecommerce', 'blog'];
+    const lower = text.toLowerCase();
+    return buildKeywords.some(k => lower.includes(k)) && lower.length > 20;
+  };
+
   const sendMessage = async (content: string, isInitial = false) => {
     if (!content.trim() || isLoading) return;
 
@@ -142,6 +148,48 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
       setInput("");
     }
     setIsLoading(true);
+
+    // If this is a build prompt, skip Kelly and go straight to Harness
+    if (isBuildPrompt(content)) {
+      setMessages((prev) => [...prev, { id: Date.now().toString(), role: "system", content: "🚀 Starting Harness build..." }]);
+      setBuildStatus("generating");
+      try {
+        const res = await fetch("/api/harness/build", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            prompt: content.trim(),
+            type: "web",
+          }),
+        });
+        const createData = await res.json();
+        if (createData.success && createData.projectId) {
+          setMessages((prev) => [...prev, {
+            id: Date.now().toString(),
+            role: "system",
+            content: `✅ App generated via Harness!`,
+          }]);
+          setBuildStatus("completed");
+          router.push("/project/" + createData.projectId);
+        } else {
+          setMessages((prev) => [...prev, {
+            id: Date.now().toString(),
+            role: "assistant",
+            content: "❌ Generation failed: " + (createData.error || "Unknown error"),
+          }]);
+          setBuildStatus("error");
+        }
+      } catch (err) {
+        setMessages((prev) => [...prev, {
+          id: Date.now().toString(),
+          role: "assistant",
+          content: "❌ Error: " + (err instanceof Error ? err.message : "Unknown"),
+        }]);
+        setBuildStatus("error");
+      }
+      setIsLoading(false);
+      return;
+    }
 
     try {
       const res = await fetch("/api/kelly-chat", {
