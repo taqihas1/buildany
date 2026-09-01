@@ -4,6 +4,7 @@ import { projects, projectFiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { readFileSync, readdirSync, statSync } from "fs";
 import { join } from "path";
+import { startDeploymentMonitor } from "@/lib/deployment-monitor";
 
 const PROJECTS_DIR = "/data/projects";
 
@@ -51,6 +52,20 @@ export async function POST(req: NextRequest) {
         updatedAt: new Date(),
       })
       .where(eq(projects.id, projectId));
+
+    // 6. Start deployment monitoring (auto-fix on failure)
+    const repoParts = repoFullName.split("/");
+    if (process.env.CLOUDFLARE_API_TOKEN && process.env.CLOUDFLARE_ACCOUNT_ID) {
+      startDeploymentMonitor({
+        projectId,
+        accountId: process.env.CLOUDFLARE_ACCOUNT_ID,
+        projectName: repoParts[1] || repoParts[0],
+        githubOwner: repoParts[0],
+        githubRepo: repoParts[1] || repoParts[0],
+        cloudflareToken: process.env.CLOUDFLARE_API_TOKEN,
+        githubToken,
+      });
+    }
 
     return NextResponse.json({
       success: true,
