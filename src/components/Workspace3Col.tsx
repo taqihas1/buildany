@@ -1,6 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+// Strip HTML comment markers used for phase tracking in system messages
+function cleanMessageContent(text: string): string {
+  return text.replace(/\s*<!--\s*phase:[^>]+-->\s*/g, "").trim();
+}
+
 import { useRouter } from "next/navigation";
 import { Send, Code, Play, GitBranch, Folder, FileCode, Loader2, MessageSquare, Cloud, Download, ExternalLink, CheckCircle, Search } from "lucide-react";
 import Link from "next/link";
@@ -107,27 +112,57 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
         if (res.ok) {
           const data = await res.json();
           if (data.messages && data.messages.length > 0) {
-            setMessages(data.messages.map((m: { role: string; content: string }) => ({
+            // Merge server history with initialChat (from URL prompt)
+            const serverMessages = data.messages.map((m: { role: string; content: string }) => ({
               id: Math.random().toString(36).substr(2, 9),
               role: m.role,
               content: m.content,
-            })));
+            }));
+            setMessages(serverMessages);
           }
+          // If server returns empty but we have initialChat, keep initialChat
         }
       } catch (err) {
         console.error("Failed to load chat history:", err);
       }
     }
-    loadHistory();
+    // Only load from server if we don't already have messages from initialChat
+    if (messages.length === 0) {
+      loadHistory();
+    }
   }, [project.id]);
 
-  // Auto-send initial prompt if it came from URL
+  // Auto-build effect: trigger Jason when draft project loads with a prompt
+  const hasAutoBuilt = useRef(false);
   useEffect(() => {
-    if (initialChat.length === 1 && initialChat[0].role === "user") {
-      sendMessage(initialChat[0].content, true);
-    }
-  }, []);
-
+    if (hasAutoBuilt.current) return;
+    if (buildStatus !== "draft") return;
+    if (files.length > 0) return;
+    const userPrompt = messages.find(m => m.role === "user")?.content;
+    if (!userPrompt) return;
+    hasAutoBuilt.current = true;
+    (async () => {
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: "system", content: "🚀 Jason is building your app..." }]);
+      setBuildStatus("generating");
+      try {
+        const res = await fetch("/api/harness/build", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ prompt: userPrompt, type: "web", projectId: project.id }),
+        });
+        const data = await res.json();
+        if (data.success) {
+          setMessages(prev => [...prev, { id: Date.now().toString(), role: "system", content: "✅ Build started! Generating code..." }]);
+        } else {
+          setMessages(prev => [...prev, { id: Date.now().toString(), role: "assistant", content: "❌ Build failed: " + (data.error || "Unknown error") }]);
+          setBuildStatus("error");
+        }
+      } catch (err: any) {
+        setMessages(prev => [...prev, { id: Date.now().toString(), role: "assistant", content: "❌ Build error: " + err.message }]);
+        setBuildStatus("error");
+      }
+    })();
+  }, [buildStatus, files.length, messages, project.id]);
   const isBuildPrompt = (text: string): boolean => {
     const buildKeywords = ['build', 'create', 'make', 'generate', 'app', 'website', 'dashboard', 'tracker', 'portfolio', 'landing page', 'ecommerce', 'blog'];
     const lower = text.toLowerCase();
@@ -149,9 +184,9 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
     }
     setIsLoading(true);
 
-    // If this is a build prompt, skip Kelly and go straight to Harness
+    // If this is a build prompt, skip Kelly and go straight to Jason
     if (isBuildPrompt(content)) {
-      setMessages((prev) => [...prev, { id: Date.now().toString(), role: "system", content: "🚀 Starting Harness build..." }]);
+      setMessages((prev) => [...prev, { id: Date.now().toString(), role: "system", content: "🚀 Starting Jason build..." }]);
       setBuildStatus("generating");
       try {
         const res = await fetch("/api/harness/build", {
@@ -167,7 +202,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
           setMessages((prev) => [...prev, {
             id: Date.now().toString(),
             role: "system",
-            content: `✅ App generated via Harness!`,
+            content: `✅ App generated via Jason!`,
           }]);
           setBuildStatus("completed");
           router.push("/project/" + createData.projectId);
@@ -192,7 +227,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
     }
 
     try {
-      const res = await fetch("/api/kelly-chat", {
+      const res = await fetch(`/api/project/${project.id}/chat`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -237,7 +272,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
                   setMessages((prev) => [...prev, {
                     id: Date.now().toString(),
                     role: "system",
-                    content: `✅ App generated via Harness!.`,
+                    content: `✅ App generated via Jason!.`,
                   }]);
                   router.push("/project/" + createData.projectId);
                 } else {
@@ -248,7 +283,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
                   }]);
                 }
               } catch (err) {
-                console.error("[Workspace3Col] Harness generation failed:", err);
+                console.error("[Workspace3Col] Jason generation failed:", err);
                 setMessages((prev) => [...prev, {
                   id: Date.now().toString(),
                   role: "assistant",
@@ -292,7 +327,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
   const handleBuild = async () => {
     // Check if files exist first
     if (files.length === 0) {
-      alert("No code files found. Please chat with Harness to generate code first.");
+      alert("No code files found. Please chat with Jason to generate code first.");
       return;
     }
     
@@ -411,7 +446,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
       setMessages((prev) => [...prev, {
         id: Date.now().toString(),
         role: "system",
-        content: "❌ No code files found. Chat with Harness to generate code first.",
+        content: "❌ No code files found. Chat with Jason to generate code first.",
       }]);
       return;
     }
@@ -619,13 +654,13 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
         <div className="w-1/3 border-r border-gray-800 flex flex-col">
           <div className="px-4 py-2 border-b border-gray-800 text-xs text-gray-500 flex items-center gap-2">
             <MessageSquare className="w-3.5 h-3.5" />
-            Chat with Harness
+            Chat with Jason
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-4">
             {messages.length === 0 && (
               <div className="text-center text-gray-600 text-sm mt-8">
                 <p className="mb-2">Describe what you want to build...</p>
-                <p className="text-xs">Harness will research, plan, and generate code for you.</p>
+                <p className="text-xs">Jason will research, plan, and generate code for you.</p>
               </div>
             )}
             {messages.map((msg) => (
@@ -642,7 +677,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
                       : "bg-gray-800 text-gray-200"
                   }`}
                 >
-                  {msg.content}
+                  {cleanMessageContent(msg.content)}
                 </div>
               </div>
             ))}
@@ -684,7 +719,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
               <div className="flex justify-start">
                 <div className="bg-gray-800 rounded-xl px-4 py-2.5 text-sm text-gray-400 flex items-center gap-2">
                   <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                  Harness is thinking...
+                  Jason is thinking...
                 </div>
               </div>
             )}
@@ -696,7 +731,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
-                placeholder="Ask Harness..."
+                placeholder="Ask Jason..."
                 className="flex-1 bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm text-white placeholder:text-gray-500 outline-none focus:border-purple-500"
                 disabled={isLoading}
               />
@@ -791,7 +826,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
               <div className="text-center text-gray-600">
                 <Play className="w-12 h-12 mx-auto mb-3 opacity-50" />
                 <p className="text-sm">Start a chat to build your app</p>
-                <p className="text-xs text-gray-500 mt-2">Chat with Harness to generate code</p>
+                <p className="text-xs text-gray-500 mt-2">Chat with Jason to generate code</p>
               </div>
             )}
           </div>

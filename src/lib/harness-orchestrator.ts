@@ -4,6 +4,7 @@ import { spawn } from "child_process";
 import { db } from "@/lib/db";
 import { projects, projectFiles, conversations } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { HarnessProgressWatcher } from "./harness/progress";
 
 const PROJECTS_DIR = "/data/projects";
 const HARNESS_LOGS_DIR = "/data/projects/.harness-logs";
@@ -56,6 +57,10 @@ export async function startHarnessSession(
   console.log(`[Harness] Starting session ${sessionId} for project ${projectId}`);
   console.log(`[Harness] Command: dsh ${dshArgs.join(' ')}`);
 
+  // Start progress watcher to stream file creation to chat
+  const progressWatcher = new HarnessProgressWatcher(projectId);
+  progressWatcher.start();
+
   const dshProcess = spawn('dsh', dshArgs, {
     cwd: projectDir,
     env: {
@@ -86,10 +91,11 @@ export async function startHarnessSession(
   dshProcess.on('exit', async (code) => {
     console.log(`[Harness] Session ${sessionId} exited with code ${code}`);
     session.status = code === 0 ? 'completed' : 'failed';
-    
-    // Sync files from disk to DB
-    await syncFilesToDB(projectId, projectDir);
-    
+
+    // Stop progress watcher and mark completion
+    const fileCount = await syncFilesToDB(projectId, projectDir);
+    await progressWatcher.markCompleted(code === 0, fileCount);
+
     // Update project status
     await db.update(projects)
       .set({ 
@@ -160,6 +166,12 @@ function buildHarnessPrompt(userPrompt: string, platform: string, projectDir: st
 5. Include demo data — NO empty states or placeholders
 6. Make it visually stunning with gradients, animations, and modern UI
 7. Ensure all imports resolve correctly
+8. CRITICAL: page.tsx MUST contain the ACTUAL implementation with real UI elements, data, charts, and interactive components.
+9. NEVER create an app-shell.tsx or any wrapper component that page.tsx merely imports and renders. Put ALL the main UI directly in page.tsx.
+10. The main page MUST show real content: stats, lists, forms, dashboards — NOT a generic layout wrapper.
+11. CRITICAL: next.config.js MUST set output: export and distDir: out for Cloudflare Pages deployment.
+12. CRITICAL: src/app/page.tsx MUST be created — it is the main entry point and must contain ALL the visual UI.
+13. Do NOT rely on layout.tsx for content. layout.tsx only wraps the app. ALL content goes in page.tsx.
 
 ## File Structure
 ${isMobile ? `
@@ -184,8 +196,10 @@ ${isMobile ? `
 1. Plan the architecture and file structure
 2. Create each file with complete, working code
 3. Verify all imports are correct
-4. Run ${isMobile ? 'expo prebuild' : 'npm install && npm run build'}
-5. Report success or any errors
+4. DO NOT run npm install — Cloudflare handles dependencies during deployment
+5. ONLY generate source files (src/ directory and root config files)
+6. NEVER create node_modules/ or .next/ directories
+7. Report success or any errors
 
 Start building now!`;
 }
@@ -205,12 +219,16 @@ async function syncFilesToDB(projectId: string, projectDir: string): Promise<num
     for (const entry of entries) {
       const relativePath = path.join(basePath, entry.name);
       const fullPath = path.join(dir, entry.name);
-      
-      // Skip build artifacts and deps
-      if (entry.name === 'node_modules' || entry.name === '.next' || 
-          entry.name === 'out' || entry.name === '.git' ||
-          entry.name === '.harness-logs') {
+      // Skip build artifacts, deps, and generated files
+      const SKIP_DIRS = ["node_modules", ".next", "out", ".git", ".harness-logs", ".npm-cache"];
+      const SKIP_FILES = ["package-lock.json", "next-env.d.ts", ".env.local", ".env"];
+      if (SKIP_DIRS.includes(entry.name) || SKIP_FILES.includes(entry.name)) {
         continue;
+      }
+      
+      // Only sync source files (src/) and root config files
+      if (basePath !== "" && !basePath.startsWith("src")) {
+        continue; // Skip anything outside src/ except root configs
       }
       
       if (entry.isDirectory()) {
@@ -262,6 +280,9 @@ async function syncFilesToDB(projectId: string, projectDir: string): Promise<num
   console.log(`[Harness] Synced ${fileCount} files to DB`);
   return fileCount;
 }
+
+// Keep export for backwards compat
+export { syncFilesToDB };
 
 /**
  * Kill a running Harness session

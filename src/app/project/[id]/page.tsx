@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { Workspace3Col } from "@/components/Workspace3Col";
 import fs from "fs/promises";
 import path from "path";
+import crypto from "crypto";
 
 const PROJECTS_DIR = "/data/projects";
 
@@ -53,6 +54,20 @@ export default async function ProjectPage({ params, searchParams }: PageProps) {
   const chatHistory = await db.select().from(conversations).where(eq(conversations.projectId, id));
   const files = await getProjectFiles(id);
 
+  // If prompt was passed in URL but no DB conversations exist, save it now
+  // This ensures the prompt persists even if the initial API call failed to save it
+  let hasSavedPrompt = false;
+  if (prompt && chatHistory.length === 0) {
+    await db.insert(conversations).values({
+      id: crypto.randomUUID(),
+      projectId: id,
+      role: "user",
+      content: prompt,
+      createdAt: new Date(),
+    });
+    hasSavedPrompt = true;
+  }
+
   // Convert DB messages to workspace format
   const messages = chatHistory.map(c => ({
     id: c.id,
@@ -60,8 +75,12 @@ export default async function ProjectPage({ params, searchParams }: PageProps) {
     content: c.content,
   }));
 
-  // If prompt was passed in URL, add it as first user message
-  const initialMessages = prompt && messages.length === 0
+  // If we just saved the prompt, include it in initial messages
+  const initialMessages = hasSavedPrompt
+    ? [...messages, { id: "init", role: "user" as const, content: prompt! }]
+    : messages.length > 0
+    ? messages
+    : prompt
     ? [{ id: "init", role: "user" as const, content: prompt }]
     : messages;
 
