@@ -170,6 +170,19 @@ Requirements:
 7. Keep it under 100 lines
 
 CRITICAL: If you need to make API calls, use the tokens from __context. Example:
+
+GITHUB INTEGRATION: If you need to push fixes to GitHub:
+  - __context.githubToken — for GitHub API authentication
+  - __context.githubOwner — repo owner (e.g., taqihas1)
+  - __context.githubRepoName — repo name (e.g., buildany-app-abc123)
+  - Use GitHub Contents API to update files:
+    PUT https://api.github.com/repos/{owner}/{repo}/contents/{path}
+    Body: { message, content: base64(content), sha: currentFileSha }
+
+CLOUDFLARE LOGS: To fetch build logs:
+  - Use __context.cloudflareToken and __context.cloudflareAccountId
+  - GET /client/v4/accounts/{accountId}/pages/projects/{projectName}/deployments
+  - Each deployment has an ID; use it to fetch history logs
   async function tool(params) {
     const token = __context.cloudflareToken;
     const res = await fetch("https://api.cloudflare.com/...", {
