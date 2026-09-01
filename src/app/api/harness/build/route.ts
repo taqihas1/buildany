@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { projects, projectFiles } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
 import { generateShortName } from "@/lib/project-name-generator";
+import { startBuildWatcher } from "@/lib/build-watcher";
 
 /**
  * POST /api/harness/build
@@ -40,6 +41,10 @@ export async function POST(req: NextRequest) {
 
     // Start Harness session
     const session = await startHarnessSession(projectId, prompt, type);
+
+    // Start file watcher to monitor build progress
+    const projectDir = "/data/projects/" + projectId;
+    startBuildWatcher(projectId, projectDir);
 
     return NextResponse.json({
       success: true,
