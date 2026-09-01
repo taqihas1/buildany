@@ -18,12 +18,13 @@ interface SandboxResult {
 export async function executeTool(
   code: string,
   parameters: Record<string, any>,
+  projectContext: Record<string, any> = {},
   timeoutMs: number = 30000
 ): Promise<SandboxResult> {
   const startTime = Date.now();
 
   // Create a restricted context
-  const sandbox = createSandbox(parameters);
+  const sandbox = createSandbox(parameters, projectContext);
   const context = createContext(sandbox);
 
   // Wrap the code with async execution
@@ -87,12 +88,13 @@ export async function executeTool(
 /**
  * Create a sandboxed context with restricted globals
  */
-function createSandbox(parameters: Record<string, any>): Record<string, any> {
+function createSandbox(parameters: Record<string, any>, projectContext: Record<string, any>): Record<string, any> {
   const logs: string[] = [];
   const errors: string[] = [];
 
   return {
     __params: parameters,
+    __context: projectContext,   // Injected project context (tokens, URLs, IDs)
     __result: null,
 
     // Restricted console

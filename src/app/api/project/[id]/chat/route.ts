@@ -73,7 +73,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (toolDetection.generateNew && toolDetection.need) {
       // Generate a new tool on the fly
       const context = project ? `Project: ${project.name} (${project.type})` : undefined;
-      const result = await generateAndExecuteTool(toolDetection.need, context);
+      const projectContext = {
+        projectId: id,
+        projectName: project?.name || "",
+        projectType: project?.type || "",
+        buildanyUrl: process.env.BUILDANY_URL || "https://base66.cloud",
+        cloudflareToken: process.env.CLOUDFLARE_API_TOKEN || "",
+        cloudflareAccountId: process.env.CLOUDFLARE_ACCOUNT_ID || "",
+        githubToken: process.env.GITHUB_TOKEN || "",
+      };
+      const result = await generateAndExecuteTool(toolDetection.need, context, projectContext);
 
       const responseText = result.success
         ? result.message

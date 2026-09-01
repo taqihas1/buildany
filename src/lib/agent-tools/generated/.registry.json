@@ -1,0 +1,46 @@
+{
+  "tools": [
+    {
+      "name": "automated_deployment_monitoring_fix",
+      "description": "Automated deployment monitoring and fix tool that checks Cloudflare deployment status, reads logs on failure, identifies errors, and pushes fixes to GitHub.",
+      "parameters": {
+        "cloudflareAccountId": {
+          "type": "string",
+          "description": "Cloudflare account ID",
+          "required": true
+        },
+        "cloudflareApiToken": {
+          "type": "string",
+          "description": "Cloudflare API token with Workers/Pages permissions",
+          "required": true
+        },
+        "deploymentId": {
+          "type": "string",
+          "description": "Cloudflare deployment ID to monitor",
+          "required": true
+        },
+        "githubRepo": {
+          "type": "string",
+          "description": "GitHub repository in format 'owner/repo'",
+          "required": true
+        },
+        "githubToken": {
+          "type": "string",
+          "description": "GitHub personal access token with repo permissions",
+          "required": true
+        },
+        "branch": {
+          "type": "string",
+          "description": "Branch to push fixes to",
+          "required": false
+        }
+      },
+      "code": "async function tool(params) {\n  const {\n    cloudflareAccountId,\n    cloudflareApiToken,\n    deploymentId,\n    githubRepo,\n    githubToken,\n    branch = 'main'\n  } = params;\n\n  try {\n    // 1. Check deployment status\n    const statusRes = await fetch(\n      `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${deploymentId}/deployments`,\n      { headers: { Authorization: `Bearer ${cloudflareApiToken}` } }\n    );\n    const statusData = await statusRes.json();\n    const deployment = statusData.result?.[0];\n\n    if (!deployment) {\n      return { success: false, error: 'Deployment not found' };\n    }\n\n    if (deployment.status === 'success') {\n      return { success: true, status: 'success', message: 'Deployment is healthy' };\n    }\n\n    // 2. Fetch deployment logs on failure\n    const logsRes = await fetch(\n      `https://api.cloudflare.com/client/v4/accounts/${cloudflareAccountId}/pages/projects/${deploymentId}/deployments/${deployment.id}/history/logs`,\n      { headers: { Authorization: `Bearer ${cloudflareApiToken}` } }\n    );\n    const logsData = await logsRes.json();\n    const logs = logsData.result?.map(l => l.line).join('\\n') || 'No logs available';\n\n    // 3. Identify common errors\n    const errorPatterns = [\n      { pattern: /Cannot find module/i, fix: 'Missing dependency — run npm install and commit package-lock.json' },\n      { pattern: /SyntaxError/i, fix: 'Syntax error — check the referenced file for typos' },\n      { pattern: /TypeError/i, fix: 'Type error — verify variable types and null checks' },\n      { pattern: /Module not found/i, fix: 'Import path incorrect — verify file paths' },\n      { pattern: /ReferenceError/i, fix: 'Undefined variable — declare before use' }\n    ];\n\n    const detected = errorPatterns.find(p => p.pattern.test(logs));\n    const fixMessage = detected ? detected.fix : 'Unknown error — review logs manually';\n\n    // 4. Push fix to GitHub (create issue with diagnosis)\n    const issueRes = await fetch(`https://api.github.com/repos/${githubRepo}/issues`, {\n      method: 'POST',\n      headers: {\n        Authorization: `Bearer ${githubToken}`,\n        'Content-Type': 'application/json'\n      },\n      body: JSON.stringify({\n        title: `[Auto-Fix] Deployment failed: ${deployment.id}`,\n        body: `**Error detected:**\\n\\n${fixMessage}\\n\\n**Logs:**\\n\\n\\`\\`\\`\\n${logs.slice(0, 2000)}\\n\\`\\`\\``,\n        labels: ['auto-fix', 'deployment']\n      })\n    });\n\n    if (!issueRes.ok) {\n      return { success: false, status: 'failed', error: 'Failed to create GitHub issue', logs };\n    }\n\n    return {\n      success: true,\n      status: 'failed',\n      error: fixMessage,\n      logs,\n      githubIssueCreated: true\n    };\n  } catch (error) {\n    return { success: false, error: error.message || 'Unknown error' };\n  }\n}",
+      "id": "95c02d7f-a8ed-470e-be63-c4a1f3d295bf",
+      "createdAt": "2026-09-01T02:47:51.973Z",
+      "useCount": 1,
+      "lastUsed": "2026-09-01T02:47:52.204Z"
+    }
+  ],
+  "version": 1
+}

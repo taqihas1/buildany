@@ -11,6 +11,20 @@ interface ToolGenerationRequest {
   need: string;           // What capability is needed
   context?: string;       // Additional context about the task
   existingTools?: string[]; // Names of existing tools to avoid duplicating
+  projectContext?: ProjectContext; // Project-specific context (tokens, URLs, IDs)
+}
+
+interface ProjectContext {
+  projectId?: string;
+  projectName?: string;
+  deploymentUrl?: string;
+  cloudflareToken?: string;
+  cloudflareAccountId?: string;
+  githubToken?: string;
+  githubRepo?: string;
+  githubOwner?: string;
+  buildanyUrl?: string;   // e.g. https://base66.cloud
+  [key: string]: any;     // Allow additional context
 }
 
 interface ToolGenerationResult {
@@ -38,7 +52,7 @@ export function findExistingTool(need: string): AgentTool | undefined {
  * Generate a new tool using LLM
  */
 export async function generateTool(request: ToolGenerationRequest): Promise<ToolGenerationResult> {
-  const { need, context = "", existingTools = [] } = request;
+  const { need, context = "", existingTools = [], projectContext = {} } = request;
 
   // Check if tool already exists
   const existing = findExistingTool(need);
@@ -60,7 +74,7 @@ export async function generateTool(request: ToolGenerationRequest): Promise<Tool
   }
 
   // Build the generation prompt
-  const prompt = buildGenerationPrompt(need, context, existingTools);
+  const prompt = buildGenerationPrompt(need, context, existingTools, projectContext);
 
   try {
     // Call LLM to generate tool code
@@ -80,7 +94,7 @@ export async function generateTool(request: ToolGenerationRequest): Promise<Tool
     });
 
     // Test the tool with default parameters
-    const testResult = await executeTool(parsed.code, parsed.testParameters || {});
+    const testResult = await executeTool(parsed.code, parsed.testParameters || {}, projectContext);
 
     return {
       success: true,
@@ -130,20 +144,39 @@ function generateToolName(need: string): string {
 /**
  * Build the LLM prompt for tool generation
  */
-function buildGenerationPrompt(need: string, context: string, existingTools: string[]): string {
+function buildGenerationPrompt(need: string, context: string, existingTools: string[], projectContext: ProjectContext): string {
+  const ctxEntries = Object.entries(projectContext)
+    .filter(([k, v]) => v !== undefined && v !== null && v !== "")
+    .map(([k, v]) => `  ${k}: ${JSON.stringify(v)}`)
+    .join("\n");
+
+  const contextBlock = ctxEntries
+    ? `\nPROJECT CONTEXT (available as __context in the sandbox):\n${ctxEntries}`
+    : "";
+
   return `You are a code generation assistant. Create a JavaScript tool function that solves the following need:
 
 NEED: ${need}
-CONTEXT: ${context}
+CONTEXT: ${context}${contextBlock}
 ${existingTools.length > 0 ? `EXISTING TOOLS (do not duplicate): ${existingTools.join(", ")}` : ""}
 
 Requirements:
 1. Write ONLY a single async function named ".tool" that takes one parameter object
-2. The function should be self-contained (no external imports needed — fetch, console, JSON are available)
-3. Include JSDoc-style comments explaining parameters
-4. Return a clean result object (not raw HTML or unformatted text)
-5. Handle errors gracefully with try/catch
-6. Keep it under 100 lines
+2. The function is self-contained but can access __context for project data (tokens, URLs, IDs)
+3. Use __context.cloudflareToken for Cloudflare API calls, __context.githubToken for GitHub, etc.
+4. Include JSDoc-style comments explaining parameters
+5. Return a clean result object (not raw HTML or unformatted text)
+6. Handle errors gracefully with try/catch
+7. Keep it under 100 lines
+
+CRITICAL: If you need to make API calls, use the tokens from __context. Example:
+  async function tool(params) {
+    const token = __context.cloudflareToken;
+    const res = await fetch("https://api.cloudflare.com/...", {
+      headers: { "Authorization": "Bearer " + token }
+    });
+    return await res.json();
+  }
 
 Output format (STRICT JSON):
 {

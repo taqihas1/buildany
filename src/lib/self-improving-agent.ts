@@ -104,7 +104,7 @@ export async function executeToolForChat(
   parameters: Record<string, any>
 ): Promise<{ success: boolean; message: string; data?: any }> {
   try {
-    const result = await runTool(toolName, parameters);
+    const result = await runTool(toolName, parameters, projectContext);
     incrementUseCount(toolName);
 
     if (!result.success) {
@@ -131,7 +131,8 @@ export async function executeToolForChat(
 
 export async function generateAndExecuteTool(
   need: string,
-  context?: string
+  context?: string,
+  projectContext?: Record<string, any>
 ): Promise<{ success: boolean; message: string; toolName?: string }> {
   try {
     const existing = findExistingTool(need);
@@ -144,14 +145,14 @@ export async function generateAndExecuteTool(
       };
     }
 
-    const generation = await generateTool({ need, context });
+    const generation = await generateTool({ need, context, projectContext });
 
     if (!generation.success || !generation.tool) {
       return { success: false, message: `Failed to create tool: ${generation.error}` };
     }
 
     const tool = generation.tool;
-    const result = await executeToolForChat(tool.name, generation.executionResult?.output || {});
+    const result = await executeToolForChat(tool.name, generation.executionResult?.output || {}, projectContext);
 
     return {
       success: result.success,
