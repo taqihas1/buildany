@@ -85,13 +85,26 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
           }
         }
 
+        // Poll for chat messages
+        const chatRes = await fetch(`/api/project/${project.id}/chat`);
+        if (chatRes.ok) {
+          const chatData = await chatRes.json();
+          if (chatData.messages && chatData.messages.length > 0) {
+            setMessages(chatData.messages.map((m: { role: string; content: string }) => ({
+              id: Math.random().toString(36).substr(2, 9),
+              role: m.role,
+              content: m.content,
+            })));
+          }
+        }
+
         // Poll for status
         const statusRes = await fetch(`/api/project-status?projectId=${project.id}`);
         if (statusRes.ok) {
           const statusData = await statusRes.json();
           if (statusData.status && statusData.status !== buildStatus) {
             setBuildStatus(statusData.status);
-            if (statusData.status === deployed) {
+            if (statusData.status === "deployed") {
               // deploymentUrl is already set by handleDeployCloudflare
             }
           }

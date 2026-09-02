@@ -486,7 +486,7 @@ async function listAllFiles(dir: string): Promise<string[]> {
   const entries = await fs.readdir(dir, { withFileTypes: true });
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
-    if (entry.isDirectory() && entry.name !== "node_modules" && entry.name !== ".git") {
+    if (entry.isDirectory() && !["node_modules", ".git", ".next", ".npm-cache", ".cacache", "out", "dist"].includes(entry.name)) {
       files.push(...(await listAllFiles(fullPath)));
     } else if (entry.isFile()) {
       files.push(fullPath);
