@@ -605,7 +605,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
           </Link>
           <div>
             <h1 className="font-semibold text-sm">{project.name}</h1>
-            <span className="text-xs text-gray-500">{project.status}</span>
+            <span className="text-xs text-gray-500">{buildStatus}</span>
           </div>
         </div>
         <div className="flex items-center gap-2">
