@@ -142,7 +142,7 @@ async function discoverGeneratedFiles(projectPath: string): Promise<string[]> {
       const relative = path.join(base, entry.name);
       const full = path.join(dir, entry.name);
       
-      if (entry.isDirectory() && entry.name !== "node_modules" && entry.name !== ".next") {
+      if (entry.isDirectory() && !["node_modules", ".next", ".npm-cache", ".cacache", "out", "dist"].includes(entry.name)) {
         await scan(full, relative);
       } else if (entry.isFile()) {
         files.push(relative);
