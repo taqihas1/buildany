@@ -96,13 +96,47 @@ INSTRUCTIONS:
 Return the complete modified file:`;
   }
 
-  /** Extract code block from LLM response */
+  /** Extract code block from LLM response — robust version */
   extractCode(response: string): string | null {
-    // Match ```tsx or ``` followed by code
-    const match = response.match(/```(?:tsx?|jsx?)?\n?([\s\S]*?)```/);
-    if (match) return match[1].trim();
-    // If no code block, return the whole response
-    return response.trim();
+    if (!response) return null;
+
+    // Pattern 1: Standard fenced code block with language tag
+    // ```tsx\n...code...\n```
+    const standardMatch = response.match(/```(?:tsx?|jsx?|css|typescript|javascript)?\s*\n?([\s\S]*?)```/);
+    if (standardMatch) {
+      const extracted = standardMatch[1].trim();
+      // Sanity check: if extracted content still starts with backticks, something went wrong
+      if (!extracted.startsWith('```')) {
+        return extracted;
+      }
+    }
+
+    // Pattern 2: Code block without language tag
+    const plainMatch = response.match(/```\s*\n?([\s\S]*?)```/);
+    if (plainMatch) {
+      return plainMatch[1].trim();
+    }
+
+    // Pattern 3: Response starts with backticks on first line (common DeepSeek mistake)
+    if (response.trim().startsWith('```')) {
+      const lines = response.split('\n');
+      // Remove first line ( ```tsx ) and last line ( ``` ) if present
+      if (lines.length >= 2) {
+        const endIdx = lines.length - 1;
+        const startIdx = 0;
+        // Check if last line is just backticks
+        if (lines[endIdx].trim() === '```') {
+          return lines.slice(startIdx + 1, endIdx).join('\n').trim();
+        }
+      }
+    }
+
+    // Fallback: return whole response stripped of any stray backtick lines
+    return response
+      .split('\n')
+      .filter(line => !line.trim().match(/^```/))
+      .join('\n')
+      .trim();
   }
 
   /** Create a simple diff */
