@@ -1,0 +1,104 @@
+name: Development Client APK Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build (default: main)'
+        required: false
+        default: 'main'
+
+permissions:
+  contents: read
+
+jobs:
+  build-dev-client:
+    name: Build Development Client APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      # ── Checkout code ──
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.branch }}
+
+      # ── Setup Node.js ──
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # ── Setup Java 17 ──
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 17
+
+      # ── Setup Android SDK ──
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      # ── Cache Gradle dependencies ──
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: gradle-${{ runner.os }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: gradle-${{ runner.os }}-
+
+      # ── Install npm dependencies ──
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      # ── Install expo-dev-client ──
+      - name: Install expo-dev-client
+        run: npx expo install expo-dev-client
+
+      # ── Expo Prebuild (generate native android/ folder) ──
+      - name: Expo Prebuild
+        run: npx expo prebuild --platform android --clean
+
+      # ── Disable new architecture ──
+      - name: Disable New Architecture
+        run: |
+          echo "🔧 Disabling new architecture for stability..."
+          sed -i 's/newArchEnabled=true/newArchEnabled=false/' android/gradle.properties
+          grep "newArchEnabled" android/gradle.properties || echo "newArchEnabled not found (default is false)"
+
+      # ── Build Debug APK with Development Client ──
+      - name: Build Development Client APK
+        run: |
+          cd android
+          ./gradlew assembleDebug \
+            -PversionCode=${{ github.run_number }} \
+            -PversionName=1.0.${{ github.run_number }}-dev
+
+      # ── Upload APK artifact ──
+      - name: Upload Development Client APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: development-client-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 7
+
+      # ── Success summary ──
+      - name: Build Summary
+        run: |
+          echo "✅ DEVELOPMENT CLIENT APK BUILT SUCCESSFULLY!"
+          echo ""
+          echo "📥 Download: Go to Actions tab → this run → Artifacts → 'development-client-apk'"
+          echo "📱 Install: Transfer APK to your Android phone → tap to install"
+          echo ""
+          echo "🔥 HOW TO USE:"
+          echo "1. Install this APK on your phone"
+          echo "2. On your server, run: npx expo start --tunnel"
+          echo "3. The app will auto-connect to your dev server"
+          echo "4. Code changes appear instantly — no rebuild needed!"
+          echo ""
+          echo "⚠️ Note: This is a development build, NOT for Play Store"

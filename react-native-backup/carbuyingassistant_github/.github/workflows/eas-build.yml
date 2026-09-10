@@ -1,0 +1,100 @@
+name: team review and Approval before AAB/IPA Build
+
+on:
+  # DISABLED: push trigger removed — using Codemagic instead of EAS
+  # push:
+  #   branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  # ─────────────────────────────────────────────
+  # DISABLED: EAS Preview Build + QR Code
+  # Now using Codemagic for all builds
+  # ─────────────────────────────────────────────
+  # build-preview:
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #     - uses: expo/expo-github-action@v8
+  #       with:
+  #         eas-version: latest
+  #         token: ${{ secrets.EXPO_TOKEN }}
+  #     - run: npm install --legacy-peer-deps
+  #     - name: Build Preview APK
+  #       run: eas build --platform android --profile preview --non-interactive
+
+  # ─────────────────────────────────────────────
+  # DISABLED: Manual Approval Gate
+  # ─────────────────────────────────────────────
+  # wait-for-approval:
+  #   needs: build-preview
+  #   runs-on: ubuntu-latest
+  #   environment: production
+  #   steps:
+  #     - name: Approval checkpoint
+  #       run: echo "Approval received"
+
+  # ─────────────────────────────────────────────
+  # DISABLED: EAS Android AAB Build
+  # Using Codemagic instead
+  # ─────────────────────────────────────────────
+  # build-android:
+  #   needs: wait-for-approval
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #     - uses: expo/expo-github-action@v8
+  #       with:
+  #         eas-version: latest
+  #         token: ${{ secrets.EXPO_TOKEN }}
+  #     - run: npm install --legacy-peer-deps
+  #     - name: Build Android AAB
+  #       run: eas build --platform android --profile production --non-interactive
+
+  # ─────────────────────────────────────────────
+  # DISABLED: EAS iOS IPA Build
+  # Using Codemagic instead
+  # ─────────────────────────────────────────────
+  # build-ios:
+  #   needs: wait-for-approval
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - uses: actions/setup-node@v4
+  #       with:
+  #         node-version: 20
+  #     - uses: expo/expo-github-action@v8
+  #       with:
+  #         eas-version: latest
+  #         token: ${{ secrets.EXPO_TOKEN }}
+  #     - run: npm install --legacy-peer-deps
+  #     - name: Build iOS IPA
+  #       run: eas build --platform ios --profile production --non-interactive
+
+  # ─────────────────────────────────────────────
+  # Placeholder job — workflow needs at least one job
+  # ─────────────────────────────────────────────
+  codemagic-notice:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Codemagic Build Notice
+        run: |
+          echo "🔧 Builds now handled by Codemagic CI"
+          echo ""
+          echo "To build AAB:"
+          echo "1. Go to https://codemagic.io"
+          echo "2. Select taqihas1/Carbuyingassistant"
+          echo "3. Run 'android-aab-build' workflow"
+          echo ""
+          echo "This GitHub Actions workflow is disabled."
+          echo "EAS builds and manual approval gates have been removed."

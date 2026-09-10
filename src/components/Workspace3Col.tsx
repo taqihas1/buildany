@@ -7,7 +7,7 @@ function cleanMessageContent(text: string): string {
 }
 
 import { useRouter } from "next/navigation";
-import { Send, Code, Play, GitBranch, Folder, FileCode, Loader2, MessageSquare, Cloud, Download, ExternalLink, CheckCircle, Search } from "lucide-react";
+import { Send, Code, Play, GitBranch, Folder, FileCode, Loader2, MessageSquare, Cloud, Download, ExternalLink, CheckCircle, Search, Smartphone } from "lucide-react";
 import Link from "next/link";
 
 interface Message {
@@ -510,7 +510,56 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
     }
   };
 
-  const handleCodeReview = async () => {
+  const handleDeployExpo = async () => {
+    if (files.length === 0) {
+      setMessages((prev) => [...prev, {
+        id: Date.now().toString(),
+        role: "system",
+        content: "❌ No code files found. Chat with Jason to generate code first.",
+      }]);
+      return;
+    }
+
+    const loadingId = Date.now().toString();
+    setMessages((prev) => [...prev, {
+      id: loadingId,
+      role: "system",
+      content: "📱 Starting Expo mobile build...",
+    }]);
+
+    try {
+      const res = await fetch("/api/tools/deploy-expo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ projectId: project.id, projectName: project.name }),
+      });
+      const data = await res.json();
+
+      setMessages((prev) => prev.filter((m) => m.id !== loadingId));
+
+      if (data.success) {
+        setMessages((prev) => [...prev, {
+          id: Date.now().toString(),
+          role: "system",
+          content: `✅ ${data.message}\n\nTrack build: ${data.url}`,
+        }]);
+      } else {
+        setMessages((prev) => [...prev, {
+          id: Date.now().toString(),
+          role: "system",
+          content: `❌ Expo build failed: ${data.error}`,
+        }]);
+      }
+    } catch (error) {
+      setMessages((prev) => prev.filter((m) => m.id !== loadingId));
+      setMessages((prev) => [...prev, {
+        id: Date.now().toString(),
+        role: "system",
+        content: `❌ Expo build error: ${error instanceof Error ? error.message : String(error)}`,
+      }]);
+    }
+  };
+const handleCodeReview = async () => {
     setIsReviewing(true);
     const loadingId = Date.now().toString();
     setMessages((prev) => [...prev, {
@@ -644,6 +693,14 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
           >
             <Cloud className="w-4 h-4" />
             <span className="hidden sm:inline">Deploy</span>
+          </button>
+          <button
+            onClick={handleDeployExpo}
+            className="flex items-center gap-2 px-3 py-2 bg-amber-600 hover:bg-amber-500 border border-amber-500 rounded-lg text-sm font-medium transition-colors"
+            title="Build Android App with Expo"
+          >
+            <Smartphone className="w-4 h-4" />
+            <span className="hidden sm:inline">Expo</span>
           </button>
           <button
             onClick={handleCodeReview}

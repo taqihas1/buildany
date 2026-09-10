@@ -1,0 +1,71 @@
+name: Local Android Build (Manual Fallback)
+
+# Trigger manually when EAS free-plan quota is exhausted
+on:
+  workflow_dispatch:
+    inputs:
+      profile:
+        description: 'Build profile'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - preview
+          - production
+
+jobs:
+  build-android-local:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          build-tools: 34.0.0
+          target: android-34
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Build Android locally (AAB/APK)
+        run: |
+          echo "🔨 Starting LOCAL Android Build..."
+          echo "Profile: ${{ github.event.inputs.profile }}"
+          eas build --platform android --profile ${{ github.event.inputs.profile }} --local --non-interactive
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-${{ github.event.inputs.profile }}
+          path: |
+            build-*.aab
+            build-*.apk
+          if-no-files-found: warn
+
+      - name: Build summary
+        if: always()
+        run: |
+          echo ""
+          echo "===================================="
+          if [ -f build-*.aab ] || [ -f build-*.apk ]; then
+            echo "✅ Local build succeeded!"
+            ls -lh build-*.*
+          else
+            echo "❌ Local build failed or no output found."
+            echo "Check logs above for errors."
+          fi
