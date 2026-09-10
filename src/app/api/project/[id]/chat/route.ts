@@ -120,38 +120,94 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     let fileChanges: Array<{ path: string; diff: string }> = [];
 
     if (isEditRequest) {
-      // ─── EDIT MODE: Fast file modification ───
-      const files = agent.getSourceFiles();
-      const pageFile = files.find(f => f.endsWith("page.tsx")) || files[0];
+      // ─── EDIT MODE: Smart multi-file modification ───
+      const allFiles = agent.getSourceFiles();
       
-      if (!pageFile) {
+      if (allFiles.length === 0) {
         response = "No source files found to edit. Try building the app first!";
       } else {
-        const currentContent = agent.readFile(pageFile);
-        if (!currentContent) {
-          response = `Could not read ${pageFile}`;
-        } else {
-          // Generate modified code
-          const prompt = agent.buildEditPrompt(message, pageFile, currentContent);
+        // Read all files to find the right one(s) to edit
+        const fileContents: Record<string, string> = {};
+        for (const f of allFiles.slice(0, 15)) {
+          const content = agent.readFile(f);
+          if (content) fileContents[f] = content;
+        }
+
+        // Ask LLM to identify which files need changes
+        const identifyPrompt = `You are an expert React/Next.js developer. Analyze the user's request and identify which files need to be modified.
+
+USER REQUEST: "${message}"
+
+AVAILABLE FILES:
+${Object.keys(fileContents).map(f => `- ${f}`).join('\n')}
+
+For each file, briefly note if it likely needs changes for this request.
+Then list ONLY the files that need modification, in order of priority.
+
+Return your response in this exact format:
+FILES_TO_EDIT: file1.tsx, file2.css
+REASON: brief explanation`;
+
+        const identifyResult = await llmRouter.generate({
+          prompt: identifyPrompt,
+          systemPrompt: "You identify which source files need modification for a given request. Be precise.",
+          temperature: 0.1,
+          maxTokens: 1000,
+        });
+
+        // Extract files to edit from LLM response
+        const filesMatch = identifyResult.content?.match(/FILES_TO_EDIT:\s*([\w\/.\-,\s]+)/i);
+        let filesToEdit = filesMatch ? filesMatch[1].split(',').map(f => f.trim()).filter(f => f) : [];
+        
+        // Fallback: if LLM didn't identify files, use page.tsx
+        if (filesToEdit.length === 0) {
+          const pageFile = allFiles.find(f => f.endsWith("page.tsx")) || allFiles[0];
+          filesToEdit = [pageFile];
+        }
+
+        const changedFiles: string[] = [];
+        
+        for (const targetFile of filesToEdit.slice(0, 3)) { // Max 3 files per edit
+          const currentContent = agent.readFile(targetFile);
+          if (!currentContent) continue;
+
+          // Generate modified code for this specific file
+          const editPrompt = agent.buildEditPrompt(message, targetFile, currentContent);
           const result = await llmRouter.generate({
-            prompt,
-            systemPrompt: "You are Jason, an expert React/Next.js developer. Make precise, minimal edits.",
+            prompt: editPrompt,
+            systemPrompt: "You are Jason, an expert React/Next.js developer. Make precise, minimal edits. Return ONLY the complete modified file in a code block.",
             temperature: 0.2,
             maxTokens: 4000,
           });
 
           const newCode = agent.extractCode(result.content || "");
           if (newCode && newCode !== currentContent) {
-            agent.writeFile(pageFile, newCode);
-            
-            // Compute simple diff preview
-            const diffPreview = `Updated ${pageFile} (${currentContent.length} → ${newCode.length} chars)`;
-            fileChanges.push({ path: pageFile, diff: diffPreview });
-            
-            response = `✅ Updated ${pageFile}!\n\nI ${message.toLowerCase().includes("remove") || message.toLowerCase().includes("delete") ? "removed" : "applied"} your changes. The file has been saved.`;
-          } else {
-            response = "I understood your request but couldn't generate valid changes. Could you be more specific?";
+            agent.writeFile(targetFile, newCode);
+            changedFiles.push(targetFile);
+            fileChanges.push({ 
+              path: targetFile, 
+              diff: `Updated ${targetFile} (${currentContent.length} → ${newCode.length} chars)` 
+            });
           }
+        }
+
+        if (changedFiles.length > 0) {
+          response = `✅ Updated ${changedFiles.length} file(s): ${changedFiles.join(', ')}`;
+          
+          // Trigger a rebuild so changes are visible
+          try {
+            const projectRecord = await db.select().from(projects).where(eq(projects.id, id)).get();
+            if (projectRecord?.githubRepo) {
+              // Fire-and-forget: trigger redeploy via GitHub push
+              fetch(`${process.env.BUILDANY_URL || 'https://base66.cloud'}/api/tools/deploy`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ projectId: id }),
+              }).catch(() => {});
+            }
+          } catch { /* ignore trigger errors */ }
+        } else {
+          response = "I understood your request but couldn't find files that need changing. Could you be more specific?";
         }
       }
     } else {

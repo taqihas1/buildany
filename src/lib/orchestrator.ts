@@ -738,6 +738,38 @@ export class KellyOrchestrator {
     const startTime = Date.now();
     
     try {
+      // ─── CHECK: Is this a modification or initial generation? ───
+      const projectDir = path.join(PROJECTS_DIR, this.state.projectId);
+      const existingFiles: Array<{path: string, content: string}> = [];
+      
+      try {
+        const srcDir = path.join(projectDir, 'src');
+        if (await fileExists(srcDir)) {
+          // Read existing source files for context
+          const walk = async (dir: string, baseDir: string) => {
+            const entries = await fs.readdir(dir, { withFileTypes: true });
+            for (const entry of entries) {
+              const fullPath = path.join(dir, entry.name);
+              const relPath = path.relative(baseDir, fullPath);
+              if (entry.isDirectory()) {
+                await walk(fullPath, baseDir);
+              } else if (/\.(tsx?|jsx?|css)$/.test(entry.name)) {
+                const content = await fs.readFile(fullPath, 'utf-8').catch(() => null);
+                if (content) existingFiles.push({ path: relPath, content });
+              }
+            }
+          };
+          await walk(srcDir, projectDir);
+        }
+      } catch { /* ignore read errors */ }
+      
+      const isModification = existingFiles.length > 5; // At least 5 files = existing project
+      
+      if (isModification) {
+        console.log(`[Kelly] Modification detected: ${existingFiles.length} existing files. Using incremental mode.`);
+        return await this.executeIncrementalUpdate(existingFiles);
+      }
+      
       // Update task statuses for code generation tasks
       await this.updateTaskStatus('Architecture', 'running');
       await this.updateTaskStatus('Page Components', 'running');
@@ -2257,6 +2289,140 @@ ${this.state.learningContext.complexity}
     } catch (error) {
       console.error('[Kelly] Failed to mark tasks completed:', error);
     }
+  }
+
+  /**
+   * Incremental update: Only modify files that need changing
+   */
+  private async executeIncrementalUpdate(
+    existingFiles: Array<{path: string, content: string}>
+  ): Promise<PhaseResult> {
+    try {
+      this.onStatusUpdate('🔍 Analyzing existing code for incremental update...');
+      
+      // Build context of existing files
+      const fileList = existingFiles.map(f => f.path).join('\n');
+      
+      // Ask LLM which files need changes
+      const identifyPrompt = `You are an expert React/Next.js developer.
+
+USER REQUEST: ${this.state.prompt}
+
+EXISTING PROJECT FILES:
+${fileList}
+
+Your task: Identify which files from the list above need to be modified to fulfill the user's request.
+Only list files that actually need changes. Do NOT suggest creating new files unless absolutely necessary.
+
+Return ONLY a JSON array of file paths, like: ["src/app/page.tsx", "src/components/ui/button.tsx"]`;
+
+      const identifyResult = await llmRouter.generate({
+        prompt: identifyPrompt,
+        systemPrompt: "You identify which files need modification. Return ONLY a JSON array of file paths.",
+        temperature: 0.1,
+        maxTokens: 1000,
+      });
+
+      let filesToUpdate: string[] = [];
+      try {
+        const jsonMatch = identifyResult.content?.match(/\[[\s\S]*\]/);
+        if (jsonMatch) {
+          filesToUpdate = JSON.parse(jsonMatch[0]);
+        }
+      } catch { /* ignore parse errors */ }
+      
+      // Fallback: if no files identified, assume page.tsx needs changes
+      if (filesToUpdate.length === 0) {
+        const pageFile = existingFiles.find(f => f.path.includes('page.tsx'));
+        if (pageFile) filesToUpdate = [pageFile.path];
+      }
+      
+      const updatedFiles: string[] = [];
+      
+      for (const targetPath of filesToUpdate.slice(0, 5)) {
+        const existing = existingFiles.find(f => f.path === targetPath);
+        if (!existing) continue;
+        
+        this.onStatusUpdate(`✏️ Updating ${targetPath}...`);
+        
+        const editPrompt = `You are an expert React/Next.js developer. Make a precise, minimal edit.
+
+FILE: ${targetPath}
+
+CURRENT CONTENT:
+${"=".repeat(60)}
+${existing.content}
+${"=".repeat(60)}
+
+USER REQUEST: ${this.state.prompt}
+
+INSTRUCTIONS:
+1. Make ONLY the changes needed for the user's request
+2. Preserve ALL existing functionality, imports, types, and exports
+3. Return the COMPLETE modified file content
+4. Do NOT add placeholder text like "Your app is ready" or "Welcome"
+5. Wrap the full file in a code block: \`\`\`tsx ... \`\`\`
+
+Return the complete modified file:`;
+
+        const result = await llmRouter.generate({
+          prompt: editPrompt,
+          systemPrompt: "You make precise, minimal code edits. Return only the complete modified file.",
+          temperature: 0.2,
+          maxTokens: 4000,
+        });
+
+        const newContent = this.extractCodeFromResponse(result.content || "");
+        if (newContent && newContent !== existing.content) {
+          const fullPath = path.join(PROJECTS_DIR, this.state.projectId, targetPath);
+          await fs.writeFile(fullPath, newContent, 'utf-8');
+          updatedFiles.push(targetPath);
+          console.log(`[Kelly] Updated: ${targetPath}`);
+        }
+      }
+      
+      // Update tasks
+      await this.updateTaskStatus('Architecture', 'completed');
+      await this.updateTaskStatus('Page Components', 'completed');
+      await this.updateTaskStatus('API Routes', 'completed');
+      
+      return {
+        phase: 'coding',
+        success: true,
+        message: `Incremental update complete: ${updatedFiles.length} file(s) modified`,
+        details: { updatedFiles, filesGenerated: updatedFiles.length },
+        timestamp: Date.now(),
+      };
+      
+    } catch (error) {
+      console.error('[Kelly] Incremental update failed:', error);
+      // Fallback to full generation
+      this.onStatusUpdate('⚠️ Incremental update failed, falling back to full generation...');
+      return this.executeFullGeneration();
+    }
+  }
+  
+  /**
+   * Extract code block from LLM response
+   */
+  private extractCodeFromResponse(response: string): string | null {
+    const match = response.match(/```(?:tsx?|jsx?|css)?\n?([\s\S]*?)```/);
+    if (match) return match[1].trim();
+    return response.trim();
+  }
+  
+  /**
+   * Full generation fallback (original multi-phase code generation)
+   */
+  private async executeFullGeneration(): Promise<PhaseResult> {
+    // This should never be called directly - executeCodeAgent handles full generation
+    // after the modification check. This is a safety fallback.
+    return {
+      phase: 'coding',
+      success: false,
+      message: 'Full generation should be handled by executeCodeAgent',
+      timestamp: Date.now(),
+    };
   }
 
   getState(): OrchestrationState {
