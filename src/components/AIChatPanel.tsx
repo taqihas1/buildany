@@ -480,6 +480,64 @@ export function AIChatPanel({
   const messagesRef = useRef(messages);
   messagesRef.current = messages;
 
+  // ─── AUTO-REFRESH: Poll for new messages when inside a project ───
+  useEffect(() => {
+    if (!projectId) return; // Only poll when inside a project
+
+    let cancelled = false;
+
+    const pollMessages = async () => {
+      try {
+        const res = await fetch(`/api/project/${projectId}/chat`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data.success || !data.messages) return;
+
+        if (cancelled) return;
+
+        setMessages((prev) => {
+          // Get current non-system message IDs to compare
+          const prevIds = new Set(prev.map((m) => m.id));
+          
+          // Map API messages to our format
+          const newMessages: Message[] = data.messages
+            .filter((raw: RawMessage) => {
+              // Skip already-known messages (by content+role match since API may not have IDs)
+              const key = `${raw.role}-${raw.content}`;
+              return !prevIds.has(key) && raw.content?.trim();
+            })
+            .map((raw: RawMessage) => {
+              const key = `${raw.role}-${raw.content}`;
+              return {
+                id: key,
+                role: (raw.role as Message["role"]) || "assistant",
+                content: raw.content || "",
+                statusType: raw.model?.includes("status") ? "general" : undefined,
+              };
+            });
+
+          if (newMessages.length === 0) return prev;
+
+          // Merge: keep our local state but append new messages
+          const merged = [...prev, ...newMessages];
+          return merged;
+        });
+      } catch (err) {
+        // Silently ignore polling errors
+      }
+    };
+
+    // Poll every 3 seconds
+    const interval = setInterval(pollMessages, 3000);
+    // Initial poll
+    pollMessages();
+
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, [projectId]);
+
   // ... rest of the component (renderStatusMessage, isCodeContent, return JSX) stays the same
   // For brevity, I'll include the key parts:
 
