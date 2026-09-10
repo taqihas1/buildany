@@ -19,6 +19,8 @@ function hashString(str: string): string {
   }
   return Math.abs(hash).toString(36).substring(0, 6);
 }
+
+interface Message {
   id: string;
   role: "user" | "assistant" | "system";
   content: string;

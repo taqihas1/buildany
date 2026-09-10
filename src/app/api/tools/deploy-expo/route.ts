@@ -3,7 +3,7 @@ import { execSync } from "child_process";
 import fs from "fs/promises";
 import path from "path";
 
-const GITHUB_PAT = process.env.GITHUB_PAT || "process.env.GITHUB_TOKEN || """;
+const GITHUB_PAT = process.env.GITHUB_PAT || process.env.GITHUB_TOKEN || "";
 const GITHUB_USER = "taqihas1";
 const EXPO_TOKEN = process.env.EXPO_TOKEN || "";
 const PROJECTS_DIR = "/data/projects";
