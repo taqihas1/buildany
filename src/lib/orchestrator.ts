@@ -739,11 +739,11 @@ export class KellyOrchestrator {
     
     try {
       // ─── CHECK: Is this a modification or initial generation? ───
-      const projectDir = path.join(PROJECTS_DIR, this.state.projectId);
+      const _projectDir = path.join(PROJECTS_DIR, this.state.projectId);
       const existingFiles: Array<{path: string, content: string}> = [];
       
       try {
-        const srcDir = path.join(projectDir, 'src');
+        const srcDir = path.join(_projectDir, 'src');
         if (await fileExists(srcDir)) {
           // Read existing source files for context
           const walk = async (dir: string, baseDir: string) => {
