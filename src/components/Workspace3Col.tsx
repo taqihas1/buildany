@@ -10,7 +10,15 @@ import { useRouter } from "next/navigation";
 import { Send, Code, Play, GitBranch, Folder, FileCode, Loader2, MessageSquare, Cloud, Download, ExternalLink, CheckCircle, Search, Smartphone } from "lucide-react";
 import Link from "next/link";
 
-interface Message {
+function hashString(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return Math.abs(hash).toString(36).substring(0, 6);
+}
   id: string;
   role: "user" | "assistant" | "system";
   content: string;
@@ -70,9 +78,9 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
 
   // Auto-poll for files and status updates when project is generating/completed
   useEffect(() => {
-    if (buildStatus !== "creating" && buildStatus !== "generating" && buildStatus !== "building" && buildStatus !== "completed") {
-      return;
-    }
+    // Poll during any active build phase OR when files exist but may still be updating
+    const shouldPoll = ["creating", "generating", "building", "completed", "generated", "draft"].includes(buildStatus);
+    if (!shouldPoll) return;
 
     const interval = setInterval(async () => {
       try {
@@ -85,13 +93,13 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
           }
         }
 
-        // Poll for chat messages
+        // Poll for chat messages — use stable IDs based on content to avoid duplicates
         const chatRes = await fetch(`/api/project/${project.id}/chat`);
         if (chatRes.ok) {
           const chatData = await chatRes.json();
           if (chatData.messages && chatData.messages.length > 0) {
-            setMessages(chatData.messages.map((m: { role: string; content: string }) => ({
-              id: Math.random().toString(36).substr(2, 9),
+            setMessages(chatData.messages.map((m: { role: string; content: string }, idx: number) => ({
+              id: `${m.role}-${idx}-${hashString(m.content)}`,
               role: m.role,
               content: m.content,
             })));
@@ -104,15 +112,12 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
           const statusData = await statusRes.json();
           if (statusData.status && statusData.status !== buildStatus) {
             setBuildStatus(statusData.status);
-            if (statusData.status === "deployed") {
-              // deploymentUrl is already set by handleDeployCloudflare
-            }
           }
         }
       } catch (err) {
         // Silently ignore polling errors
       }
-    }, 5000); // Poll every 5 seconds
+    }, 3000); // Poll every 3 seconds for faster updates
 
     return () => clearInterval(interval);
   }, [buildStatus, project.id]);
