@@ -44,78 +44,87 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     const project = await db.select().from(projects).where(eq(projects.id, id)).get();
     const agent = new HarnessAgent(id);
 
-    // ─── STEP 1: Check if this is a tool request (Self-Improving Agent) ───
-    const toolDetection = await detectToolNeed(message);
-
-    if (toolDetection.shouldUseTool && toolDetection.toolName) {
-      // Extract parameters and execute existing tool
-      const parameters = await extractToolParameters(toolDetection.toolName, message);
-      const result = await executeToolForChat(toolDetection.toolName, parameters);
-
-      const responseText = result.success
-        ? `🔧 **${toolDetection.toolName}**\n\n${result.message}`
-        : `❌ Tool error: ${result.message}`;
-
-      await db.insert(conversations).values({
-        id: randomUUID(),
-        projectId: id,
-        role: "assistant",
-        content: responseText,
-      });
-
-      return NextResponse.json({
-        success: true,
-        response: responseText,
-        toolUsed: toolDetection.toolName,
-        mode: "tool",
-      });
-    }
-
-    if (toolDetection.generateNew && toolDetection.need) {
-      // Generate a new tool on the fly
-      const context = project ? `Project: ${project.name} (${project.type})` : undefined;
-      const repoParts = project?.githubRepo ? project.githubRepo.split("/") : [];
-      const projectContext = {
-        projectId: id,
-        projectName: project?.name || "",
-        projectType: project?.type || "",
-        githubRepo: project?.githubRepo || "",
-        githubOwner: repoParts[0] || "",
-        githubRepoName: repoParts[1] || "",
-        buildanyUrl: process.env.BUILDANY_URL || "https://base66.cloud",
-        cloudflareToken: process.env.CLOUDFLARE_API_TOKEN || "",
-        cloudflareAccountId: process.env.CLOUDFLARE_ACCOUNT_ID || "",
-        githubToken: process.env.GITHUB_TOKEN || "",
-      };
-      const result = await generateAndExecuteTool(toolDetection.need, context, projectContext);
-
-      const responseText = result.success
-        ? result.message
-        : `❌ Failed to create tool: ${result.message}`;
-
-      await db.insert(conversations).values({
-        id: randomUUID(),
-        projectId: id,
-        role: "assistant",
-        content: responseText,
-      });
-
-      return NextResponse.json({
-        success: result.success,
-        response: responseText,
-        toolCreated: result.toolName,
-        mode: "tool-generation",
-      });
-    }
-
-    // ─── STEP 2: Classify intent (edit vs chat) ───
+    // ─── STEP 1: Classify intent FIRST (edit vs tool vs chat) ───
+    // Feature requests to existing projects should modify files, not create external tools
     const editKeywords = [
       "change", "update", "modify", "edit", "make", "add", "remove", "delete",
       "fix", "style", "color", "width", "height", "font", "size", "margin",
       "padding", "background", "border", "shadow", "gradient", "theme",
       "button", "header", "footer", "nav", "card", "layout", "page",
+      "feature", "upload", "uploading", "download", "form", "input", "field",
+      "profile", "resume", "contact", "search", "filter", "sort", "list",
+      "table", "chart", "graph", "dashboard", "modal", "dialog", "popup",
+      "sidebar", "menu", "dropdown", "tabs", "accordion", "carousel", "slider",
+      "badge", "tag", "chip", "avatar", "icon", "image", "video", "audio",
     ];
     const isEditRequest = editKeywords.some(kw => message.toLowerCase().includes(kw));
+
+    // ─── STEP 2: Only check for tools if NOT an edit request ───
+    // Tools are for external actions (deploy, send email, API calls) not UI changes
+    if (!isEditRequest) {
+      const toolDetection = await detectToolNeed(message);
+
+      if (toolDetection.shouldUseTool && toolDetection.toolName) {
+        // Extract parameters and execute existing tool
+        const parameters = await extractToolParameters(toolDetection.toolName, message);
+        const result = await executeToolForChat(toolDetection.toolName, parameters);
+
+        const responseText = result.success
+          ? `🔧 **${toolDetection.toolName}**\n\n${result.message}`
+          : `❌ Tool error: ${result.message}`;
+
+        await db.insert(conversations).values({
+          id: randomUUID(),
+          projectId: id,
+          role: "assistant",
+          content: responseText,
+        });
+
+        return NextResponse.json({
+          success: true,
+          response: responseText,
+          toolUsed: toolDetection.toolName,
+          mode: "tool",
+        });
+      }
+
+      if (toolDetection.generateNew && toolDetection.need) {
+        // Generate a new tool on the fly
+        const context = project ? `Project: ${project.name} (${project.type})` : undefined;
+        const repoParts = project?.githubRepo ? project.githubRepo.split("/") : [];
+        const projectContext = {
+          projectId: id,
+          projectName: project?.name || "",
+          projectType: project?.type || "",
+          githubRepo: project?.githubRepo || "",
+          githubOwner: repoParts[0] || "",
+          githubRepoName: repoParts[1] || "",
+          buildanyUrl: process.env.BUILDANY_URL || "https://base66.cloud",
+          cloudflareToken: process.env.CLOUDFLARE_API_TOKEN || "",
+          cloudflareAccountId: process.env.CLOUDFLARE_ACCOUNT_ID || "",
+          githubToken: process.env.GITHUB_TOKEN || "",
+        };
+        const result = await generateAndExecuteTool(toolDetection.need, context, projectContext);
+
+        const responseText = result.success
+          ? result.message
+          : `❌ Failed to create tool: ${result.message}`;
+
+        await db.insert(conversations).values({
+          id: randomUUID(),
+          projectId: id,
+          role: "assistant",
+          content: responseText,
+        });
+
+        return NextResponse.json({
+          success: result.success,
+          response: responseText,
+          toolCreated: result.toolName,
+          mode: "tool-generation",
+        });
+      }
+    }
 
     let response: string;
     let fileChanges: Array<{ path: string; diff: string }> = [];
