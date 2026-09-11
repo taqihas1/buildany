@@ -101,7 +101,8 @@ Parameters JSON:`;
 
 export async function executeToolForChat(
   toolName: string,
-  parameters: Record<string, any>
+  parameters: Record<string, any>,
+  projectContext?: Record<string, any>
 ): Promise<{ success: boolean; message: string; data?: any }> {
   try {
     const result = await runTool(toolName, parameters, projectContext);

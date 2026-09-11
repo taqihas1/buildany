@@ -112,13 +112,13 @@ export async function generateTool(request: ToolGenerationRequest): Promise<Tool
 /**
  * Execute an existing tool by name
  */
-export async function runTool(name: string, parameters: Record<string, any>): Promise<any> {
+export async function runTool(name: string, parameters: Record<string, any>, projectContext?: Record<string, any>): Promise<any> {
   const tool = getTool(name);
   if (!tool) {
     throw new Error(`Tool "${name}" not found`);
   }
 
-  const result = await executeTool(tool.code, parameters);
+  const result = await executeTool(tool.code, parameters, projectContext || {});
   return result;
 }
 
