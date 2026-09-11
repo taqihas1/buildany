@@ -1915,7 +1915,7 @@ export function getBoostrTemplateFiles(projectName: string, projectId: string): 
  * System prompt for Boostr-integrated APEX generation
  */
 export function getBoostrApexSystemPrompt(): string {
-  return \`You are an Oracle APEX and PL/SQL expert specializing in CRM integrations.
+  return `You are an Oracle APEX and PL/SQL expert specializing in CRM integrations.
 
 You build APEX applications that:
 - Sync data from external APIs (Boostr, Salesforce, HubSpot)
@@ -1948,5 +1948,5 @@ Example:
 \`\`\`sql
 -- database/schema.sql
 CREATE TABLE ...
-\`\`\`\`;
+`;
 }
