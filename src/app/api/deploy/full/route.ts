@@ -3,8 +3,9 @@ import { execSync } from "child_process";
 import fs from "fs/promises";
 import path from "path";
 import { db } from "@/lib/db";
-import { projects } from "@/lib/db/schema";
+import { projects, conversations } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
+import { randomUUID } from "crypto";
 
 const GITHUB_PAT = process.env.GITHUB_PAT || "";
 const GITHUB_USER = "taqihas1";
@@ -22,14 +23,34 @@ async function fileExists(p: string): Promise<boolean> {
 }
 
 export async function POST(req: NextRequest) {
+  let projectId = "";
   try {
-    const { projectId, projectName } = await req.json();
+    const body = await req.json();
+    projectId = body.projectId;
+    const projectName = body.projectName;
     if (!GITHUB_PAT) {
       return NextResponse.json({ error: "GITHUB_PAT not configured" }, { status: 500 });
     }
     if (!projectId) {
       return NextResponse.json({ error: "projectId required" }, { status: 400 });
     }
+
+    // Helper to post chat messages
+    const postChat = async (content: string, role: "system" | "assistant" = "system") => {
+      try {
+        await db.insert(conversations).values({
+          id: randomUUID(),
+          projectId,
+          role,
+          content,
+          createdAt: new Date(),
+        });
+      } catch (err) {
+        console.error("[Deploy] Failed to post chat message:", err);
+      }
+    };
+
+    await postChat("🚀 Deploying to Cloudflare...");
 
     const repoName = `buildany-app-${projectId.slice(0, 8)}`;
     const projectDir = path.join(PROJECTS_DIR, projectId);
@@ -255,6 +276,7 @@ module.exports = nextConfig;`;
 
     // ─── Step 4: Trigger first deployment ───
     console.log("[Deploy] Triggering Cloudflare deployment...");
+    await postChat("⚡ Triggering Cloudflare Pages deployment...");
     const deployRes = await fetch(`https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT_ID}/pages/projects/${repoName}/deployments`, {
       method: "POST",
       headers: {
@@ -283,6 +305,8 @@ module.exports = nextConfig;`;
       console.error("[Deploy] Failed to update project status:", dbErr);
     }
 
+    await postChat(`✅ **Deployed successfully!**\n\n🌐 **Live URL:** ${url}\n📁 **GitHub:** https://github.com/${GITHUB_USER}/${repoName}`);
+
     return NextResponse.json({
       success: true,
       url,
@@ -292,9 +316,21 @@ module.exports = nextConfig;`;
 
   } catch (error) {
     console.error("[Deploy] Error:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
+    if (projectId) {
+      try {
+        await db.insert(conversations).values({
+          id: randomUUID(),
+          projectId,
+          role: "system",
+          content: `❌ Deploy failed: ${errMsg}`,
+          createdAt: new Date(),
+        });
+      } catch {}
+    }
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: errMsg,
     }, { status: 500 });
   }
 }
