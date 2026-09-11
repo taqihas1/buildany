@@ -5,12 +5,11 @@
  * 1. dsh starts generating files
  * 2. Watcher detects file creation events
  * 3. After quiet period (no new files for 10s), marks build as complete
- * 4. Updates chat: "✅ Code generation complete! N files created."
- * 5. Updates project status: draft → generated
+ * 4. Updates project status: draft → generated
+ * 5. Final "Build complete!" message is shown by the chat polling
  */
 
-import { watch, existsSync, readdirSync, statSync } from "fs";
-import { join, extname } from "path";
+import { watch } from "fs";
 import { db } from "@/lib/db";
 import { conversations, projects } from "@/lib/db/schema";
 import { eq } from "drizzle-orm";
@@ -173,54 +172,6 @@ function countFiles(dir: string): number {
 
   walk(dir);
   return count;
-}
-
-/**
- * Count files by category
- */
-function countFileTypes(dir: string): Record<string, number> {
-  const types: Record<string, number> = {
-    typescript: 0,
-    components: 0,
-    config: 0,
-    styles: 0,
-    other: 0,
-  };
-
-  if (!existsSync(dir)) return types;
-
-  function walk(currentDir: string) {
-    try {
-      const entries = readdirSync(currentDir);
-      for (const entry of entries) {
-        const fullPath = join(currentDir, entry);
-        const stat = statSync(fullPath);
-
-        if (stat.isDirectory() && !entry.startsWith('.') && entry !== 'node_modules') {
-          walk(fullPath);
-        } else if (stat.isFile()) {
-          const ext = extname(entry);
-          const path = fullPath.toLowerCase();
-
-          if (ext === '.ts' || ext === '.tsx') {
-            types.typescript++;
-            if (path.includes('/components/') || path.includes('/ui/')) {
-              types.components++;
-            }
-          } else if (['.json', '.js', '.mjs'].includes(ext)) {
-            types.config++;
-          } else if (ext === '.css') {
-            types.styles++;
-          } else {
-            types.other++;
-          }
-        }
-      }
-    } catch (err) {}
-  }
-
-  walk(dir);
-  return types;
 }
 
 /**
