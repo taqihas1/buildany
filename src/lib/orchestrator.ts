@@ -37,7 +37,7 @@ export type AgentType = 'code' | 'test' | 'review' | 'preview' | 'fix';
 export interface PersistentRule {
   id: string;
   description: string;
-  platform?: 'web' | 'mobile' | 'backend';
+  platform?: 'web' | 'mobile' | 'backend' | 'apex';
   projectType?: string;
   action: 'skip' | 'add_phase' | 'require_before' | 'modify_prompt';
   targetPhase: OrchestrationPhase;
@@ -68,7 +68,7 @@ export interface PhaseResult {
 export interface OrchestrationState {
   projectId: string;
   prompt: string;
-  platform: 'web' | 'mobile' | 'backend';
+  platform: 'web' | 'mobile' | 'backend' | 'apex';
   currentPhase: OrchestrationPhase;
   phases: PhaseResult[];
   startedAt: number;
@@ -143,7 +143,7 @@ export class KellyOrchestrator {
   constructor(
     projectId: string,
     prompt: string,
-    platform: 'web' | 'mobile' | 'backend',
+    platform: 'web' | 'mobile' | 'backend' | 'apex',
     onStatusUpdate: (status: string) => void,
     onPhaseChange: (phase: OrchestrationPhase) => void,
     onAwaitingUser: (context: any) => void,
@@ -768,6 +768,11 @@ export class KellyOrchestrator {
       if (isModification) {
         console.log(`[Kelly] Modification detected: ${existingFiles.length} existing files. Using incremental mode.`);
         return await this.executeIncrementalUpdate(existingFiles);
+      }
+      
+      // ─── APEX PLATFORM: Route to APEX generator ───
+      if (this.state.platform === 'apex') {
+        return await this.generateApexApp();
       }
       
       // Update task statuses for code generation tasks
@@ -2229,6 +2234,9 @@ ${this.state.learningContext.complexity}
   }
 
   private inferProjectType(prompt: string): string {
+    if (prompt.includes('apex') || prompt.includes('oracle')) {
+      return 'apex';
+    }
     if (prompt.includes('mobile') || prompt.includes('app') || prompt.includes('ios') || prompt.includes('android')) {
       return 'mobile';
     }
@@ -2288,6 +2296,171 @@ ${this.state.learningContext.complexity}
       }
     } catch (error) {
       console.error('[Kelly] Failed to mark tasks completed:', error);
+    }
+  }
+
+  /**
+   * Generate Oracle APEX application export files.
+   * User downloads these and imports them into their APEX workspace manually.
+   */
+  private async generateApexApp(): Promise<PhaseResult> {
+    const startTime = Date.now();
+    
+    try {
+      this.onStatusUpdate('⚡ Generating Oracle APEX application...');
+      await this.updateTaskStatus('Architecture', 'running');
+      
+      const projectDir = path.join(PROJECTS_DIR, this.state.projectId);
+      await fs.mkdir(projectDir, { recursive: true });
+      
+      // Generate APEX app metadata + database schema using LLM
+      const apexPrompt = `You are an Oracle APEX expert. Generate a complete APEX application for:
+
+${this.state.prompt}
+
+Generate these files as complete, ready-to-use code blocks:
+
+1. database/schema.sql — Complete Oracle DDL: tables, sequences, triggers, constraints with demo data. Use proper Oracle data types (VARCHAR2, NUMBER, CLOB, DATE). Include COMMENT ON for documentation.
+
+2. apex/app_export.sql — APEX application export script (simplified, compatible with APEX 20.2+). Include:
+   - Application metadata (name, alias, version)
+   - Page definitions (forms, reports, charts, dashboards)
+   - Navigation menu entries
+   - Authorization scheme
+   - Theme settings
+   
+3. README.md — Step-by-step instructions:
+   - How to import into APEX workspace
+   - Required database privileges
+   - How to run schema.sql in SQL Workshop
+   - How to import app_export.sql
+   - Post-import configuration steps
+
+Use exact file paths. Wrap each file in markdown code blocks with the path as a header.
+Example:
+\`\`\`sql
+-- database/schema.sql
+CREATE TABLE ...
+\`\`\``;
+
+      const apexResult = await llmRouter.generate({
+        prompt: apexPrompt,
+        systemPrompt: `You are an Oracle APEX 23.x expert. Generate production-ready APEX application exports and Oracle database schemas. Follow Oracle naming conventions, use APEX built-in themes, and ensure all SQL is compatible with Oracle 19c+.` ,
+        provider: 'deepseek',
+        temperature: 0.5,
+        maxTokens: 6000,
+      });
+      
+      if (!apexResult.success || !apexResult.content) {
+        await this.updateTaskStatus('Architecture', 'failed');
+        return {
+          phase: 'coding',
+          success: false,
+          message: 'APEX generation failed — no content from LLM',
+          timestamp: Date.now(),
+        };
+      }
+      
+      const parsedFiles = parseGeneratedCode(apexResult.content);
+      
+      if (parsedFiles.length === 0) {
+        await this.updateTaskStatus('Architecture', 'failed');
+        return {
+          phase: 'coding',
+          success: false,
+          message: 'APEX generation failed — could not parse files',
+          timestamp: Date.now(),
+        };
+      }
+      
+      console.log(`[Kelly] APEX generation complete: ${parsedFiles.length} files`);
+      
+      // Delete old files
+      try {
+        await db.delete(projectFiles)
+          .where(eq(projectFiles.projectId, this.state.projectId));
+      } catch { /* ignore */ }
+      
+      // Save files to DB and filesystem
+      for (const file of parsedFiles) {
+        const fileId = crypto.randomUUID();
+        try {
+          await db.insert(projectFiles).values({
+            id: fileId,
+            projectId: this.state.projectId,
+            path: file.path,
+            content: file.content,
+            language: file.language || 'sql',
+            isGenerated: true,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+          });
+        } catch (insertErr: any) {
+          if (insertErr.message?.includes('UNIQUE')) {
+            await db.update(projectFiles)
+              .set({ content: file.content, updatedAt: new Date() })
+              .where(eq(projectFiles.projectId, this.state.projectId))
+              .where(eq(projectFiles.path, file.path));
+          }
+        }
+        
+        const safePath = path.join(projectDir, file.path.replace(/^\//, ''));
+        await fs.mkdir(path.dirname(safePath), { recursive: true });
+        await fs.writeFile(safePath, file.content || '', 'utf-8');
+      }
+      
+      // Also write a ZIP manifest for easy download
+      const manifestContent = JSON.stringify({
+        platform: 'apex',
+        projectId: this.state.projectId,
+        generatedAt: new Date().toISOString(),
+        files: parsedFiles.map(f => f.path),
+        instructions: '1. Run database/schema.sql in SQL Workshop. 2. Import apex/app_export.sql into your APEX workspace. 3. See README.md for full details.',
+      }, null, 2);
+      
+      await fs.writeFile(
+        path.join(projectDir, 'manifest.json'),
+        manifestContent,
+        'utf-8'
+      );
+      
+      await this.updateTaskStatus('Architecture', 'completed');
+      await this.updateTaskStatus('Page Components', 'completed');
+      await this.updateTaskStatus('API Routes', 'completed');
+      
+      // Log success
+      await db.insert(conversations).values({
+        id: crypto.randomUUID(),
+        projectId: this.state.projectId,
+        role: 'assistant',
+        content: `✅ Oracle APEX app generated!\n\nFiles:\n${parsedFiles.map(f => `- \`${f.path}\``).join('\n')}\n\n📥 Download these files and import them into your APEX workspace. See \`README.md\` for step-by-step instructions.`,
+        model: 'deepseek',
+        createdAt: new Date(),
+      });
+      
+      return {
+        phase: 'coding',
+        success: true,
+        message: 'APEX application generated successfully',
+        details: {
+          filesGenerated: parsedFiles.length,
+          files: parsedFiles.map(f => f.path),
+          platform: 'apex',
+          tokensUsed: apexResult.tokensUsed,
+          duration: Date.now() - startTime,
+        },
+        timestamp: Date.now(),
+      };
+      
+    } catch (error) {
+      console.error('[Kelly] APEX generation failed:', error);
+      await this.updateTaskStatus('Architecture', 'failed');
+      return {
+        phase: 'coding',
+        success: false,
+        message: error instanceof Error ? error.message : 'APEX generation failed',
+        timestamp: Date.now(),
+      };
     }
   }
 

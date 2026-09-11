@@ -108,7 +108,7 @@ Return ONLY valid JSON with:
       try {
         await db.insert(projects).values({
           id: newId, userId, name: shortName, description: prompt,
-          type: type as "web" | "mobile" | "dashboard",
+          type: type as "web" | "mobile" | "dashboard" | "apex",
           status: "generating", createdAt: new Date(), updatedAt: new Date(),
         });
         debug("DB_INSERT_OK", { newId });
@@ -164,7 +164,7 @@ Return ONLY valid JSON with:
 
     import("@/lib/orchestrator").then(({ KellyOrchestrator }) => {
       const hermes = new KellyOrchestrator(
-        projectIdSafe, prompt, type as 'web' | 'mobile' | 'backend',
+        projectIdSafe, prompt, type as 'web' | 'mobile' | 'backend' | 'apex',
         (status) => {
           console.log("[Kelly]", status);
           // Send status to AI chat panel
