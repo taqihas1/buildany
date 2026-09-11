@@ -183,11 +183,14 @@ REASON: brief explanation`;
 
           // Generate modified code for this specific file
           const editPrompt = agent.buildEditPrompt(message, targetFile, currentContent);
+          const fileLength = currentContent.length;
+          // Scale token budget: 100 chars ≈ 25 tokens, min 4000, max 16000
+          const estimatedTokens = Math.min(16000, Math.max(4000, Math.ceil(fileLength / 4)));
           const result = await llmRouter.generate({
             prompt: editPrompt,
             systemPrompt: "You are Jason, an expert React/Next.js developer. Make precise, minimal edits. Return ONLY the complete modified file in a code block.",
             temperature: 0.2,
-            maxTokens: 4000,
+            maxTokens: estimatedTokens,
           });
 
           const newCode = agent.extractCode(result.content || "");
