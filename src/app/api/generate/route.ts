@@ -33,6 +33,14 @@ export async function POST(req: NextRequest) {
     
     let { projectId, prompt, type = "web", provider = "deepseek", skipResearch = false } = body;
 
+    // Auto-detect platform from prompt keywords
+    if (type === "web" && prompt) {
+      const p = prompt.toLowerCase();
+      if (p.includes('apex') || p.includes('oracle') || p.includes('boostr') || p.includes('pl/sql') || p.includes('plsql')) {
+        type = 'apex';
+      }
+    }
+
     // If projectId provided but no prompt, look up project description
     if (!prompt && projectId) {
       const existingProject = await db.select().from(projects).where(eq(projects.id, projectId)).get();

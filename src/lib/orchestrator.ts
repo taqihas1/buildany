@@ -16,6 +16,13 @@ import { discoverServices, getCatalog, reviewFile, isServiceAvailable, getKellyC
 import { db } from "@/lib/db";
 import { llmRouter, getSystemPromptForType, parseGeneratedCode } from "@/lib/llm-router";
 import { buildEnhancedSystemPrompt, getAvailableSkillsDebug } from "@/lib/skill-loader";
+import {
+  generateBoostrSchema,
+  generateBoostrSyncPackage,
+  generateBoostrApexApp,
+  generateBoostrReadme,
+  getBoostrTemplateFiles,
+} from "@/lib/apex-templates";
 import { projects, projectFiles, tasks, agents, conversations, wikiPages, codeReviews } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 
@@ -2234,7 +2241,8 @@ ${this.state.learningContext.complexity}
   }
 
   private inferProjectType(prompt: string): string {
-    if (prompt.includes('apex') || prompt.includes('oracle')) {
+    const p = prompt.toLowerCase();
+    if (p.includes('apex') || p.includes('oracle') || p.includes('boostr')) {
       return 'apex';
     }
     if (prompt.includes('mobile') || prompt.includes('app') || prompt.includes('ios') || prompt.includes('android')) {
@@ -2313,8 +2321,27 @@ ${this.state.learningContext.complexity}
       const projectDir = path.join(PROJECTS_DIR, this.state.projectId);
       await fs.mkdir(projectDir, { recursive: true });
       
-      // Generate APEX app metadata + database schema using LLM
-      const apexPrompt = `You are an Oracle APEX expert. Generate a complete APEX application for:
+      const promptLower = this.state.prompt.toLowerCase();
+      const isBoostr = promptLower.includes('boostr') || promptLower.includes('crm sync') || promptLower.includes('customer invoice integration');
+      
+      let parsedFiles: Array<{path: string, content: string, language: string}> = [];
+      
+      if (isBoostr) {
+        // ─── BOOSTR CRM SYNC: Use pre-built template ───
+        this.onStatusUpdate('🚀 Using Boostr CRM Sync template...');
+        console.log('[Kelly] Using Boostr CRM template for APEX generation');
+        
+        const templateFiles = getBoostrTemplateFiles(this.state.prompt, this.state.projectId);
+        parsedFiles = templateFiles.map(f => ({
+          path: f.path,
+          content: f.content,
+          language: f.path.endsWith('.md') ? 'markdown' : 'sql',
+        }));
+        
+        console.log(`[Kelly] Boostr template loaded: ${parsedFiles.length} files`);
+      } else {
+        // ─── GENERIC APEX: Use LLM generation ───
+        const apexPrompt = `You are an Oracle APEX expert. Generate a complete APEX application for:
 
 ${this.state.prompt}
 
@@ -2343,37 +2370,38 @@ Example:
 CREATE TABLE ...
 \`\`\``;
 
-      const apexResult = await llmRouter.generate({
-        prompt: apexPrompt,
-        systemPrompt: `You are an Oracle APEX 23.x expert. Generate production-ready APEX application exports and Oracle database schemas. Follow Oracle naming conventions, use APEX built-in themes, and ensure all SQL is compatible with Oracle 19c+.` ,
-        provider: 'deepseek',
-        temperature: 0.5,
-        maxTokens: 6000,
-      });
-      
-      if (!apexResult.success || !apexResult.content) {
-        await this.updateTaskStatus('Architecture', 'failed');
-        return {
-          phase: 'coding',
-          success: false,
-          message: 'APEX generation failed — no content from LLM',
-          timestamp: Date.now(),
-        };
+        const apexResult = await llmRouter.generate({
+          prompt: apexPrompt,
+          systemPrompt: `You are an Oracle APEX 23.x expert. Generate production-ready APEX application exports and Oracle database schemas. Follow Oracle naming conventions, use APEX built-in themes, and ensure all SQL is compatible with Oracle 19c+.` ,
+          provider: 'deepseek',
+          temperature: 0.5,
+          maxTokens: 6000,
+        });
+        
+        if (!apexResult.success || !apexResult.content) {
+          await this.updateTaskStatus('Architecture', 'failed');
+          return {
+            phase: 'coding',
+            success: false,
+            message: 'APEX generation failed — no content from LLM',
+            timestamp: Date.now(),
+          };
+        }
+        
+        parsedFiles = parseGeneratedCode(apexResult.content);
+        
+        if (parsedFiles.length === 0) {
+          await this.updateTaskStatus('Architecture', 'failed');
+          return {
+            phase: 'coding',
+            success: false,
+            message: 'APEX generation failed — could not parse files',
+            timestamp: Date.now(),
+          };
+        }
+        
+        console.log(`[Kelly] APEX generation complete: ${parsedFiles.length} files`);
       }
-      
-      const parsedFiles = parseGeneratedCode(apexResult.content);
-      
-      if (parsedFiles.length === 0) {
-        await this.updateTaskStatus('Architecture', 'failed');
-        return {
-          phase: 'coding',
-          success: false,
-          message: 'APEX generation failed — could not parse files',
-          timestamp: Date.now(),
-        };
-      }
-      
-      console.log(`[Kelly] APEX generation complete: ${parsedFiles.length} files`);
       
       // Delete old files
       try {
@@ -2415,7 +2443,9 @@ CREATE TABLE ...
         projectId: this.state.projectId,
         generatedAt: new Date().toISOString(),
         files: parsedFiles.map(f => f.path),
-        instructions: '1. Run database/schema.sql in SQL Workshop. 2. Import apex/app_export.sql into your APEX workspace. 3. See README.md for full details.',
+        instructions: isBoostr
+          ? '1. Run database/schema.sql in SQL Workshop. 2. Run database/boostr_sync_pkg.sql to create sync package. 3. Import apex/app_export.sql into your APEX workspace. 4. See README.md for Boostr configuration.'
+          : '1. Run database/schema.sql in SQL Workshop. 2. Import apex/app_export.sql into your APEX workspace. 3. See README.md for full details.',
       }, null, 2);
       
       await fs.writeFile(
