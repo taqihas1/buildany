@@ -120,22 +120,6 @@ async function handleBuildComplete(state: BuildWatcherState): Promise<void> {
     console.error("[BuildWatcher] Failed to update project status:", err);
   }
 
-  // Count files by type
-  const fileTypes = countFileTypes(projectDir);
-
-  // Final status message
-  const message = `✅ **Code generation complete!**\n\n` +
-    `📊 **Stats:**\n` +
-    `- Total files: ${fileCount}\n` +
-    `- TypeScript/TSX: ${fileTypes.typescript || 0}\n` +
-    `- Components: ${fileTypes.components || 0}\n` +
-    `- Configuration: ${fileTypes.config || 0}\n\n` +
-    `💡 **Next steps:**\n` +
-    `- Click **Deploy** to push to GitHub + Cloudflare\n` +
-    `- Or ask me to make changes (e.g., "make the header blue")`;
-
-  await addChatMessage(projectId, "assistant", message);
-
   console.log(`[BuildWatcher] ✅ Project ${projectId} complete: ${fileCount} files`);
 }
 

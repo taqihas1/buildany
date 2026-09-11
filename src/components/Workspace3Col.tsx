@@ -162,7 +162,7 @@ export function Workspace3Col({ project, initialFiles, initialChat, user }: Work
     if (!userPrompt) return;
     hasAutoBuilt.current = true;
     (async () => {
-      // Don't add initial "building" message — progress messages will appear via polling
+      setMessages(prev => [...prev, { id: Date.now().toString(), role: "system", content: "🚀 Jason is building your app..." }]);
       setBuildStatus("generating");
       try {
         const res = await fetch("/api/harness/build", {
