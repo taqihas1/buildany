@@ -496,15 +496,14 @@ export function AIChatPanel({
         if (cancelled) return;
 
         setMessages((prev) => {
-          // Get current non-system message IDs to compare
-          const prevIds = new Set(prev.map((m) => m.id));
-          
-          // Map API messages to our format
+          // Build a dedup key from role+content for every message already in state
+          const existingKeys = new Set(prev.map((m) => `${m.role}-${m.content}`));
+
+          // Map API messages to our format, skipping any already shown
           const newMessages: Message[] = data.messages
             .filter((raw: RawMessage) => {
-              // Skip already-known messages (by content+role match since API may not have IDs)
               const key = `${raw.role}-${raw.content}`;
-              return !prevIds.has(key) && raw.content?.trim();
+              return !existingKeys.has(key) && raw.content?.trim();
             })
             .map((raw: RawMessage) => {
               const key = `${raw.role}-${raw.content}`;
@@ -518,9 +517,8 @@ export function AIChatPanel({
 
           if (newMessages.length === 0) return prev;
 
-          // Merge: keep our local state but append new messages
-          const merged = [...prev, ...newMessages];
-          return merged;
+          // Merge: keep our local state but append only genuinely new messages
+          return [...prev, ...newMessages];
         });
       } catch (err) {
         // Silently ignore polling errors
