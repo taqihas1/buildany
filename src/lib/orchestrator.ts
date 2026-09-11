@@ -745,6 +745,13 @@ export class KellyOrchestrator {
     const startTime = Date.now();
     
     try {
+      // ─── APEX PLATFORM: Route to APEX generator FIRST ───
+      // Must check before modification detection because project templates
+      // may have pre-existing src/ files that would trigger incremental mode
+      if (this.state.platform === 'apex') {
+        return await this.generateApexApp();
+      }
+      
       // ─── CHECK: Is this a modification or initial generation? ───
       const _projectDir = path.join(PROJECTS_DIR, this.state.projectId);
       const existingFiles: Array<{path: string, content: string}> = [];
@@ -775,11 +782,6 @@ export class KellyOrchestrator {
       if (isModification) {
         console.log(`[Kelly] Modification detected: ${existingFiles.length} existing files. Using incremental mode.`);
         return await this.executeIncrementalUpdate(existingFiles);
-      }
-      
-      // ─── APEX PLATFORM: Route to APEX generator ───
-      if (this.state.platform === 'apex') {
-        return await this.generateApexApp();
       }
       
       // Update task statuses for code generation tasks
